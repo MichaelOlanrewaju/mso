@@ -237,7 +237,7 @@ h1{
 <div class="wrap">
 
   <div class="top-logo fu1">
-    <img src="icons/icon.png" alt="MSO Limpid Co. Ltd"/>
+      <img src="images/msolimpid.png" alt="MSO Limpid" style="height:36px;width:auto;display:block;"/>
   </div>
 
   <div class="welcome fu1" id="welcomeMsg">Welcome back</div>
@@ -335,9 +335,7 @@ var user = JSON.parse(sessionStorage.getItem('mso_u') || 'null');
 if (!user) window.location.replace('login.html');
 
 /* ── Welcome message ── */
-if (user) {
-  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + (user.name || user.u);
-}
+document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + user.name.split(' ')[0];
 
 /* ── DateTime ── */
 function updateTime() {
@@ -369,7 +367,6 @@ if (SCRIPT_URL !== 'YOUR_DEPLOYED_WEBAPP_URL') {
   })
   .catch(function(){});
 } else {
-  /* Placeholder until API is live */
   document.getElementById('mso-rev').textContent = '₦—';
   document.getElementById('mso-vol').textContent = '—';
   document.getElementById('mrs-rev').textContent = '₦—';
@@ -378,10 +375,8 @@ if (SCRIPT_URL !== 'YOUR_DEPLOYED_WEBAPP_URL') {
 
 /* ── Navigate ── */
 function goTo(station) {
-  if (user) {
-    user.station = station;
-    sessionStorage.setItem('mso_u', JSON.stringify(user));
-  }
+  user.station = station;
+  sessionStorage.setItem('mso_u', JSON.stringify(user));
   window.location.href = 'dashboard-' + station + '.html';
 }
 
@@ -389,10 +384,6 @@ function goTo(station) {
 function logout() {
   sessionStorage.clear();
   window.location.replace('login.html');
-}
-
-/* ── SW ── */
-/* SW registered by pwa-core.js */);
 }
 </script>
 

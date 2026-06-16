@@ -42,6 +42,7 @@ body {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 :root {
   --cyan:         #179DD0;
+  --cyan-d:       #1188B5;
   --cyan-light:   #3BB8E8;
   --cyan-glow:    rgba(23,157,208,.18);
   --amber:        #F59E0B;
@@ -83,9 +84,9 @@ body {
 .slide.active .slide-photo { transform: scale(1); }
 
 /* Use your local images */
-.slide:nth-child(1) .slide-photo { background-image: url('images/KM14.jpeg'); }
-.slide:nth-child(2) .slide-photo { background-image: url('images/KM14.jpeg'); }
-.slide:nth-child(3) .slide-photo { background-image: url('images/KM1_1074 copy.jpg.jpeg'); }
+.slide:nth-child(3) .slide-photo { background-image: url('images/KM1_1031.jpeg'); }
+.slide:nth-child(4) .slide-photo { background-image: url('images/_KM12485 copy.jpg.jpeg'); }
+.slide:nth-child(5) .slide-photo { background-image: url('images/KM1_1307.jpeg'); }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    OVERLAYS — light and precise, let the photo breathe
@@ -397,6 +398,46 @@ body {
 }
 .link-general:hover { color: rgba(255,255,255,.60); }
 
+/* ── CTA button ── */
+.btn-cta {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  width: 100%; height: 54px; border-radius: 15px;
+  background: var(--cyan);
+  border: none; text-decoration: none; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px; font-weight: 800; color: #fff;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 22px rgba(23,157,208,.42);
+  transition: background .2s, transform .2s, box-shadow .2s;
+  margin-bottom: 12px;
+}
+.btn-cta::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.14) 0%, transparent 55%);
+  pointer-events: none;
+}
+.btn-cta:hover { background: #1188B5; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(23,157,208,.50); }
+.btn-cta:active { transform: scale(.97); }
+.btn-cta-icon {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.20);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: transform .2s;
+}
+.btn-cta:hover .btn-cta-icon { transform: translateX(2px); }
+
+/* Sub sign-in link */
+.link-signin {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,.30);
+  text-decoration: none;
+  transition: color .18s;
+}
+.link-signin:hover { color: rgba(255,255,255,.60); }
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    PWA INSTALL STRIP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -510,6 +551,63 @@ body {
   .swipe-hint { display: none; }
 }
 
+
+/* ── Single CTA button ── */
+.btn-cta {
+  display: flex; align-items: center; justify-content: center;
+  gap: 11px; width: 100%; height: 52px;
+  background: var(--cyan);
+  border-radius: 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px; font-weight: 800; color: #fff;
+  text-decoration: none;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(23,157,208,.42), inset 0 1px 0 rgba(255,255,255,.14);
+  transition: background .2s, transform .2s, box-shadow .2s;
+}
+.btn-cta::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(155deg, rgba(255,255,255,.12) 0%, transparent 50%);
+  pointer-events: none;
+}
+.btn-cta:hover {
+  background: var(--cyan-d);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(23,157,208,.50), inset 0 1px 0 rgba(255,255,255,.14);
+}
+.btn-cta:active { transform: scale(.97); }
+.btn-cta-arrow {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.20);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  transition: transform .18s;
+}
+.btn-cta:hover .btn-cta-arrow { transform: translateX(3px); }
+
+/* ── Status line ── */
+.status-line {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 14px;
+  flex-wrap: wrap;
+}
+.status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600;
+  color: rgba(255,255,255,.48);
+}
+.stn-live-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(34,197,94,.7);
+}
+.mrs-d {
+  background: #F59E0B;
+  box-shadow: 0 0 6px rgba(245,158,11,.7);
+}
+.status-sep { color: rgba(255,255,255,.18); font-size: 11px; }
+.status-txt { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.28); }
+
 </style>
 </head>
 <body>
@@ -525,9 +623,9 @@ body {
   <!-- Topbar -->
   <header class="topbar">
     <div class="tb-brand">
-      <div class="tb-logobox"><img src="icons/icon.png" alt="MSO Limpid"/></div>
+      <img src="images/msolimpid.png" alt="MSO Limpid" style="height:36px;width:auto;display:block;"/>
       <div>
-        <div class="tb-name">MSO Digital</div>
+        <div class="tb-name">Digital</div>
         <div class="tb-tag">Operations Portal</div>
       </div>
     </div>
@@ -551,6 +649,7 @@ body {
       </div>
     </div>
   </div>
+  
 
   <!-- SLIDE 2 -->
   <div class="slide">
@@ -558,8 +657,8 @@ body {
     <div class="slide-content">
       <div class="sc-inner">
         <div class="sc-eyebrow">
-          <span class="sc-counter">02 / 03</span>
-          <span class="sc-rule"></span>
+          
+    
         </div>
         <div class="sc-tag"><span class="sc-live-dot"></span>Live Sales &amp; Tank Tracking</div>
         <h1 class="sc-h">Two stations.<br/><span class="accent">One platform.</span></h1>
@@ -622,40 +721,27 @@ body {
       <div class="dot"    onclick="goTo(2)" aria-label="Slide 3"></div>
     </div>
 
-    <!-- Station cards -->
-    <div class="station-cards">
-
-      <a class="stn-card mso" href="login.html?station=mso">
-        <div class="stn-icon"><i class="bi bi-fuel-pump-fill"></i></div>
-        <div class="stn-body">
-          <div class="stn-name">MSO Limpid Co. Ltd</div>
-          <div class="stn-meta">
-            <div class="stn-live"><span class="stn-live-dot"></span>Live</div>
-            <span class="stn-badge">Mobil Authorised</span>
-          </div>
-        </div>
-        <div class="stn-arrow"><i class="bi bi-arrow-right"></i></div>
-      </a>
-
-      <a class="stn-card mrs" href="login.html?station=mrs">
-        <div class="stn-icon"><i class="bi bi-shop-window"></i></div>
-        <div class="stn-body">
-          <div class="stn-name">M&amp;M Oil &amp; Gas Ltd</div>
-          <div class="stn-meta">
-            <div class="stn-live"><span class="stn-live-dot"></span>Live</div>
-            <span class="stn-badge">MRS Station</span>
-          </div>
-        </div>
-        <div class="stn-arrow"><i class="bi bi-arrow-right"></i></div>
-      </a>
-
-    </div>
-
-    <!-- General login -->
-    <a class="link-general" href="login.html">
-      <i class="bi bi-lock" style="font-size:12px"></i>
-      General Login
+    <!-- Single CTA -->
+    <a class="btn-cta" href="login.html">
+      <i class="bi bi-box-arrow-in-right"></i>
+      Get Started
+      <div class="btn-cta-arrow"><i class="bi bi-arrow-right"></i></div>
     </a>
+
+    <!-- Live status line -->
+    <div class="status-line">
+      <span class="status-pill mso-pill">
+        <span class="stn-live-dot"></span>
+        MSO Limpid
+      </span>
+      <span class="status-sep">·</span>
+      <span class="status-pill mrs-pill">
+        <span class="stn-live-dot mrs-d"></span>
+        M&amp;M Oil &amp; Gas
+      </span>
+      <span class="status-sep">·</span>
+      <span class="status-txt">Both stations live</span>
+    </div>
 
   </div>
 
