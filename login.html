@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Syne:wght@800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
 <title>Sign In — MSO Digital</title>
+<script src="mso-auth.js"></script>
 <style>
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -408,7 +409,7 @@ a{text-decoration:none}
 
 <script>
 /* ── Config ── */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGYrd146mi2IZ4EhIlkHDi-k61zdeJfyRDweft-tNm0K2SEqQIaE0XGTGk8ueTwnz2/exec';
 
 /* ── Elements ── */
 const inpUser   = document.getElementById('inp-user');
@@ -424,12 +425,10 @@ const alertNet  = document.getElementById('alertNet');
 const successRow= document.getElementById('success-row');
 const successTxt= document.getElementById('success-txt');
 
-/* ── Auth check ── */
+/* ── Auth check — skip login if already signed in ── */
 (function(){
-  try{
-    var s=JSON.parse(sessionStorage.getItem('mso_u')||'null');
-    if(s) route(s);
-  }catch(_){}
+  var s = MSO_AUTH.get();
+  if (s) MSO_AUTH.route(s);
 }());
 
 /* ── Password toggle ── */
@@ -464,11 +463,7 @@ function setLoading(on){
   submitBtn.classList.toggle('loading', on);
 }
 
-function route(s){
-  window.location.href = (s.pick||!s.station)
-    ? 'select.html'
-    : 'dashboard-'+s.station+'.html';
-}
+function route(s){ MSO_AUTH.route(s); }
 
 /* ── Submit ── */
 async function submit(){
@@ -521,7 +516,7 @@ async function submit(){
       return;
     }
 
-    sessionStorage.setItem('mso_u', JSON.stringify(data.user));
+    MSO_AUTH.save(data.user);
     successTxt.textContent = data.user.pick
       ? 'Authenticated — select your station…'
       : 'Loading ' + (data.user.station || '').toUpperCase() + ' dashboard…';

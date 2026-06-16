@@ -7,278 +7,332 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icons/icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Syne:wght@800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
 <title>Dashboard — MSO Limpid</title>
 <style>
+:root {
+  --cyan:#179DD0; --cyan-d:#1188B5; --cyan-ll:#EAF6FC;
+  --navy:#06091A; --navy-2:#0D1226; --navy-3:#141935;
+  --green:#16A34A; --green-l:#F0FDF4;
+  --amber:#D97706; --amber-l:#FFFBEB;
+  --red:#DC2626; --red-l:#FEF2F2;
+  --ink:#0F172A; --ink-2:#334155; --ink-3:#64748B; --ink-4:#94A3B8;
+  --border:#E8EDF5; --surface:#F8FAFC; --page-bg:#F1F5FB;
+  --sb-w:256px; --tb-h:60px; --bn-h:64px;
+  --mono:'JetBrains Mono',monospace;
+  --sh-card:0 1px 3px rgba(15,23,42,.05),0 4px 16px rgba(15,23,42,.07);
+  --sh-lift:0 8px 28px rgba(15,23,42,.12);
+  --radius:14px;
+  /* PWA safe areas */
+  --sat:env(safe-area-inset-top);
+  --sab:env(safe-area-inset-bottom);
+  --sal:env(safe-area-inset-left);
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:14px;-webkit-text-size-adjust:100%}
-body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:#F2F5FA;color:#0F172A;overflow-x:hidden;min-height:100vh}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:var(--page-bg);color:var(--ink);overflow-x:hidden;min-height:100vh;min-height:100dvh}
 a{text-decoration:none;color:inherit}
-button{cursor:pointer;font-family:inherit;border:none;background:none}
-img{display:block}
-:root{
-  --cyan:#179DD0;--cyan-d:#1188B5;--cyan-l:#EAF6FC;
-  --navy:#06091A;--navy-2:#0B0F1C;--navy-l:#EEF0FB;
-  --green:#16A34A;--green-l:#F0FDF4;--green-b:#BBF7D0;
-  --amber:#B45309;--amber-l:#FFFBEB;--amber-b:#FDE68A;
-  --red:#DC2626;--red-l:#FEF2F2;--red-b:#FECACA;
-  --purple:#6D28D9;--purple-l:#F5F3FF;--purple-b:#DDD6FE;
-  --ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;
-  --border:#E8EDF5;--surface:#F8FAFC;
-  --sb-w:248px;--tb-h:58px;--bn-h:62px;
-  --sh:0 1px 2px rgba(15,23,42,.04),0 3px 12px rgba(15,23,42,.06);
-  --sh2:0 4px 20px rgba(15,23,42,.1);
-  --mono:'JetBrains Mono',monospace;
-}
-.app{display:flex;min-height:100vh}
-.main{flex:1;display:flex;flex-direction:column;min-width:0;margin-left:var(--sb-w);transition:margin-left .24s cubic-bezier(.4,0,.2,1)}
+button{cursor:pointer;font-family:inherit}
+.mono{font-family:var(--mono)}
+
+/* ── LAYOUT ── */
+.app-shell{display:flex;min-height:100vh;min-height:100dvh}
+.main-area{flex:1;display:flex;flex-direction:column;min-width:0;margin-left:var(--sb-w);transition:margin-left .22s ease}
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sb-w);position:fixed;top:0;left:0;bottom:0;background:var(--navy);display:flex;flex-direction:column;z-index:500;overflow:hidden;transition:transform .24s cubic-bezier(.4,0,.2,1)}
-.sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:22px 22px}
-.sidebar::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;z-index:1;background:linear-gradient(to bottom,transparent,var(--cyan) 20%,var(--cyan) 80%,transparent);opacity:.55}
-.sb-brand{padding:18px 16px 14px;border-bottom:.5px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:11px;flex-shrink:0;position:relative;z-index:2}
-.sb-logobox{width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.09);border:.5px solid rgba(255,255,255,.14);padding:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.sidebar{
+  width:var(--sb-w);
+  position:fixed;top:0;left:0;bottom:0;
+  /* PWA: push content below status bar */
+  padding-top:var(--sat);
+  padding-left:var(--sal);
+  background:var(--navy);
+  display:flex;flex-direction:column;
+  z-index:1050;overflow:hidden;
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px);background-size:20px 20px}
+.sidebar::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,transparent,var(--cyan) 18%,var(--cyan) 82%,transparent);opacity:.6}
+
+.sb-brand{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;flex-shrink:0;position:relative;z-index:2}
+.sb-logobox{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
 .sb-logobox img{width:100%;height:100%;object-fit:contain}
-.sb-bname{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.2}
-.sb-bsub{font-size:8.5px;color:rgba(255,255,255,.28);letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
-.sb-station{margin:10px 12px 4px;padding:9px 12px;background:rgba(23,157,208,.1);border:.5px solid rgba(23,157,208,.28);border-radius:10px;display:flex;align-items:center;gap:9px;flex-shrink:0;position:relative;z-index:2}
-.live-dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;flex-shrink:0;box-shadow:0 0 0 3px rgba(74,222,128,.18);animation:ld 2.2s ease-in-out infinite}
-@keyframes ld{0%,100%{box-shadow:0 0 0 3px rgba(74,222,128,.18)}50%{box-shadow:0 0 0 6px rgba(74,222,128,.05)}}
-.sb-sname{font-size:11.5px;font-weight:700;color:var(--cyan)}
-.sb-ssub{font-size:9px;color:rgba(255,255,255,.30);margin-top:1.5px}
+.sb-logobox-fallback{font-size:16px;font-weight:900;color:var(--cyan);font-family:var(--mono);display:none}
+.sb-bname{font-size:13.5px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.2}
+.sb-bsub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.7px;text-transform:uppercase;margin-top:2px}
+
+.sb-station{margin:10px 12px 4px;padding:9px 12px;background:rgba(23,157,208,.09);border:1px solid rgba(23,157,208,.22);border-radius:10px;display:flex;align-items:center;gap:9px;flex-shrink:0;position:relative;z-index:2}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;flex-shrink:0;box-shadow:0 0 0 3px rgba(74,222,128,.2);animation:pulse-dot 2.2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 3px rgba(74,222,128,.2)}50%{box-shadow:0 0 0 6px rgba(74,222,128,.05)}}
+.sb-sname{font-size:11.5px;font-weight:700;color:var(--cyan);line-height:1.2}
+.sb-ssub{font-size:9px;color:rgba(255,255,255,.28);margin-top:2px}
+
 .sb-nav{flex:1;overflow-y:auto;padding:6px 10px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.07) transparent;position:relative;z-index:2}
 .sb-nav::-webkit-scrollbar{width:2px}
-.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.09);border-radius:2px}
-.sb-sec{display:block;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.2);padding:13px 8px 4px}
-.sb-lnk{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:500;color:rgba(255,255,255,.45);transition:all .13s;margin-bottom:1px;position:relative;border:.5px solid transparent}
-.sb-lnk i{font-size:15px;width:17px;flex-shrink:0;opacity:.55;transition:opacity .13s}
-.sb-lnk:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
-.sb-lnk:hover i{opacity:1}
-.sb-lnk.on{background:rgba(23,157,208,.12);color:#fff;font-weight:700;border-color:rgba(23,157,208,.22)}
-.sb-lnk.on i{opacity:1;color:var(--cyan)}
-.sb-lnk.on::before{content:'';position:absolute;left:-10px;top:20%;bottom:20%;width:2.5px;border-radius:0 2px 2px 0;background:var(--cyan)}
-.sb-foot{padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:.5px solid rgba(255,255,255,.07);flex-shrink:0;position:relative;z-index:2}
-.sb-user{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.09);border-radius:10px;padding:9px 11px;margin-bottom:8px}
-.sb-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--cyan-d),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.sb-sec{display:block;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 8px 5px}
+.sb-lnk{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:500;color:rgba(255,255,255,.42);transition:all .12s;margin-bottom:1px;border:1px solid transparent;position:relative}
+.sb-lnk i{font-size:15px;width:18px;flex-shrink:0;opacity:.5;transition:opacity .12s}
+.sb-lnk:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.82)}
+.sb-lnk:hover i{opacity:.9}
+.sb-lnk.active{background:rgba(23,157,208,.12);color:#fff;font-weight:700;border-color:rgba(23,157,208,.22)}
+.sb-lnk.active i{opacity:1;color:var(--cyan)}
+.sb-lnk.active::before{content:'';position:absolute;left:-10px;top:20%;bottom:20%;width:2.5px;border-radius:0 2px 2px 0;background:var(--cyan)}
+
+.sb-foot{padding:10px 12px calc(10px + var(--sab));border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;position:relative;z-index:2}
+.sb-user{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 11px;margin-bottom:8px}
+.sb-av{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--cyan-d),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
 .sb-uname{font-size:12px;font-weight:700;color:#fff;line-height:1.2}
-.sb-urole{font-size:9.5px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:capitalize}
-.btn-logout{width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.09);color:rgba(255,255,255,.4);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .14s}
+.sb-urole{font-size:9.5px;color:rgba(255,255,255,.32);margin-top:2px;text-transform:capitalize}
+.btn-logout{width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.38);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .13s}
 .btn-logout:hover{background:rgba(220,38,38,.12);color:#FCA5A5;border-color:rgba(220,38,38,.22)}
-#sbOverlay{display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
-#sbOverlay.on{display:block}
+
+#sbOverlay{display:none;position:fixed;inset:0;z-index:1049;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
+#sbOverlay.show{display:block}
 
 /* ── TOPBAR ── */
-.topbar{height:var(--tb-h);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:400;box-shadow:0 1px 3px rgba(0,0,0,.04);flex-shrink:0}
+/* PWA FIX: push topbar content below the phone status bar */
+.topbar{
+  padding-top:calc(var(--sat) + 10px);
+  padding-bottom:10px;
+  padding-left:22px;
+  padding-right:22px;
+  min-height:calc(var(--tb-h) + var(--sat));
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:900;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+  flex-shrink:0;
+}
 .tb-left{display:flex;align-items:center;gap:14px}
-.tb-hamburger{display:none;width:36px;height:36px;border-radius:9px;align-items:center;justify-content:center;font-size:18px;background:var(--surface);border:1px solid var(--border);color:var(--navy);transition:all .13s;flex-shrink:0}
-.tb-hamburger:hover{background:var(--cyan-l);border-color:rgba(23,157,208,.3)}
-.tb-title{font-size:17px;font-weight:800;color:var(--navy);letter-spacing:-.03em}
-.tb-date{font-size:10.5px;color:var(--ink-4);margin-top:2px}
+.tb-hamburger{
+  display:none;
+  width:38px;height:38px;
+  border-radius:9px;
+  align-items:center;justify-content:center;
+  font-size:20px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--navy);
+  transition:all .13s;
+  flex-shrink:0;
+  /* critical — must be a real button element, not relying on BS reset */
+  appearance:none;-webkit-appearance:none;
+}
+.tb-hamburger:hover,.tb-hamburger.is-open{background:var(--cyan-ll);border-color:rgba(23,157,208,.3);color:var(--cyan-d)}
+.tb-title{font-size:17px;font-weight:800;color:var(--navy);letter-spacing:-.03em;line-height:1.1}
+.tb-sub{font-size:10.5px;color:var(--ink-4);margin-top:1px}
 .tb-right{display:flex;align-items:center;gap:8px}
 .tb-chip{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:5px 12px;font-size:11px;font-weight:700;white-space:nowrap}
-.chip-stn{background:var(--navy-l);color:var(--navy);border:.5px solid rgba(19,6,86,.12)}
-.chip-live{background:var(--green-l);color:var(--green);border:.5px solid var(--green-b)}
-.chip-live .ld2{width:6px;height:6px;border-radius:50%;background:var(--green);animation:ld 2.2s infinite}
-.tb-clock{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 11px}
-.tb-bell{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink-3);transition:all .13s;position:relative}
-.tb-bell:hover{background:var(--cyan-l);border-color:rgba(23,157,208,.3);color:var(--cyan)}
-.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid #fff}
+.chip-stn{background:#EEF0FB;color:var(--navy);border:1px solid rgba(6,9,26,.1)}
+.chip-live{background:var(--green-l);color:var(--green);border:1px solid #BBF7D0}
+.chip-live .dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2.2s infinite}
+.tb-clock{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 11px;letter-spacing:.02em}
+.tb-icon-btn{width:38px;height:38px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink-3);transition:all .13s;position:relative;appearance:none;-webkit-appearance:none}
+.tb-icon-btn:hover{background:var(--cyan-ll);border-color:rgba(23,157,208,.3);color:var(--cyan)}
+.bell-badge{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #fff}
+.data-status{display:none;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--cyan)}
+.data-status.show{display:flex}
+.data-spinner{width:14px;height:14px;border:2px solid rgba(23,157,208,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── BODY ── */
-.body{padding:20px;flex:1}
-.admin-banner{display:none;align-items:center;gap:10px;padding:10px 16px;margin-bottom:18px;background:var(--cyan-l);border:1px solid rgba(23,157,208,.2);border-radius:11px;font-size:12.5px;font-weight:500;color:#0B5874}
+/* ── PAGE BODY ── */
+.page-body{padding:22px;flex:1}
+.admin-banner{display:none;align-items:center;gap:10px;padding:11px 16px;margin-bottom:18px;background:var(--cyan-ll);border:1px solid rgba(23,157,208,.2);border-radius:11px;font-size:12.5px;font-weight:500;color:#0B5874}
+.section-label{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-4);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
 
 /* ── KPI ── */
-.kpi-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px}
-.kpi{background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh);padding:18px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s}
-.kpi:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
-.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0}
-.kpi-c::after{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
-.kpi-g::after{background:linear-gradient(90deg,#059669,#34D399)}
-.kpi-a::after{background:linear-gradient(90deg,#92400E,#F59E0B)}
-.kpi-r::after{background:linear-gradient(90deg,#991B1B,#F87171)}
+.kpi-grid{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.kpi-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--sh-card);padding:18px 20px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--sh-lift)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.kpi-cyan::before{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
+.kpi-green::before{background:linear-gradient(90deg,#059669,#34D399)}
+.kpi-amber::before{background:linear-gradient(90deg,#B45309,#F59E0B)}
+.kpi-red::before{background:linear-gradient(90deg,#991B1B,#F87171)}
 .kpi-hero{background:var(--navy);border-color:var(--navy)}
-.kpi-hero::after{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
-.kpi-hero::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px}
-.kpi-hero .kpi-lbl{color:rgba(255,255,255,.4)}
-.kpi-hero .kpi-val{color:#fff;font-size:26px}
-.kpi-hero .kpi-sub{color:rgba(255,255,255,.35)}
+.kpi-hero::before{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
+.kpi-hero::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px);background-size:18px 18px}
 .kpi-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:14px}
-.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-4);margin-bottom:6px}
-.kpi-val{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:8px;letter-spacing:-.02em}
-.kpi-sub{font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:5px}
-.badge-up{background:var(--green-l);color:var(--green);font-size:10px;font-weight:700;border-radius:99px;padding:2px 7px}
-.badge-dn{background:var(--red-l);color:var(--red);font-size:10px;font-weight:700;border-radius:99px;padding:2px 7px}
-.badge-fl{background:var(--surface);color:var(--ink-3);font-size:10px;font-weight:700;border-radius:99px;padding:2px 7px}
+.kpi-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-4);margin-bottom:5px}
+.kpi-hero .kpi-label{color:rgba(255,255,255,.38)}
+.kpi-val{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:8px;letter-spacing:-.02em}
+.kpi-hero .kpi-val{color:#fff;font-size:26px}
+.kpi-foot{font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:5px}
+.kpi-hero .kpi-foot{color:rgba(255,255,255,.32)}
+.badge-up{background:var(--green-l);color:var(--green);border-radius:99px;padding:2px 7px;font-size:10px;font-weight:700}
+.badge-dn{background:var(--red-l);color:var(--red);border-radius:99px;padding:2px 7px;font-size:10px;font-weight:700}
+.badge-neu{background:var(--surface);color:var(--ink-3);border-radius:99px;padding:2px 7px;font-size:10px;font-weight:700}
+.skel{border-radius:6px;background:linear-gradient(90deg,#e8edf5 25%,#f0f4f8 50%,#e8edf5 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+.kpi-hero .skel{background:linear-gradient(90deg,rgba(255,255,255,.08) 25%,rgba(255,255,255,.14) 50%,rgba(255,255,255,.08) 75%);background-size:200% 100%}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* ── CARDS ── */
-.card{background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh);overflow:hidden}
-.card-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--surface)}
-.card-title{font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
-.card-sub{font-size:10.5px;color:var(--ink-4);margin-top:3px}
-.card-body{padding:16px 18px}
-.grid-3{display:grid;grid-template-columns:1.7fr 1fr 1.1fr;gap:14px;margin-bottom:16px}
-.grid-2r{display:grid;grid-template-columns:1fr 1.65fr;gap:14px;margin-bottom:16px}
-.grid-2l{display:grid;grid-template-columns:1.7fr 1fr;gap:14px}
-
-/* ── TABLE ── */
+/* ── CARD ── */
+.card-pro{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--sh-card);overflow:hidden;height:100%}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--surface);gap:10px}
+.card-ttl{font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.card-dsc{font-size:10.5px;color:var(--ink-4);margin-top:2px}
+.card-bd{padding:16px 18px}
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.p-cyan{background:var(--cyan-ll);color:var(--cyan-d);border:1px solid rgba(23,157,208,.2)}
+.p-green{background:var(--green-l);color:var(--green);border:1px solid #BBF7D0}
+.p-amber{background:var(--amber-l);color:var(--amber);border:1px solid #FDE68A}
+.p-red{background:var(--red-l);color:var(--red);border:1px solid #FECACA}
+.p-navy{background:#EEF0FB;color:var(--navy);border:1px solid rgba(6,9,26,.1)}
+.p-gray{background:var(--surface);color:var(--ink-3);border:1px solid var(--border)}
+.btn-xs{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#fff;color:var(--ink-2);border:1px solid var(--border);transition:all .13s}
+.btn-xs:hover{background:var(--cyan-ll);border-color:rgba(23,157,208,.3);color:var(--navy)}
+.card-link{font-size:11.5px;font-weight:600;color:var(--cyan);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:gap .13s;flex-shrink:0}
+.card-link:hover{gap:8px}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tbl{width:100%;border-collapse:collapse}
-.tbl thead th{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-4);padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-.tbl tbody td{font-size:12.5px;padding:10px 16px;border-bottom:1px solid var(--surface);color:var(--ink-2);vertical-align:middle}
-.tbl tbody tr:last-child td{border:none}
-.tbl tbody tr:hover td{background:#FAFBFD}
-
-/* ── PILLS ── */
-.pill{display:inline-flex;align-items:center;border-radius:99px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap}
-.p-cyan  {background:var(--cyan-l);  color:var(--cyan-d); border:.5px solid rgba(23,157,208,.22)}
-.p-navy  {background:var(--navy-l);  color:var(--navy);   border:.5px solid rgba(19,6,86,.12)}
-.p-green {background:var(--green-l); color:var(--green);  border:.5px solid var(--green-b)}
-.p-amber {background:var(--amber-l); color:var(--amber);  border:.5px solid var(--amber-b)}
-.p-red   {background:var(--red-l);   color:var(--red);    border:.5px solid var(--red-b)}
-.p-gray  {background:var(--surface); color:var(--ink-3);  border:.5px solid var(--border)}
-
-/* ── TANKS ── */
+.tbl thead th{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-4);padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.tbl tbody td{font-size:12.5px;padding:10px 14px;border-bottom:1px solid var(--surface);color:var(--ink-2);vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:#FAFBFE}
+.dip-footer{padding:11px 18px;background:var(--cyan-ll);border-top:1px solid rgba(23,157,208,.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.data-box{border-radius:10px;padding:12px 14px}
+.data-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.data-val{font-family:var(--mono);font-size:18px;font-weight:800}
+.pay-bar{height:8px;border-radius:4px;overflow:hidden;display:flex;gap:2px;margin-bottom:16px}
+.pay-seg{height:100%;border-radius:3px}
+.pay-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--surface)}
+.pay-row:last-of-type{border:none}
+.pay-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.pay-name{font-size:12.5px;font-weight:600;color:var(--ink)}
+.pay-pct{font-size:10.5px;color:var(--ink-4);margin-top:1px}
+.pay-amt{font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--ink)}
+.pay-total{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:1px solid var(--border)}
+.pay-total-lbl{font-size:11.5px;color:var(--ink-3)}
+.pay-total-val{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--navy)}
 .tank-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.tank-row:last-of-type{margin-bottom:0}
-.tank-id-wrap{width:56px;flex-shrink:0}
+.tank-row:last-child{margin-bottom:0}
+.tank-id-col{width:58px;flex-shrink:0}
 .tank-id{font-size:12px;font-weight:800}
 .tank-pump{font-size:9px;color:var(--ink-4);margin-top:1px}
-.tank-bar{flex:1;height:9px;background:var(--surface);border-radius:99px;overflow:hidden;border:.5px solid var(--border)}
+.tank-bar{flex:1;height:10px;background:var(--surface);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
 .tank-fill{height:100%;border-radius:99px;transition:width .7s ease}
 .tf-pms{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
-.tf-ago{background:linear-gradient(90deg,#92400E,#F59E0B)}
-.tank-info{width:100px;display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-shrink:0}
+.tf-ago{background:linear-gradient(90deg,#B45309,#F59E0B)}
+.tank-meta{width:106px;display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-shrink:0}
 .tank-vol{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--ink)}
 .tank-pct{font-size:9.5px;font-weight:700;border-radius:99px;padding:2px 8px}
-.pct-ok {background:var(--green-l);color:var(--green);border:.5px solid var(--green-b)}
-.pct-med{background:var(--amber-l);color:var(--amber);border:.5px solid var(--amber-b)}
-.pct-low{background:var(--red-l);  color:var(--red);  border:.5px solid var(--red-b)}
-.tank-alert{display:flex;align-items:center;gap:8px;padding:9px 13px;margin-top:14px;background:var(--red-l);border:1px solid var(--red-b);border-radius:10px;font-size:12px;font-weight:600;color:var(--red)}
-
-/* ── CHART ── */
-.chart-legend{display:flex;gap:16px;margin-bottom:14px}
+.pct-ok{background:var(--green-l);color:var(--green)}
+.pct-med{background:var(--amber-l);color:var(--amber)}
+.pct-low{background:var(--red-l);color:var(--red)}
+.tank-alert-bar{display:flex;align-items:center;gap:8px;padding:9px 13px;margin-top:14px;background:var(--red-l);border:1px solid #FECACA;border-radius:10px;font-size:12px;font-weight:600;color:var(--red)}
+.chart-legend{display:flex;gap:16px;margin-bottom:12px}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-2);font-weight:500}
 .legend-dot{width:9px;height:9px;border-radius:2px}
-.chart-wrap{display:flex;align-items:flex-end;gap:5px;height:96px;margin-bottom:14px}
+.chart-area{display:flex;align-items:flex-end;gap:5px;height:96px;margin-bottom:12px}
 .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
 .chart-bars{width:100%;height:92px;display:flex;align-items:flex-end;gap:2px}
-.chart-b{flex:1;border-radius:3px 3px 0 0;min-height:3px;transition:opacity .15s}
-.chart-b:hover{opacity:.75;cursor:pointer}
-.cb-pms{background:linear-gradient(to top,var(--cyan-d),var(--cyan))}
-.cb-ago{background:linear-gradient(to top,#92400E,#F59E0B)}
-.chart-day{font-size:9px;font-weight:600;color:var(--ink-4)}
-.chart-day.now{color:var(--cyan);font-weight:800}
-.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.rev-box{border-radius:12px;padding:12px 13px}
+.chart-bar{flex:1;border-radius:3px 3px 0 0;min-height:3px;transition:opacity .15s}
+.chart-bar:hover{opacity:.72;cursor:pointer}
+.bar-pms{background:linear-gradient(to top,var(--cyan-d),var(--cyan))}
+.bar-ago{background:linear-gradient(to top,#92400E,#F59E0B)}
+.chart-lbl{font-size:9px;font-weight:600;color:var(--ink-4)}
+.chart-lbl.now{color:var(--cyan);font-weight:800}
+.rev-boxes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rev-box{border-radius:11px;padding:12px 14px}
 .rev-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
 .rev-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--ink);margin-bottom:2px}
 .rev-sub{font-size:10.5px;color:var(--ink-4)}
-
-/* ── PAYMENT ── */
-.pay-bar{height:8px;border-radius:4px;overflow:hidden;display:flex;gap:2px;margin-bottom:16px}
-.pay-seg{height:100%;border-radius:3px}
-.pay-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:.5px solid var(--surface)}
-.pay-row:last-of-type{border:none}
-.pay-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-.pay-name{font-size:13px;font-weight:600;color:var(--ink)}
-.pay-pct{font-size:10.5px;color:var(--ink-4);margin-top:1px}
-.pay-amt{font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--ink)}
-.pay-total{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:.5px solid var(--border)}
-.pay-total-lbl{font-size:11.5px;color:var(--ink-3)}
-.pay-total-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--navy)}
-
-/* ── ALERTS ── */
-.alert-item{display:flex;gap:11px;padding:13px 18px;border-bottom:.5px solid var(--surface);align-items:flex-start}
+.alert-item{display:flex;gap:11px;padding:12px 18px;border-bottom:1px solid var(--surface);align-items:flex-start}
 .alert-item:last-child{border:none}
 .alert-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.alert-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px}
-.alert-desc{font-size:11.5px;color:var(--ink-2);line-height:1.55}
-
-/* ── QUICK ACTIONS ── */
-.qa-btn{display:flex;align-items:center;gap:10px;padding:10px 13px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:7px;transition:all .14s}
+.alert-ttl{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.alert-txt{font-size:11.5px;color:var(--ink-2);line-height:1.5}
+.qa-btn{display:flex;align-items:center;gap:10px;padding:10px 13px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px;transition:all .14s}
 .qa-btn:last-child{margin-bottom:0}
-.qa-btn:hover{background:var(--cyan-l);border-color:rgba(23,157,208,.3);color:var(--navy);transform:translateY(-1px)}
+.qa-btn:hover{background:var(--cyan-ll);border-color:rgba(23,157,208,.3);color:var(--navy);transform:translateY(-1px);box-shadow:0 3px 10px rgba(23,157,208,.1)}
 .qa-btn:hover .qa-arr{color:var(--cyan);transform:translateX(3px)}
-.qa-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
 .qa-arr{color:var(--ink-4);font-size:13px;margin-left:auto;transition:all .14s}
 
-/* ── BUTTONS ── */
-.btn-sm{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#fff;color:var(--ink-2);border:1px solid var(--border);transition:all .13s}
-.btn-sm:hover{background:var(--cyan-l);border-color:rgba(23,157,208,.3);color:var(--navy)}
-.card-link{font-size:11.5px;font-weight:600;color:var(--cyan);display:inline-flex;align-items:center;gap:4px;transition:gap .13s}
-.card-link:hover{gap:7px}
-.data-box{border-radius:10px;padding:11px 13px}
-.data-box-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
-.data-box-val{font-family:var(--mono);font-size:17px;font-weight:800}
-
 /* ── BOTTOM NAV ── */
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:7px 4px calc(7px + env(safe-area-inset-bottom));z-index:300;box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:6px 4px calc(6px + var(--sab));z-index:500;box-shadow:0 -2px 14px rgba(0,0,0,.07)}
 .bn-inner{display:flex;justify-content:space-around}
-.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 14px;border-radius:10px;font-size:10px;font-weight:600;color:var(--ink-4);cursor:pointer;flex:1;border:.5px solid transparent;transition:all .13s}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 10px;border-radius:10px;font-size:9.5px;font-weight:600;color:var(--ink-4);cursor:pointer;flex:1;border:1px solid transparent;transition:all .13s}
 .bn-item i{font-size:20px;line-height:1}
-.bn-item.on{color:var(--cyan);background:var(--cyan-l);border-color:rgba(23,157,208,.18)}
+.bn-item.active{color:var(--cyan);background:var(--cyan-ll);border-color:rgba(23,157,208,.18)}
 
 /* ── MOBILE DRAWER ── */
-.mob-drawer{display:none;position:fixed;inset:0;z-index:600;align-items:flex-end}
-.mob-drawer.on{display:flex}
+.mob-drawer{display:none;position:fixed;inset:0;z-index:1060;align-items:flex-end}
+.mob-drawer.open{display:flex}
 .mob-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55)}
-.mob-sheet{position:relative;z-index:1;background:var(--navy);border-radius:20px 20px 0 0;width:100%;max-height:82vh;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
-.mob-handle{width:38px;height:3.5px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0}
+.mob-sheet{position:relative;z-index:1;background:var(--navy-2);border-radius:20px 20px 0 0;width:100%;max-height:82vh;overflow-y:auto;padding-bottom:calc(16px + var(--sab))}
+.mob-handle{width:38px;height:3.5px;background:rgba(255,255,255,.18);border-radius:2px;margin:12px auto 0}
 .mob-head{padding:14px 18px 8px;display:flex;align-items:center;justify-content:space-between}
 .mob-head-title{font-size:16px;font-weight:800;color:#fff}
-.mob-close{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:16px;display:flex;align-items:center;justify-content:center}
+.mob-close{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:18px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer}
 .mob-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 14px 12px}
-.mob-link{display:flex;align-items:center;gap:9px;padding:11px 12px;background:rgba(255,255,255,.06);border:.5px solid rgba(255,255,255,.09);border-radius:11px;color:rgba(255,255,255,.78);font-size:12.5px;font-weight:600}
+.mob-link{display:flex;align-items:center;gap:9px;padding:11px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:11px;color:rgba(255,255,255,.75);font-size:12.5px;font-weight:600;transition:background .13s}
 .mob-link:hover{background:rgba(255,255,255,.1)}
-.mob-link i{font-size:17px;flex-shrink:0}
-.mob-sec-title{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.2);padding:10px 18px 6px}
-.mob-logout{margin:10px 14px 0;padding:12px;border-radius:11px;background:rgba(220,38,38,.12);border:.5px solid rgba(220,38,38,.25);color:#FCA5A5;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 28px)}
+.mob-link i{font-size:16px;flex-shrink:0}
+.mob-sec-title{font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:10px 18px 6px}
+.mob-logout{margin:10px 14px 0;padding:12px;border-radius:11px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.25);color:#FCA5A5;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 28px);cursor:pointer}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:80px;right:18px;z-index:999;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 16px;min-width:230px;display:flex;align-items:center;gap:11px;box-shadow:0 8px 28px rgba(0,0,0,.12);transform:translateY(12px);opacity:0;pointer-events:none;transition:all .25s}
+#toast{position:fixed;bottom:80px;right:18px;z-index:9999;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 16px;min-width:230px;display:flex;align-items:center;gap:11px;box-shadow:0 8px 30px rgba(0,0,0,.13);transform:translateY(12px);opacity:0;pointer-events:none;transition:all .25s}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
-.toast-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.toast-title{font-size:13px;font-weight:700;color:var(--ink)}
-.toast-msg{font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.t-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.t-ttl{font-size:13px;font-weight:700;color:var(--ink)}
+.t-msg{font-size:11.5px;color:var(--ink-3);margin-top:1px}
 
 /* ── RESPONSIVE ── */
-@media(max-width:1099px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.tb-hamburger{display:flex}.tb-clock{display:none}}
+@media(max-width:1099px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main-area{margin-left:0}
+  .tb-hamburger{display:flex}
+  .tb-clock{display:none}
+}
 @media(max-width:767px){
-  :root{--tb-h:52px}
   .bottom-nav{display:block}
   .sidebar{display:none}
-  .body{padding:14px 14px calc(14px + var(--bn-h))}
-  .topbar{padding:0 14px}
+  .page-body{padding:14px 14px calc(14px + var(--bn-h))}
+  .topbar{padding-left:14px;padding-right:14px}
   .tb-title{font-size:15px}
   .chip-stn{display:none}
-  .kpi-row{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
   .kpi-hero{grid-column:1/-1}
   .kpi-val{font-size:18px}
   .kpi-hero .kpi-val{font-size:23px}
-  .grid-3,.grid-2r,.grid-2l{grid-template-columns:1fr;gap:12px}
-  .card-body{padding:14px 16px}
-  .card-h{padding:12px 16px}
+  .card-bd{padding:14px 16px}
+  .card-hd{padding:12px 16px}
   #toast{bottom:calc(var(--bn-h) + 10px);right:12px;left:12px;min-width:auto}
 }
-@media(max-width:375px){.body{padding:12px 12px calc(12px + var(--bn-h))}.kpi-val{font-size:16px}.kpi-hero .kpi-val{font-size:21px}}
+@media(max-width:375px){
+  .page-body{padding:12px 12px calc(12px + var(--bn-h))}
+  .kpi-val{font-size:16px}
+  .kpi-hero .kpi-val{font-size:20px}
+}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app-shell">
 <div id="sbOverlay" onclick="closeSidebar()"></div>
 
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sb-brand">
-    <div class="sb-logobox"><img src="icons/icon.png" alt="MSO"/></div>
-    <div><div class="sb-bname">MSO Limpid</div><div class="sb-bsub">Operations Portal</div></div>
+    <div class="sb-logobox">
+      <img src="icons/icon.png" alt="MSO" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="sb-logobox-fallback" style="display:none">M</div>
+    </div>
+    <div>
+      <div class="sb-bname">MSO Limpid</div>
+      <div class="sb-bsub">Operations Portal</div>
+    </div>
   </div>
   <div class="sb-station">
     <span class="live-dot"></span>
@@ -286,223 +340,252 @@ img{display:block}
   </div>
   <nav class="sb-nav">
     <span class="sb-sec">Main</span>
-    <a class="sb-lnk on"  href="dashboard-mso.html"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
-    <a class="sb-lnk" href="overview.html"     id="navOv" style="display:none"><i class="bi bi-globe2"></i>Overview</a>
-    <a class="sb-lnk" href="approvals.html"    id="navAp" style="display:none"><i class="bi bi-check2-square"></i>Approvals</a>
+    <a class="sb-lnk active" href="dashboard-mso.html"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
+    <a class="sb-lnk" href="overview.html" id="navOv" style="display:none"><i class="bi bi-globe2"></i>Overview</a>
+    <a class="sb-lnk" href="approvals.html" id="navAp" style="display:none"><i class="bi bi-check2-square"></i>Approvals</a>
     <span class="sb-sec">Operations</span>
-    <a class="sb-lnk" href="sales-mso.html"    ><i class="bi bi-pencil-square"></i>Record Sales</a>
+    <a class="sb-lnk" href="sales-mso.html"><i class="bi bi-pencil-square"></i>Record Sales</a>
     <a class="sb-lnk" href="discharge-mso.html"><i class="bi bi-truck"></i>Discharge</a>
-    <a class="sb-lnk" href="dip-mso.html"      ><i class="bi bi-water"></i>Tank Dip</a>
-    <a class="sb-lnk" href="expenses-mso.html" ><i class="bi bi-receipt-cutoff"></i>Expenses</a>
-    <a class="sb-lnk" href="shifts-mso.html"   ><i class="bi bi-clock-history"></i>Shift Log</a>
+    <a class="sb-lnk" href="dip-mso.html"><i class="bi bi-water"></i>Tank Dip</a>
+    <a class="sb-lnk" href="expenses-mso.html"><i class="bi bi-receipt-cutoff"></i>Expenses</a>
+    <a class="sb-lnk" href="shifts-mso.html"><i class="bi bi-clock-history"></i>Shift Log</a>
     <a class="sb-lnk" href="incidents-mso.html"><i class="bi bi-exclamation-triangle"></i>Incidents</a>
-    <a class="sb-lnk" href="cashup-mso.html"   ><i class="bi bi-cash-coin"></i>Cash Reconciliation</a>
-    <a class="sb-lnk" href="variance-mso.html" ><i class="bi bi-activity"></i>Stock Variance</a>
+    <a class="sb-lnk" href="cashup-mso.html"><i class="bi bi-cash-coin"></i>Cash Reconciliation</a>
+    <a class="sb-lnk" href="variance-mso.html"><i class="bi bi-activity"></i>Stock Variance</a>
     <span class="sb-sec">Reports</span>
-    <a class="sb-lnk" href="records-mso.html"  ><i class="bi bi-journal-text"></i>Records</a>
-    <a class="sb-lnk" href="pnl-mso.html"      ><i class="bi bi-bar-chart-line"></i>P&amp;L Report</a>
-    <a class="sb-lnk" href="price-mso.html"    ><i class="bi bi-tag"></i>Pump Prices</a>
-    <a class="sb-lnk" href="debtors-mso.html"  ><i class="bi bi-people"></i>Debtors</a>
-    <a class="sb-lnk" href="stock-mso.html"    ><i class="bi bi-box-seam"></i>Lubricant Stock</a>
-    <a class="sb-lnk" href="orders-mso.html"   ><i class="bi bi-cart3"></i>Purchase Orders</a>
-    <a class="sb-lnk" href="payroll-mso.html"  ><i class="bi bi-wallet2"></i>Payroll</a>
-    <a class="sb-lnk" href="summary-mso.html"  ><i class="bi bi-printer"></i>Daily Summary</a>
+    <a class="sb-lnk" href="records-mso.html"><i class="bi bi-journal-text"></i>Records</a>
+    <a class="sb-lnk" href="pnl-mso.html"><i class="bi bi-bar-chart-line"></i>P&amp;L Report</a>
+    <a class="sb-lnk" href="price-mso.html"><i class="bi bi-tag"></i>Pump Prices</a>
+    <a class="sb-lnk" href="debtors-mso.html"><i class="bi bi-people"></i>Debtors</a>
+    <a class="sb-lnk" href="stock-mso.html"><i class="bi bi-box-seam"></i>Lubricant Stock</a>
+    <a class="sb-lnk" href="orders-mso.html"><i class="bi bi-cart3"></i>Purchase Orders</a>
+    <a class="sb-lnk" href="payroll-mso.html"><i class="bi bi-wallet2"></i>Payroll</a>
+    <a class="sb-lnk" href="summary-mso.html"><i class="bi bi-printer"></i>Daily Summary</a>
     <span class="sb-sec">Communication</span>
-    <a class="sb-lnk" href="chat-mso.html"     ><i class="bi bi-chat-dots"></i>Staff Chat</a>
+    <a class="sb-lnk" href="chat-mso.html"><i class="bi bi-chat-dots"></i>Staff Chat</a>
     <span class="sb-sec">Switch</span>
-    <a class="sb-lnk" href="select.html"       ><i class="bi bi-arrow-left-right"></i>Switch Station</a>
+    <a class="sb-lnk" href="select.html"><i class="bi bi-arrow-left-right"></i>Switch Station</a>
   </nav>
   <div class="sb-foot">
     <div class="sb-user">
       <div class="sb-av" id="sbAv">—</div>
-      <div style="flex:1;min-width:0"><div class="sb-uname" id="sbName">Loading…</div><div class="sb-urole" id="sbRole">—</div></div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-uname" id="sbName">Loading…</div>
+        <div class="sb-urole" id="sbRole">—</div>
+      </div>
     </div>
     <button class="btn-logout" onclick="doLogout()"><i class="bi bi-box-arrow-left"></i> Sign Out</button>
   </div>
 </aside>
 
 <!-- MAIN -->
-<div class="main">
+<div class="main-area">
+
+  <!-- TOPBAR -->
   <header class="topbar">
     <div class="tb-left">
-      <button class="tb-hamburger" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
-      <div><div class="tb-title">Dashboard</div><div class="tb-date" id="tbDate">—</div></div>
+      <!-- hamburger: type=button prevents BS from hijacking it; id used by JS -->
+      <button type="button" class="tb-hamburger" id="hbBtn" aria-label="Toggle menu">
+        <i class="bi bi-list" id="hbIcon"></i>
+      </button>
+      <div>
+        <div class="tb-title">Dashboard</div>
+        <div class="tb-sub" id="tbDate">—</div>
+      </div>
     </div>
     <div class="tb-right">
-      <div class="tb-chip chip-stn"><i class="bi bi-geo-alt-fill" style="font-size:10px"></i> MSO</div>
-      <div class="tb-chip chip-live"><span class="ld2"></span> LIVE</div>
+      <div class="data-status" id="dataStatus">
+        <div class="data-spinner"></div>Fetching…
+      </div>
+      <div class="tb-chip chip-stn"><i class="bi bi-geo-alt-fill" style="font-size:10px"></i>&nbsp;MSO</div>
+      <div class="tb-chip chip-live"><span class="dot-live"></span>&nbsp;LIVE</div>
       <div class="tb-clock" id="tbClock">--:--:--</div>
-      <button class="tb-bell"><i class="bi bi-bell"></i><span class="bell-dot"></span></button>
+      <button type="button" class="tb-icon-btn" onclick="refreshData()" title="Refresh">
+        <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
+      </button>
+      <button type="button" class="tb-icon-btn">
+        <i class="bi bi-bell"></i><span class="bell-badge"></span>
+      </button>
     </div>
   </header>
 
-  <div class="body">
-    <div class="admin-banner" id="adminBanner"><i class="bi bi-eye-fill"></i><span>Viewing as <strong>Admin</strong> — read-only. Data entry is done by supervisors and cashiers.</span></div>
+  <!-- BODY -->
+  <div class="page-body">
 
-    <!-- KPI header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div style="display:flex;align-items:center;gap:9px">
-        <div style="width:8px;height:8px;border-radius:50%;background:#22C55E;box-shadow:0 0 8px rgba(34,197,94,.7);flex-shrink:0"></div>
-        <span style="font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-.02em">Today's Summary</span>
-        <span style="font-size:12.5px;color:var(--ink-4)" id="kpiDate">—</span>
-      </div>
-      <span style="font-size:11px;font-weight:600;color:var(--ink-4);background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:4px 12px;display:inline-flex;align-items:center;gap:5px">
-        <i class="bi bi-arrow-clockwise" style="font-size:11px"></i> Updates on page load
-      </span>
+    <div class="admin-banner" id="adminBanner">
+      <i class="bi bi-eye-fill"></i>
+      <span>Viewing as <strong>Owner</strong> — data entry is handled by supervisors and cashiers.</span>
     </div>
 
-    <!-- KPI ROW -->
-    <div class="kpi-row">
-      <div class="kpi kpi-hero">
-        <div class="kpi-ico" style="background:rgba(23,157,208,.18)"><i class="bi bi-currency-dollar" style="color:var(--cyan);font-size:18px"></i></div>
-        <div class="kpi-lbl">Grand Total</div>
-        <div class="kpi-val" id="kTotal">₦14,090,047</div>
-        <div class="kpi-sub"><span class="badge-up">↑ 8.4%</span>&nbsp;vs yesterday</div>
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-hero">
+        <div class="kpi-ico" style="background:rgba(23,157,208,.18)"><i class="bi bi-graph-up-arrow" style="color:var(--cyan);font-size:17px"></i></div>
+        <div class="kpi-label">Grand Total</div>
+        <div class="kpi-val" id="kTotal"><span class="skel" style="width:130px;height:24px;display:inline-block">&nbsp;</span></div>
+        <div class="kpi-foot" id="kTotalFoot"><span class="badge-neu">Loading…</span></div>
       </div>
-      <div class="kpi kpi-c">
-        <div class="kpi-ico" style="background:var(--cyan-l)"><i class="bi bi-fuel-pump" style="color:var(--cyan-d);font-size:17px"></i></div>
-        <div class="kpi-lbl">PMS Sold</div>
-        <div class="kpi-val" id="kPMS">9,811 L</div>
-        <div class="kpi-sub"><span class="badge-up">↑ 5.2%</span></div>
+      <div class="kpi-card kpi-cyan">
+        <div class="kpi-ico" style="background:var(--cyan-ll)"><i class="bi bi-fuel-pump" style="color:var(--cyan-d);font-size:16px"></i></div>
+        <div class="kpi-label">PMS Sold</div>
+        <div class="kpi-val" id="kPMS"><span class="skel" style="width:80px;height:20px;display:inline-block">&nbsp;</span></div>
+        <div class="kpi-foot" id="kPMSFoot">—</div>
       </div>
-      <div class="kpi kpi-a">
-        <div class="kpi-ico" style="background:var(--amber-l)"><i class="bi bi-droplet-fill" style="color:var(--amber);font-size:17px"></i></div>
-        <div class="kpi-lbl">AGO Sold</div>
-        <div class="kpi-val" id="kAGO">885 L</div>
-        <div class="kpi-sub"><span class="badge-fl">→ Steady</span></div>
+      <div class="kpi-card kpi-amber">
+        <div class="kpi-ico" style="background:var(--amber-l)"><i class="bi bi-droplet-fill" style="color:var(--amber);font-size:16px"></i></div>
+        <div class="kpi-label">AGO Sold</div>
+        <div class="kpi-val" id="kAGO"><span class="skel" style="width:80px;height:20px;display:inline-block">&nbsp;</span></div>
+        <div class="kpi-foot" id="kAGOFoot">—</div>
       </div>
-      <div class="kpi kpi-g">
-        <div class="kpi-ico" style="background:var(--green-l)"><i class="bi bi-bank2" style="color:var(--green);font-size:17px"></i></div>
-        <div class="kpi-lbl">Cash to Bank</div>
-        <div class="kpi-val" id="kCash">₦3,206,388</div>
-        <div class="kpi-sub" style="color:var(--ink-3)">After POS charges</div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-ico" style="background:var(--green-l)"><i class="bi bi-bank2" style="color:var(--green);font-size:16px"></i></div>
+        <div class="kpi-label">Cash to Bank</div>
+        <div class="kpi-val" id="kCash"><span class="skel" style="width:90px;height:20px;display:inline-block">&nbsp;</span></div>
+        <div class="kpi-foot" id="kCashFoot">After POS charges</div>
       </div>
-      <div class="kpi kpi-r">
-        <div class="kpi-ico" style="background:var(--red-l)"><i class="bi bi-arrow-down-circle-fill" style="color:var(--red);font-size:17px"></i></div>
-        <div class="kpi-lbl">Expenses</div>
-        <div class="kpi-val" id="kExp">₦0</div>
-        <div class="kpi-sub"><span class="badge-up">↓ Lower</span></div>
+      <div class="kpi-card kpi-red">
+        <div class="kpi-ico" style="background:var(--red-l)"><i class="bi bi-arrow-down-circle-fill" style="color:var(--red);font-size:16px"></i></div>
+        <div class="kpi-label">Expenses</div>
+        <div class="kpi-val" id="kExp"><span class="skel" style="width:60px;height:20px;display:inline-block">&nbsp;</span></div>
+        <div class="kpi-foot" id="kExpFoot">—</div>
       </div>
     </div>
 
-    <!-- ROW 2: PMS / AGO / PAYMENT -->
-    <div class="grid-3">
-      <!-- PMS -->
-      <div class="card">
-        <div class="card-h">
-          <div><div class="card-title">PMS Dipping Summary</div><div class="card-sub">3 underground tanks · today</div></div>
-          <span class="pill p-cyan">3 Tanks</span>
-        </div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>Tank</th><th>Opening</th><th>Closing</th><th>Diff</th><th>Margin</th></tr></thead>
-            <tbody>
-              <tr><td><span class="pill p-cyan">TK 1</span></td><td style="font-family:var(--mono);font-weight:600">17,100L</td><td style="font-family:var(--mono);font-weight:600">10,000L</td><td style="font-family:var(--mono);font-weight:700;color:var(--cyan-d)">7,100L</td><td style="font-family:var(--mono);font-weight:700;color:var(--amber)">385.24L</td></tr>
-              <tr><td><span class="pill p-cyan">TK 2</span></td><td style="font-family:var(--mono)">2,300L</td><td style="font-family:var(--mono)">50L</td><td style="font-family:var(--mono);font-weight:700;color:var(--cyan-d)">2,250L</td><td style="font-family:var(--mono);font-weight:700;color:var(--amber)">79.92L</td></tr>
-              <tr><td><span class="pill p-gray">TK 3</span></td><td style="font-family:var(--mono);color:var(--ink-4)">0L</td><td style="font-family:var(--mono);color:var(--ink-4)">0L</td><td style="font-family:var(--mono);color:var(--ink-4)">0L</td><td style="font-family:var(--mono);color:var(--ink-4)">0L</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="padding:10px 18px;background:var(--cyan-l);border-top:.5px solid rgba(23,157,208,.16);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
-          <span style="font-size:12.5px;font-weight:700;color:var(--navy)">Total PMS Margin</span>
-          <span style="font-family:var(--mono);font-size:14px;font-weight:800;color:var(--cyan-d)">465.16L · ₦12,479,795</span>
-        </div>
-      </div>
-
-      <!-- AGO -->
-      <div class="card">
-        <div class="card-h"><div><div class="card-title">AGO Performance</div><div class="card-sub">TK4 · Diesel · P1·N1</div></div><span class="pill p-green">75%</span></div>
-        <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="data-box" style="background:var(--surface);border:.5px solid var(--border)"><div class="data-box-lbl" style="color:var(--ink-4)">Opening</div><div class="data-box-val" style="color:var(--ink)">3,200L</div></div>
-          <div class="data-box" style="background:var(--surface);border:.5px solid var(--border)"><div class="data-box-lbl" style="color:var(--ink-4)">Closing</div><div class="data-box-val" style="color:var(--ink)">2,400L</div></div>
-          <div class="data-box" style="background:var(--amber-l);border:.5px solid var(--amber-b)"><div class="data-box-lbl" style="color:var(--amber)">Difference</div><div class="data-box-val" style="color:var(--amber)">800L</div></div>
-          <div class="data-box" style="background:var(--red-l);border:.5px solid var(--red-b)"><div class="data-box-lbl" style="color:var(--red)">Margin</div><div class="data-box-val" style="color:var(--red)">85.24L</div></div>
-          <div style="grid-column:1/-1;background:var(--amber-l);border:.5px solid var(--amber-b);border-radius:10px;padding:11px 13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
-            <span style="font-size:12px;color:var(--ink-2);font-weight:500">885L × ₦1,819</span>
-            <span style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--amber)">₦1,610,251</span>
+    <!-- ROW 2 -->
+    <div class="section-label mb-1">Tank Performance</div>
+    <div class="row g-3 mb-3">
+      <div class="col-lg-5">
+        <div class="card-pro">
+          <div class="card-hd">
+            <div><div class="card-ttl">PMS Dipping Summary</div><div class="card-dsc">3 underground tanks · today</div></div>
+            <span class="pill p-cyan">PMS</span>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Tank</th><th>Opening</th><th>Closing</th><th>Diff</th><th>Margin</th></tr></thead>
+              <tbody id="dipBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-4)"><div class="skel" style="height:14px;width:180px;margin:0 auto;border-radius:6px">&nbsp;</div></td></tr></tbody>
+            </table>
+          </div>
+          <div class="dip-footer">
+            <span style="font-size:12.5px;font-weight:700;color:var(--navy)">Total PMS Margin</span>
+            <span class="mono" style="font-size:14px;font-weight:800;color:var(--cyan-d)" id="dipTotal">—</span>
           </div>
         </div>
       </div>
-
-      <!-- Payment -->
-      <div class="card">
-        <div class="card-h"><div><div class="card-title">Payment Breakdown</div><div class="card-sub">POS · Transfer · Cash</div></div></div>
-        <div class="card-body" id="payBlock"></div>
-      </div>
-    </div>
-
-    <!-- ROW 3: TANKS + CHART -->
-    <div class="grid-2r">
-      <!-- Tanks -->
-      <div class="card">
-        <div class="card-h">
-          <div><div class="card-title">Live Tank Levels</div><div class="card-sub">4 tanks · latest dip reading</div></div>
-          <button class="btn-sm" id="dipBtn" onclick="location.href='dip-mso.html'"><i class="bi bi-plus-circle"></i> Dip</button>
-        </div>
-        <div class="card-body">
-          <div class="tank-row"><div class="tank-id-wrap"><div class="tank-id" style="color:var(--cyan-d)">TK 1</div><div class="tank-pump">PMS · P5 P6</div></div><div class="tank-bar"><div class="tank-fill tf-pms" style="width:51%"></div></div><div class="tank-info"><div class="tank-vol">10,000L</div><div class="tank-pct pct-med">51%</div></div></div>
-          <div class="tank-row"><div class="tank-id-wrap"><div class="tank-id" style="color:var(--red)">TK 2</div><div class="tank-pump">PMS · P1 P2</div></div><div class="tank-bar"><div class="tank-fill tf-pms" style="width:2%"></div></div><div class="tank-info"><div class="tank-vol">50L</div><div class="tank-pct pct-low">2%</div></div></div>
-          <div class="tank-row"><div class="tank-id-wrap"><div class="tank-id" style="color:var(--red)">TK 3</div><div class="tank-pump">PMS · P3 P4</div></div><div class="tank-bar"><div class="tank-fill" style="width:0%;background:var(--border)"></div></div><div class="tank-info"><div class="tank-vol">0L</div><div class="tank-pct pct-low">0%</div></div></div>
-          <div class="tank-row"><div class="tank-id-wrap"><div class="tank-id" style="color:var(--amber)">TK 4</div><div class="tank-pump">AGO · P1 N1</div></div><div class="tank-bar"><div class="tank-fill tf-ago" style="width:75%"></div></div><div class="tank-info"><div class="tank-vol">2,400L</div><div class="tank-pct pct-ok">75%</div></div></div>
-          <div class="tank-alert"><i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0"></i>TK 2 at 2% — TK 3 empty. Discharge needed today.</div>
-        </div>
-      </div>
-
-      <!-- Chart -->
-      <div class="card">
-        <div class="card-h"><div><div class="card-title">7-Day Sales Trend</div><div class="card-sub">PMS vs AGO — litres dispensed</div></div></div>
-        <div class="card-body">
-          <div class="chart-legend">
-            <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>PMS Petrol</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div>AGO Diesel</div>
+      <div class="col-lg-3">
+        <div class="card-pro">
+          <div class="card-hd">
+            <div><div class="card-ttl">AGO Performance</div><div class="card-dsc">TK4 · Diesel · P1·N1</div></div>
+            <span class="pill p-amber" id="agoLevelPill">—</span>
           </div>
-          <div class="chart-wrap" id="chartBars"></div>
-          <div class="rev-grid">
-            <div class="rev-box" style="background:var(--cyan-l);border:.5px solid rgba(23,157,208,.2)"><div class="rev-lbl" style="color:var(--cyan-d)">PMS Revenue</div><div class="rev-val">₦12,479,795</div><div class="rev-sub">9,811L @ ₦1,272</div></div>
-            <div class="rev-box" style="background:var(--amber-l);border:.5px solid var(--amber-b)"><div class="rev-lbl" style="color:var(--amber)">AGO Revenue</div><div class="rev-val">₦1,610,251</div><div class="rev-sub">885L @ ₦1,819</div></div>
+          <div class="card-bd">
+            <div class="row g-2 mb-2">
+              <div class="col-6"><div class="data-box" style="background:var(--surface);border:1px solid var(--border)"><div class="data-lbl" style="color:var(--ink-4)">Opening</div><div class="data-val" style="color:var(--ink)" id="agoOpen">—</div></div></div>
+              <div class="col-6"><div class="data-box" style="background:var(--surface);border:1px solid var(--border)"><div class="data-lbl" style="color:var(--ink-4)">Closing</div><div class="data-val" style="color:var(--ink)" id="agoClose">—</div></div></div>
+              <div class="col-6"><div class="data-box" style="background:var(--amber-l);border:1px solid #FDE68A"><div class="data-lbl" style="color:var(--amber)">Difference</div><div class="data-val" style="color:var(--amber)" id="agoDiff">—</div></div></div>
+              <div class="col-6"><div class="data-box" style="background:var(--red-l);border:1px solid #FECACA"><div class="data-lbl" style="color:var(--red)">Margin</div><div class="data-val" style="color:var(--red)" id="agoMargin">—</div></div></div>
+            </div>
+            <div style="background:var(--amber-l);border:1px solid #FDE68A;border-radius:10px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+              <span style="font-size:12px;color:var(--ink-2);font-weight:500" id="agoCalcLabel">— L × ₦1,819</span>
+              <span class="mono" style="font-size:15px;font-weight:800;color:var(--amber)" id="agoRevenue">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card-pro">
+          <div class="card-hd"><div><div class="card-ttl">Payment Breakdown</div><div class="card-dsc">POS · Bank Transfer · Cash</div></div></div>
+          <div class="card-bd" id="payBlock">
+            <div class="skel" style="height:8px;border-radius:4px;margin-bottom:16px">&nbsp;</div>
+            <div class="skel" style="height:14px;border-radius:6px;margin-bottom:10px">&nbsp;</div>
+            <div class="skel" style="height:14px;border-radius:6px;margin-bottom:10px">&nbsp;</div>
+            <div class="skel" style="height:14px;border-radius:6px">&nbsp;</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ROW 4: TRANSACTIONS + SIDE -->
-    <div class="grid-2l">
-      <div class="card">
-        <div class="card-h">
-          <div><div class="card-title">Recent Transactions</div><div class="card-sub">Tank · pump · nozzle · staff</div></div>
-          <a href="records-mso.html" class="card-link">All records <i class="bi bi-arrow-right"></i></a>
+    <!-- ROW 3 -->
+    <div class="section-label mb-1">Fuel Stock &amp; Sales Trend</div>
+    <div class="row g-3 mb-3">
+      <div class="col-lg-4">
+        <div class="card-pro">
+          <div class="card-hd">
+            <div><div class="card-ttl">Live Tank Levels</div><div class="card-dsc">4 tanks · latest dip reading</div></div>
+            <button type="button" class="btn-xs" id="dipBtn" onclick="location.href='dip-mso.html'"><i class="bi bi-plus-circle"></i> Dip</button>
+          </div>
+          <div class="card-bd" id="tankBlock">
+            <div class="tank-row"><div class="tank-id-col"><div class="tank-id" style="color:var(--cyan-d)">TK 1</div><div class="tank-pump">PMS · P5 P6</div></div><div class="tank-bar"><div class="tank-fill tf-pms" style="width:51%"></div></div><div class="tank-meta"><div class="tank-vol">10,000L</div><div class="tank-pct pct-med">51%</div></div></div>
+            <div class="tank-row"><div class="tank-id-col"><div class="tank-id" style="color:var(--red)">TK 2</div><div class="tank-pump">PMS · P1 P2</div></div><div class="tank-bar"><div class="tank-fill tf-pms" style="width:2%"></div></div><div class="tank-meta"><div class="tank-vol">50L</div><div class="tank-pct pct-low">2%</div></div></div>
+            <div class="tank-row"><div class="tank-id-col"><div class="tank-id" style="color:var(--red)">TK 3</div><div class="tank-pump">PMS · P3 P4</div></div><div class="tank-bar"><div class="tank-fill" style="width:0%;background:var(--border)"></div></div><div class="tank-meta"><div class="tank-vol">0L</div><div class="tank-pct pct-low">0%</div></div></div>
+            <div class="tank-row"><div class="tank-id-col"><div class="tank-id" style="color:var(--amber)">TK 4</div><div class="tank-pump">AGO · P1 N1</div></div><div class="tank-bar"><div class="tank-fill tf-ago" style="width:75%"></div></div><div class="tank-meta"><div class="tank-vol">2,400L</div><div class="tank-pct pct-ok">75%</div></div></div>
+            <div class="tank-alert-bar"><i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0"></i>TK 2 at 2% — TK 3 empty. Discharge needed today.</div>
+          </div>
         </div>
-        <div class="tbl-wrap"><table class="tbl" id="txnTable"></table></div>
       </div>
-
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="card">
-          <div class="card-h"><div><div class="card-title">Expenses</div><div class="card-sub">₦0 today</div></div><button class="btn-sm" id="addExpBtn" onclick="location.href='expenses-mso.html'"><i class="bi bi-plus"></i> Add</button></div>
-          <div style="padding:20px 18px;text-align:center;color:var(--ink-4);font-size:12.5px"><i class="bi bi-check-circle" style="font-size:28px;display:block;margin-bottom:8px;color:var(--border)"></i>Nothing spent today</div>
+      <div class="col-lg-8">
+        <div class="card-pro">
+          <div class="card-hd"><div><div class="card-ttl">7-Day Sales Trend</div><div class="card-dsc">PMS vs AGO · litres dispensed</div></div></div>
+          <div class="card-bd">
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>PMS Petrol</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div>AGO Diesel</div>
+            </div>
+            <div class="chart-area" id="chartBars"></div>
+            <div class="rev-boxes">
+              <div class="rev-box" style="background:var(--cyan-ll);border:1px solid rgba(23,157,208,.2)"><div class="rev-lbl" style="color:var(--cyan-d)">PMS Revenue</div><div class="rev-val" id="pmsRevVal">—</div><div class="rev-sub" id="pmsRevSub">—</div></div>
+              <div class="rev-box" style="background:var(--amber-l);border:1px solid #FDE68A"><div class="rev-lbl" style="color:var(--amber)">AGO Revenue</div><div class="rev-val" id="agoRevVal">—</div><div class="rev-sub" id="agoRevSub">—</div></div>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <div class="card-h"><div class="card-title">Alerts</div><span class="pill p-red" id="alertCount">3</span></div>
+      </div>
+    </div>
+
+    <!-- ROW 4 -->
+    <div class="section-label mb-1">Transactions &amp; Actions</div>
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="card-pro">
+          <div class="card-hd">
+            <div><div class="card-ttl">Recent Transactions</div><div class="card-dsc">Tank · pump · nozzle · staff</div></div>
+            <a href="records-mso.html" class="card-link">All records <i class="bi bi-arrow-right"></i></a>
+          </div>
+          <div class="tbl-wrap"><table class="tbl" id="txnTable"></table></div>
+        </div>
+      </div>
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card-pro">
+          <div class="card-hd">
+            <div><div class="card-ttl">Expenses</div><div class="card-dsc" id="expensesSub">₦0 today</div></div>
+            <button type="button" class="btn-xs" id="addExpBtn" onclick="location.href='expenses-mso.html'"><i class="bi bi-plus"></i> Add</button>
+          </div>
+          <div style="padding:22px 18px;text-align:center;color:var(--ink-4);font-size:12.5px">
+            <i class="bi bi-check-circle" style="font-size:28px;display:block;margin-bottom:8px;color:var(--border)"></i>Nothing spent today
+          </div>
+        </div>
+        <div class="card-pro">
+          <div class="card-hd"><div class="card-ttl">Alerts</div><span class="pill p-red" id="alertCount">3</span></div>
           <div id="alertBlock"></div>
         </div>
-        <div class="card">
-          <div class="card-h"><div class="card-title">Quick Actions</div></div>
+        <div class="card-pro">
+          <div class="card-hd"><div class="card-ttl">Quick Actions</div></div>
           <div style="padding:12px 14px" id="qaBlock"></div>
         </div>
       </div>
     </div>
 
-  </div>
-</div>
-</div>
+  </div><!-- /page-body -->
+</div><!-- /main-area -->
+</div><!-- /app-shell -->
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <div class="bn-inner">
-    <a class="bn-item on"  href="dashboard-mso.html"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></a>
-    <a class="bn-item"     href="sales-mso.html">    <i class="bi bi-pencil-square"></i><span>Sales</span></a>
-    <a class="bn-item"     href="dip-mso.html">      <i class="bi bi-water"></i>         <span>Dip</span></a>
-    <a class="bn-item"     href="expenses-mso.html"> <i class="bi bi-receipt-cutoff"></i><span>Expenses</span></a>
-    <div class="bn-item"   onclick="openDrawer()">   <i class="bi bi-list"></i>          <span>More</span></div>
+    <a class="bn-item active" href="dashboard-mso.html"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></a>
+    <a class="bn-item" href="sales-mso.html"><i class="bi bi-pencil-square"></i><span>Sales</span></a>
+    <a class="bn-item" href="dip-mso.html"><i class="bi bi-water"></i><span>Dip</span></a>
+    <a class="bn-item" href="expenses-mso.html"><i class="bi bi-receipt-cutoff"></i><span>Expenses</span></a>
+    <div class="bn-item" onclick="openDrawer()"><i class="bi bi-list"></i><span>More</span></div>
   </div>
 </nav>
 
@@ -511,64 +594,153 @@ img{display:block}
   <div class="mob-overlay" onclick="closeDrawer()"></div>
   <div class="mob-sheet">
     <div class="mob-handle"></div>
-    <div class="mob-head"><div class="mob-head-title">Menu</div><button class="mob-close" onclick="closeDrawer()">×</button></div>
+    <div class="mob-head"><div class="mob-head-title">Menu</div><button type="button" class="mob-close" onclick="closeDrawer()">×</button></div>
     <div class="mob-grid">
-      <a class="mob-link" href="cashup-mso.html">    <i class="bi bi-cash-coin"            style="color:#179DD0"></i>Cash Reconciliation</a>
-      <a class="mob-link" href="discharge-mso.html"> <i class="bi bi-truck"                style="color:#F59E0B"></i>Discharge</a>
-      <a class="mob-link" href="shifts-mso.html">    <i class="bi bi-clock-history"        style="color:#A78BFA"></i>Shift Log</a>
-      <a class="mob-link" href="incidents-mso.html"> <i class="bi bi-exclamation-triangle" style="color:#F87171"></i>Incidents</a>
-      <a class="mob-link" href="variance-mso.html">  <i class="bi bi-activity"             style="color:#34D399"></i>Variance</a>
-      <a class="mob-link" href="pnl-mso.html">       <i class="bi bi-bar-chart-line"       style="color:#60A5FA"></i>P&amp;L Report</a>
+      <a class="mob-link" href="cashup-mso.html"><i class="bi bi-cash-coin" style="color:#179DD0"></i>Cash Reconciliation</a>
+      <a class="mob-link" href="discharge-mso.html"><i class="bi bi-truck" style="color:#F59E0B"></i>Discharge</a>
+      <a class="mob-link" href="shifts-mso.html"><i class="bi bi-clock-history" style="color:#A78BFA"></i>Shift Log</a>
+      <a class="mob-link" href="incidents-mso.html"><i class="bi bi-exclamation-triangle" style="color:#F87171"></i>Incidents</a>
+      <a class="mob-link" href="variance-mso.html"><i class="bi bi-activity" style="color:#34D399"></i>Variance</a>
+      <a class="mob-link" href="pnl-mso.html"><i class="bi bi-bar-chart-line" style="color:#60A5FA"></i>P&amp;L Report</a>
     </div>
     <div class="mob-sec-title">Reports &amp; Finance</div>
     <div class="mob-grid">
-      <a class="mob-link" href="records-mso.html"> <i class="bi bi-journal-text" style="color:#94A3B8"></i>Records</a>
-      <a class="mob-link" href="debtors-mso.html"> <i class="bi bi-people"       style="color:#94A3B8"></i>Debtors</a>
-      <a class="mob-link" href="orders-mso.html">  <i class="bi bi-cart3"        style="color:#94A3B8"></i>Orders</a>
-      <a class="mob-link" href="payroll-mso.html"> <i class="bi bi-wallet2"      style="color:#94A3B8"></i>Payroll</a>
-      <a class="mob-link" href="summary-mso.html"> <i class="bi bi-printer"      style="color:#94A3B8"></i>Summary</a>
-      <a class="mob-link" href="chat-mso.html">    <i class="bi bi-chat-dots"    style="color:#94A3B8"></i>Staff Chat</a>
+      <a class="mob-link" href="records-mso.html"><i class="bi bi-journal-text" style="color:#94A3B8"></i>Records</a>
+      <a class="mob-link" href="debtors-mso.html"><i class="bi bi-people" style="color:#94A3B8"></i>Debtors</a>
+      <a class="mob-link" href="orders-mso.html"><i class="bi bi-cart3" style="color:#94A3B8"></i>Orders</a>
+      <a class="mob-link" href="payroll-mso.html"><i class="bi bi-wallet2" style="color:#94A3B8"></i>Payroll</a>
+      <a class="mob-link" href="summary-mso.html"><i class="bi bi-printer" style="color:#94A3B8"></i>Summary</a>
+      <a class="mob-link" href="chat-mso.html"><i class="bi bi-chat-dots" style="color:#94A3B8"></i>Staff Chat</a>
     </div>
-    <button class="mob-logout" onclick="doLogout()"><i class="bi bi-box-arrow-left"></i> Sign Out</button>
+    <button type="button" class="mob-logout" onclick="doLogout()"><i class="bi bi-box-arrow-left"></i> Sign Out</button>
   </div>
 </div>
 
-<div id="toast"><div class="toast-ico" id="tIco"></div><div><div class="toast-title" id="tTitle">—</div><div class="toast-msg" id="tMsg"></div></div></div>
+<div id="toast"><div class="t-ico" id="tIco"></div><div><div class="t-ttl" id="tTtl">—</div><div class="t-msg" id="tMsg"></div></div></div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Auth helper (persistent login) -->
+<script src="mso-auth.js"></script>
 
 <script>
-var SCRIPT_URL='YOUR_DEPLOYED_WEBAPP_URL';
-var _u=JSON.parse(sessionStorage.getItem('mso_u')||'null');
-if(!_u)window.location.replace('login.html');
-var ROLE=_u?_u.role:'', NAME=_u?_u.name:'', USER=_u?_u.u:'';
-var IS_OWNER=ROLE==='owner', IS_GM=ROLE==='gm';
+/* ═══════════════════════════════════════════════════════
+   CONFIG
+   The Apps Script URL is set — but getDashboard may not
+   exist yet. Demo data shows immediately; live data
+   replaces it once the fetch succeeds.
+═══════════════════════════════════════════════════════ */
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGYrd146mi2IZ4EhIlkHDi-k61zdeJfyRDweft-tNm0K2SEqQIaE0XGTGk8ueTwnz2/exec';
 
-(function(){
-  if(!_u)return;
-  var ini=(NAME||'U').split(' ').map(function(n){return n[0]||'';}).join('').slice(0,2).toUpperCase();
-  document.getElementById('sbAv').textContent=ini;
-  document.getElementById('sbName').textContent=NAME||USER;
-  document.getElementById('sbRole').textContent=ROLE==='gm'?'General Manager':ROLE.charAt(0).toUpperCase()+ROLE.slice(1);
-  if(IS_OWNER||IS_GM){['navOv','navAp'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='flex';});}
-  if(IS_OWNER){
+/* ═══════════════════════════════════════════════════════
+   AUTH — works with mso-auth.js, localStorage, OR
+   sessionStorage (old format). Never crashes.
+═══════════════════════════════════════════════════════ */
+function getSession() {
+  try {
+    /* mso-auth.js format */
+    var r = localStorage.getItem('mso_session');
+    if (r) { var p = JSON.parse(r); if (p && p.user) return p.user; }
+  } catch(e) {}
+  try {
+    /* old sessionStorage format */
+    var s = sessionStorage.getItem('mso_u');
+    if (s) {
+      var u = JSON.parse(s);
+      if (u) {
+        /* migrate to localStorage */
+        try { localStorage.setItem('mso_session', JSON.stringify({user:u, savedAt:Date.now()})); } catch(e2){}
+        return u;
+      }
+    }
+  } catch(e) {}
+  return null;
+}
+
+var _u = getSession();
+if (!_u) { window.location.replace('login.html'); }
+var ROLE = _u ? _u.role : '';
+var NAME = _u ? _u.name : '';
+var USER = _u ? _u.u    : '';
+var IS_OWNER = ROLE === 'owner';
+var IS_GM    = ROLE === 'gm';
+
+/* ═══════════════════════════════════════════════════════
+   INIT UI
+═══════════════════════════════════════════════════════ */
+(function initUI() {
+  if (!_u) return;
+  var ini = (NAME||'U').split(' ').map(function(n){return n[0]||'';}).join('').slice(0,2).toUpperCase();
+  document.getElementById('sbAv').textContent   = ini;
+  document.getElementById('sbName').textContent = NAME || USER;
+  document.getElementById('sbRole').textContent = ROLE==='gm'?'General Manager':ROLE.charAt(0).toUpperCase()+ROLE.slice(1);
+  if (IS_OWNER||IS_GM) { ['navOv','navAp'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='flex';}); }
+  if (IS_OWNER) {
     document.getElementById('adminBanner').style.display='flex';
     ['dipBtn','addExpBtn'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
   }
+  buildTransactions(null); buildAlerts(); buildQuickActions();
 }());
 
+/* ═══════════════════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════════════════ */
 function tick(){
   var n=new Date();
-  var cl=document.getElementById('tbClock');if(cl)cl.textContent=n.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  var dt=document.getElementById('tbDate'); if(dt)dt.textContent=n.toLocaleDateString('en-NG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  var kd=document.getElementById('kpiDate');if(kd)kd.textContent='· '+n.toLocaleDateString('en-NG',{day:'numeric',month:'long',year:'numeric'});
+  var c=document.getElementById('tbClock'); if(c)c.textContent=n.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var d=document.getElementById('tbDate');  if(d)d.textContent=n.toLocaleDateString('en-NG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
-tick();setInterval(tick,1000);
+tick(); setInterval(tick,1000);
 
-function toggleSidebar(){var sb=document.getElementById('sidebar');var ov=document.getElementById('sbOverlay');var open=sb.classList.contains('open');if(open){sb.classList.remove('open');ov.classList.remove('on');document.body.style.overflow='';}else{sb.classList.add('open');ov.classList.add('on');document.body.style.overflow='hidden';}}
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbOverlay').classList.remove('on');document.body.style.overflow='';}
-function openDrawer(){document.getElementById('mobDrawer').classList.add('on');document.body.style.overflow='hidden';}
-function closeDrawer(){document.getElementById('mobDrawer').classList.remove('on');document.body.style.overflow='';}
-function doLogout(){sessionStorage.clear();window.location.replace('login.html');}
+/* ═══════════════════════════════════════════════════════
+   HAMBURGER
+═══════════════════════════════════════════════════════ */
+var _sbOpen = false;
 
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('hbBtn');
+  if (btn) btn.addEventListener('click', toggleSidebar);
+});
+
+function toggleSidebar() {
+  _sbOpen = !_sbOpen;
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sbOverlay');
+  var btn = document.getElementById('hbBtn');
+  var ico = document.getElementById('hbIcon');
+  sb.classList.toggle('open', _sbOpen);
+  ov.classList.toggle('show', _sbOpen);
+  btn.classList.toggle('is-open', _sbOpen);
+  document.body.style.overflow = _sbOpen ? 'hidden' : '';
+  if (ico) ico.className = _sbOpen ? 'bi bi-x-lg' : 'bi bi-list';
+}
+function closeSidebar() {
+  if (!_sbOpen) return;
+  _sbOpen = false;
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('show');
+  var b=document.getElementById('hbBtn'); if(b)b.classList.remove('is-open');
+  document.body.style.overflow = '';
+  var i=document.getElementById('hbIcon'); if(i)i.className='bi bi-list';
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){closeSidebar();closeDrawer();} });
+
+/* ═══════════════════════════════════════════════════════
+   DRAWER / LOGOUT
+═══════════════════════════════════════════════════════ */
+function openDrawer()  { document.getElementById('mobDrawer').classList.add('open');    document.body.style.overflow='hidden'; }
+function closeDrawer() { document.getElementById('mobDrawer').classList.remove('open'); document.body.style.overflow=''; }
+function doLogout() {
+  localStorage.removeItem('mso_session');
+  sessionStorage.removeItem('mso_u');
+  window.location.replace('login.html');
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+var _tt;
 function toast(title,msg,type){
   var bgs={ok:'#F0FDF4',err:'#FEF2F2',info:'#EAF6FC',warn:'#FFFBEB'};
   var icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill',info:'bi-info-circle-fill',warn:'bi-exclamation-triangle-fill'};
@@ -576,84 +748,280 @@ function toast(title,msg,type){
   var ico=document.getElementById('tIco');
   ico.style.background=bgs[type]||'#F1F5F9';
   ico.innerHTML='<i class="bi '+(icons[type]||'bi-bell-fill')+'" style="color:'+(colors[type]||'#64748B')+'"></i>';
-  document.getElementById('tTitle').textContent=title;
+  document.getElementById('tTtl').textContent=title;
   document.getElementById('tMsg').textContent=msg||'';
   var el=document.getElementById('toast');
-  el.classList.add('show');setTimeout(function(){el.classList.remove('show');},3500);
+  el.classList.add('show');
+  clearTimeout(_tt);
+  _tt=setTimeout(function(){el.classList.remove('show');},3500);
 }
 
-var PAY=[{n:'POS (MP Terminal)',a:5150848,c:'#179DD0'},{n:'Bank Transfer',a:5732810,c:'#130656'},{n:'Cash',a:3206388,c:'#16A34A'}];
-var ptot=PAY.reduce(function(s,p){return s+p.a;},0);
-document.getElementById('payBlock').innerHTML=
-  '<div class="pay-bar">'+PAY.map(function(p){return '<div class="pay-seg" style="flex:'+p.a+';background:'+p.c+'"></div>';}).join('')+'</div>'+
-  PAY.map(function(p){return '<div class="pay-row"><div style="display:flex;align-items:center;gap:8px"><div class="pay-dot" style="background:'+p.c+'"></div><div><div class="pay-name">'+p.n+'</div><div class="pay-pct">'+Math.round(p.a/ptot*100)+'%</div></div></div><div class="pay-amt">₦'+p.a.toLocaleString()+'</div></div>';}).join('')+
-  '<div class="pay-total"><span class="pay-total-lbl">Grand Total</span><span class="pay-total-val">₦'+ptot.toLocaleString()+'</span></div>';
+/* ═══════════════════════════════════════════════════════
+   DEMO DATA — always loads first so page is never blank
+═══════════════════════════════════════════════════════ */
+var DEMO = {
+  ok:true, grandTotal:14090047, totalChange:8.4,
+  pmsLitres:9811, pmsChange:5.2,
+  agoLitres:885,  agoChange:-1.2,
+  cashToBank:3206388, expenses:0,
+  tanks:{
+    pms:[
+      {id:'TK 1',opening:17100,closing:10000,diff:7100,margin:385.24},
+      {id:'TK 2',opening:2300, closing:50,   diff:2250,margin:79.92},
+      {id:'TK 3',opening:0,    closing:0,    diff:0,   margin:0}
+    ],
+    ago:{opening:3200,closing:2400,diff:800,margin:85.24,capacity:3200}
+  },
+  payments:[
+    {name:'POS (MP Terminal)',amount:5150848,color:'#179DD0'},
+    {name:'Bank Transfer',    amount:5732810,color:'#06091A'},
+    {name:'Cash',             amount:3206388,color:'#16A34A'}
+  ],
+  tankLevels:[
+    {id:'TK 1',product:'PMS',pumps:'P5 P6',vol:10000,cap:19600},
+    {id:'TK 2',product:'PMS',pumps:'P1 P2',vol:50,   cap:19600},
+    {id:'TK 3',product:'PMS',pumps:'P3 P4',vol:0,    cap:19600},
+    {id:'TK 4',product:'AGO',pumps:'P1 N1',vol:2400, cap:3200}
+  ],
+  weekly:{
+    days:['Mon','Tue','Wed','Thu','Fri','Sat','Today'],
+    pms: [7820,8100,7200,8900,9400,10500,9811],
+    ago: [720, 880, 600, 920, 800, 1100, 885]
+  }
+};
 
-var DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Today'];
-var PMS=[7820,8100,7200,8900,9400,10500,9811],AGO=[720,880,600,920,800,1100,885];
-var mx=Math.max.apply(null,PMS.concat(AGO));
-document.getElementById('chartBars').innerHTML=DAYS.map(function(d,i){
-  var ph=Math.round(PMS[i]/mx*92),ah=Math.round(AGO[i]/mx*92);
-  return '<div class="chart-col"><div class="chart-bars"><div class="chart-b cb-pms" style="height:'+ph+'px"></div><div class="chart-b cb-ago" style="height:'+ah+'px"></div></div><div class="chart-day'+(i===6?' now':'')+'" >'+d+'</div></div>';
-}).join('');
+/* ═══════════════════════════════════════════════════════
+   APPLY DATA — fills every element from a data object
+═══════════════════════════════════════════════════════ */
+function applyDashboardData(d){
+  /* KPIs */
+  if(d.grandTotal!==undefined){
+    document.getElementById('kTotal').textContent='₦'+Number(d.grandTotal).toLocaleString('en-NG');
+    var chg=d.totalChange;
+    document.getElementById('kTotalFoot').innerHTML=chg!==undefined
+      ?'<span class="badge-'+(chg>=0?'up':'dn')+'">'+(chg>=0?'↑':'↓')+' '+Math.abs(chg).toFixed(1)+'%</span>&nbsp;vs yesterday'
+      :'Today\'s total';
+  }
+  if(d.pmsLitres!==undefined){
+    document.getElementById('kPMS').textContent=Number(d.pmsLitres).toLocaleString('en-NG')+' L';
+    if(d.pmsChange!==undefined)document.getElementById('kPMSFoot').innerHTML='<span class="badge-'+(d.pmsChange>=0?'up':'dn')+'">'+(d.pmsChange>=0?'↑':'↓')+' '+Math.abs(d.pmsChange).toFixed(1)+'%</span>';
+  }
+  if(d.agoLitres!==undefined){
+    document.getElementById('kAGO').textContent=Number(d.agoLitres).toLocaleString('en-NG')+' L';
+    if(d.agoChange!==undefined)document.getElementById('kAGOFoot').innerHTML='<span class="badge-'+(d.agoChange>=0?'up':'dn')+'">'+(d.agoChange>=0?'↑':'↓')+' '+Math.abs(d.agoChange).toFixed(1)+'%</span>';
+  }
+  if(d.cashToBank!==undefined) document.getElementById('kCash').textContent='₦'+Number(d.cashToBank).toLocaleString('en-NG');
+  if(d.expenses!==undefined){
+    document.getElementById('kExp').textContent='₦'+Number(d.expenses).toLocaleString('en-NG');
+    document.getElementById('expensesSub').textContent='₦'+Number(d.expenses).toLocaleString('en-NG')+' today';
+  }
+  /* Dipping */
+  if(d.tanks&&d.tanks.pms) buildDipTable(d.tanks.pms);
+  if(d.tanks&&d.tanks.ago) buildAGO(d.tanks.ago);
+  /* Revenue boxes */
+  if(d.pmsLitres!==undefined){
+    var pr=Number(d.pmsLitres)*1272;
+    document.getElementById('pmsRevVal').textContent='₦'+pr.toLocaleString('en-NG');
+    document.getElementById('pmsRevSub').textContent=Number(d.pmsLitres).toLocaleString('en-NG')+'L @ ₦1,272';
+  }
+  if(d.agoLitres!==undefined){
+    var ar=Number(d.agoLitres)*1819;
+    document.getElementById('agoRevVal').textContent='₦'+ar.toLocaleString('en-NG');
+    document.getElementById('agoRevSub').textContent=Number(d.agoLitres).toLocaleString('en-NG')+'L @ ₦1,819';
+  }
+  if(d.payments)   buildPayments(d.payments);
+  if(d.tankLevels) buildTankLevels(d.tankLevels);
+  if(d.weekly)     buildChartFromData(d.weekly);
+  if(d.recentTransactions !== undefined) buildTransactions(d.recentTransactions);
+}
 
-var TXN=[
-  {t:'18:44',tk:'TK2·P2·N1',pr:'PMS',l:25, a:31800, m:'POS', by:'Harrison'},
-  {t:'17:31',tk:'TK4·P1·N1',pr:'AGO',l:100,a:181900,m:'TRF', by:'Harrison'},
-  {t:'16:20',tk:'TK1·P5·N2',pr:'PMS',l:18, a:22896, m:'Cash',by:'Tony'},
-  {t:'15:08',tk:'TK2·P1·N1',pr:'PMS',l:30, a:38160, m:'POS', by:'Tony'},
-  {t:'14:50',tk:'TK1·P6·N1',pr:'PMS',l:40, a:50880, m:'TRF', by:'Harrison'},
-];
-var mc={POS:'p-cyan',Cash:'p-green',TRF:'p-navy'};
-document.getElementById('txnTable').innerHTML=
-  '<thead><tr><th>Time</th><th>Tank · Pump</th><th>Product</th><th>Litres</th><th>Amount</th><th>Method</th><th>Staff</th></tr></thead>'+
-  '<tbody>'+TXN.map(function(t){
+/* ═══════════════════════════════════════════════════════
+   LOAD — demo first, then try live
+═══════════════════════════════════════════════════════ */
+function setLoading(on){
+  var s=document.getElementById('dataStatus'); if(s)s.classList.toggle('show',on);
+  var r=document.getElementById('refreshIcon'); if(r)r.style.animation=on?'spin .7s linear infinite':'none';
+}
+
+function loadDashboard(){
+  /* Always show demo data immediately — page is never blank */
+  applyDashboardData(DEMO);
+
+  /* Then try to fetch live data in background */
+  if(!SCRIPT_URL || SCRIPT_URL==='YOUR_DEPLOYED_WEBAPP_URL') return;
+
+  setLoading(true);
+  var url=new URL(SCRIPT_URL);
+  url.searchParams.set('action','getDashboard');
+  url.searchParams.set('station','mso');
+  url.searchParams.set('username', USER||'owner');
+
+  fetch(url.toString(), {method:'GET', redirect:'follow'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      setLoading(false);
+      if(!d.ok){ return; } /* silently keep demo data if error */
+      applyDashboardData(d);
+      toast('Live data loaded','Dashboard updated from Sheets','ok');
+    })
+    .catch(function(){
+      setLoading(false);
+      /* silently keep demo data on network error */
+    });
+}
+
+function refreshData(){ loadDashboard(); }
+
+/* ═══════════════════════════════════════════════════════
+   BUILDERS
+═══════════════════════════════════════════════════════ */
+function buildDipTable(pms){
+  var tm=0,tr=0;
+  var rows=pms.map(function(t){
+    var e=t.diff===0; tm+=t.margin; tr+=t.diff*1272;
     return '<tr>'+
-      '<td style="font-family:var(--mono);font-size:11.5px;color:var(--ink-4)">'+t.t+'</td>'+
-      '<td><span class="pill p-cyan" style="font-size:10px">'+t.tk+'</span></td>'+
-      '<td><span class="pill '+(t.pr==='AGO'?'p-amber':'p-cyan')+'">'+t.pr+'</span></td>'+
-      '<td style="font-family:var(--mono);font-weight:600">'+t.l+'L</td>'+
-      '<td style="font-family:var(--mono);font-weight:700;color:var(--ink)">₦'+t.a.toLocaleString()+'</td>'+
-      '<td><span class="pill '+(mc[t.m]||'p-cyan')+'">'+t.m+'</span></td>'+
-      '<td style="font-size:11.5px;color:var(--ink-3)">'+t.by+'</td>'+
+      '<td><span class="pill '+(e?'p-gray':'p-cyan')+'">'+t.id+'</span></td>'+
+      '<td class="mono" style="font-weight:600;'+(e?'color:var(--ink-4)':'')+'">'+Number(t.opening).toLocaleString('en-NG')+'L</td>'+
+      '<td class="mono" style="'+(e?'color:var(--ink-4)':'')+'">'+Number(t.closing).toLocaleString('en-NG')+'L</td>'+
+      '<td class="mono" style="font-weight:700;color:'+(e?'var(--ink-4)':'var(--cyan-d)')+'">'+Number(t.diff).toLocaleString('en-NG')+'L</td>'+
+      '<td class="mono" style="font-weight:700;color:'+(e?'var(--ink-4)':'var(--amber)')+'">'+Number(t.margin).toFixed(2)+'L</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('dipBody').innerHTML=rows;
+  document.getElementById('dipTotal').textContent=tm.toFixed(2)+'L · ₦'+tr.toLocaleString('en-NG');
+}
+
+function buildAGO(ago){
+  var pct=ago.capacity>0?Math.round((ago.closing/ago.capacity)*100):0;
+  document.getElementById('agoLevelPill').textContent=pct+'%';
+  document.getElementById('agoOpen').textContent=Number(ago.opening).toLocaleString('en-NG')+'L';
+  document.getElementById('agoClose').textContent=Number(ago.closing).toLocaleString('en-NG')+'L';
+  document.getElementById('agoDiff').textContent=Number(ago.diff).toLocaleString('en-NG')+'L';
+  document.getElementById('agoMargin').textContent=Number(ago.margin).toFixed(2)+'L';
+  var rev=ago.diff*1819;
+  document.getElementById('agoCalcLabel').textContent=Number(ago.diff).toLocaleString('en-NG')+'L × ₦1,819';
+  document.getElementById('agoRevenue').textContent='₦'+rev.toLocaleString('en-NG');
+}
+
+function buildPayments(payments){
+  var tot=payments.reduce(function(s,p){return s+p.amount;},0);
+  var bar='<div class="pay-bar">'+payments.map(function(p){
+    return '<div class="pay-seg" style="flex:'+p.amount+';background:'+p.color+'"></div>';
+  }).join('')+'</div>';
+  var rows=payments.map(function(p){
+    return '<div class="pay-row">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div class="pay-dot" style="background:'+p.color+'"></div>'+
+        '<div><div class="pay-name">'+p.name+'</div><div class="pay-pct">'+Math.round(p.amount/tot*100)+'%</div></div>'+
+      '</div>'+
+      '<div class="pay-amt">₦'+Number(p.amount).toLocaleString('en-NG')+'</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('payBlock').innerHTML=bar+rows+
+    '<div class="pay-total"><span class="pay-total-lbl">Grand Total</span><span class="pay-total-val">₦'+tot.toLocaleString('en-NG')+'</span></div>';
+}
+
+function buildTankLevels(tanks){
+  var rows=tanks.map(function(t){
+    var pct=t.cap>0?Math.round((t.vol/t.cap)*100):0;
+    var pcls=pct>40?'pct-ok':pct>15?'pct-med':'pct-low';
+    var icol=pct>40?'var(--cyan-d)':pct>15?'var(--amber)':'var(--red)';
+    return '<div class="tank-row">'+
+      '<div class="tank-id-col"><div class="tank-id" style="color:'+icol+'">'+t.id+'</div><div class="tank-pump">'+t.product+' · '+t.pumps+'</div></div>'+
+      '<div class="tank-bar"><div class="tank-fill '+(t.product==='AGO'?'tf-ago':'tf-pms')+'" style="width:'+pct+'%"></div></div>'+
+      '<div class="tank-meta"><div class="tank-vol">'+Number(t.vol).toLocaleString('en-NG')+'L</div><div class="tank-pct '+pcls+'">'+pct+'%</div></div>'+
+    '</div>';
+  }).join('');
+  var crit=tanks.filter(function(t){return t.product==='PMS'&&t.cap>0&&Math.round(t.vol/t.cap*100)<=10;});
+  var warn=crit.length>0?'<div class="tank-alert-bar"><i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0"></i>'+crit.map(function(t){return t.id;}).join(' &amp; ')+' critically low — discharge needed.</div>':'';
+  document.getElementById('tankBlock').innerHTML=rows+warn;
+}
+
+function buildChartFromData(w){
+  var mx=Math.max.apply(null,w.pms.concat(w.ago));
+  document.getElementById('chartBars').innerHTML=w.days.map(function(d,i){
+    var ph=Math.round(w.pms[i]/mx*92), ah=Math.round(w.ago[i]/mx*92), now=i===w.days.length-1;
+    return '<div class="chart-col">'+
+      '<div class="chart-bars">'+
+        '<div class="chart-bar bar-pms" style="height:'+ph+'px"></div>'+
+        '<div class="chart-bar bar-ago" style="height:'+ah+'px"></div>'+
+      '</div>'+
+      '<div class="chart-lbl'+(now?' now':'')+'" >'+d+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* txns = array from API recentTransactions, or null to show empty/demo state */
+function buildTransactions(txns){
+  var mc={POS:'p-cyan',Cash:'p-green',cash:'p-green',TRF:'p-navy',trf:'p-navy'};
+  var head='<thead><tr><th>Time</th><th>Tank · Pump · Nozzle</th><th>Product</th><th>Litres</th><th>Amount</th><th>Method</th><th>Staff</th></tr></thead>';
+
+  if (!txns || txns.length===0) {
+    document.getElementById('txnTable').innerHTML=head+
+      '<tbody><tr><td colspan="7" style="text-align:center;padding:28px;color:var(--ink-4);font-size:12.5px">'+
+      '<i class="bi bi-receipt" style="font-size:24px;display:block;margin-bottom:8px;opacity:.35"></i>'+
+      'No sales recorded today. Once staff log pump sales, they appear here.</td></tr></tbody>';
+    return;
+  }
+
+  document.getElementById('txnTable').innerHTML=head+'<tbody>'+txns.map(function(t){
+    var tkLabel=[t.tank,t.pump,t.nozzle].filter(Boolean).join('·');
+    var mKey=String(t.payMethod||'');
+    var mClass=mc[mKey]||mc[mKey.toLowerCase()]||'p-gray';
+    return '<tr'+(t.handover?' style="background:#FFFBEB"':'')+'>'+
+      '<td class="mono" style="font-size:11.5px;color:var(--ink-4)">'+
+        (t.time||'—')+
+        (t.handover?'<span class="pill p-amber" style="font-size:8.5px;margin-left:6px;padding:1px 6px">Handover</span>':'')+
+      '</td>'+
+      '<td><span class="pill p-cyan" style="font-size:10px">'+(tkLabel||'—')+'</span></td>'+
+      '<td><span class="pill '+((t.product||'').toUpperCase()==='AGO'?'p-amber':'p-cyan')+'">'+(t.product||'—')+'</span></td>'+
+      '<td class="mono" style="font-weight:600">'+Number(t.litres||0).toLocaleString('en-NG')+'L</td>'+
+      '<td class="mono" style="font-weight:700;color:var(--ink)">₦'+Number(t.amount||0).toLocaleString('en-NG')+'</td>'+
+      '<td><span class="pill '+mClass+'">'+(t.payMethod||'—')+'</span></td>'+
+      '<td style="font-size:11.5px;color:var(--ink-3)">'+(t.attendant||'—')+'</td>'+
     '</tr>';
   }).join('')+'</tbody>';
-
-var ALS=[
-  {ico:'bi-exclamation-triangle-fill',ibg:'#FEF2F2',ic:'#DC2626',t:'TK 2 &amp; TK 3 Critical',d:'Discharge required today before evening shift.'},
-  {ico:'bi-moon-stars-fill',ibg:'#EEF0FB',ic:'#130656',t:'Night Shift Purchase Order',d:'Tony to raise P.O. before midnight tonight.'},
-  {ico:'bi-arrow-left-right',ibg:'#EAF6FC',ic:'#179DD0',t:'Dip Rotation Monday',d:'Harrison and Tony swap dip assignment.'},
-];
-document.getElementById('alertBlock').innerHTML=ALS.map(function(a){
-  return '<div class="alert-item"><div class="alert-ico" style="background:'+a.ibg+'"><i class="bi '+a.ico+'" style="color:'+a.ic+'"></i></div><div><div class="alert-title">'+a.t+'</div><div class="alert-desc">'+a.d+'</div></div></div>';
-}).join('');
-
-var QA=[
-  {ico:'bi-calculator',ibg:'#F0FDF4',ic:'#16A34A',l:'Cash Reconciliation',h:'cashup-mso.html',r:['owner','gm','supervisor','cashier']},
-  {ico:'bi-graph-up-arrow',ibg:'#EAF6FC',ic:'#179DD0',l:'Stock Variance',h:'variance-mso.html',r:['owner','gm']},
-  {ico:'bi-bar-chart-line-fill',ibg:'#EDE9FE',ic:'#6D28D9',l:'P&amp;L Report',h:'pnl-mso.html',r:['owner','gm']},
-  {ico:'bi-check2-circle',ibg:'#FFFBEB',ic:'#B45309',l:'Approvals',h:'approvals.html',r:['owner','gm']},
-  {ico:'bi-truck',ibg:'#FEF2F2',ic:'#DC2626',l:'Discharge',h:'discharge-mso.html',r:['gm','supervisor']},
-  {ico:'bi-printer-fill',ibg:'#EEF0FB',ic:'#130656',l:'Daily Summary',h:'summary-mso.html',r:['owner','gm','supervisor']},
-];
-document.getElementById('qaBlock').innerHTML=QA.filter(function(q){return q.r.indexOf(ROLE)>=0;}).map(function(q){
-  return '<button class="qa-btn" onclick="location.href=\''+q.h+'\'"><div class="qa-ico" style="background:'+q.ibg+'"><i class="bi '+q.ico+'" style="color:'+q.ic+'"></i></div>'+q.l+'<i class="bi bi-chevron-right qa-arr"></i></button>';
-}).join('');
-
-if(SCRIPT_URL!=='YOUR_DEPLOYED_WEBAPP_URL'){
-  var u=new URL(SCRIPT_URL);
-  u.searchParams.set('action','getDashboard');u.searchParams.set('station','mso');u.searchParams.set('username',USER);
-  fetch(u.toString(),{method:'GET',redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(!d.ok)return;
-      if(d.grandTotal)document.getElementById('kTotal').textContent='₦'+Number(d.grandTotal).toLocaleString();
-      if(d.pmsLitres) document.getElementById('kPMS').textContent=Number(d.pmsLitres).toLocaleString()+' L';
-      if(d.agoLitres) document.getElementById('kAGO').textContent=Number(d.agoLitres).toLocaleString()+' L';
-      if(d.cashToBank)document.getElementById('kCash').textContent='₦'+Number(d.cashToBank).toLocaleString();
-      if(d.expenses)  document.getElementById('kExp').textContent='₦'+Number(d.expenses).toLocaleString();
-    }).catch(function(){});
 }
+
+
+function buildAlerts(){
+  var ALS=[
+    {ico:'bi-exclamation-triangle-fill',ibg:'#FEF2F2',ic:'#DC2626',t:'TK 2 &amp; TK 3 Critical',d:'Discharge required today before evening shift.'},
+    {ico:'bi-moon-stars-fill',ibg:'#EEF0FB',ic:'#130656',t:'Night Shift Purchase Order',d:'Tony to raise P.O. before midnight tonight.'},
+    {ico:'bi-arrow-left-right',ibg:'#EAF6FC',ic:'#179DD0',t:'Dip Rotation Monday',d:'Harrison and Tony swap dip assignment.'}
+  ];
+  document.getElementById('alertBlock').innerHTML=ALS.map(function(a){
+    return '<div class="alert-item">'+
+      '<div class="alert-ico" style="background:'+a.ibg+'"><i class="bi '+a.ico+'" style="color:'+a.ic+'"></i></div>'+
+      '<div><div class="alert-ttl">'+a.t+'</div><div class="alert-txt">'+a.d+'</div></div>'+
+    '</div>';
+  }).join('');
+}
+
+function buildQuickActions(){
+  var QA=[
+    {ico:'bi-calculator',       ibg:'#F0FDF4',ic:'#16A34A',l:'Cash Reconciliation',h:'cashup-mso.html',   r:['owner','gm','supervisor','cashier']},
+    {ico:'bi-graph-up-arrow',   ibg:'#EAF6FC',ic:'#179DD0',l:'Stock Variance',     h:'variance-mso.html', r:['owner','gm']},
+    {ico:'bi-bar-chart-line-fill',ibg:'#EDE9FE',ic:'#6D28D9',l:'P&amp;L Report',  h:'pnl-mso.html',      r:['owner','gm']},
+    {ico:'bi-check2-circle',    ibg:'#FFFBEB',ic:'#B45309',l:'Approvals',          h:'approvals.html',    r:['owner','gm']},
+    {ico:'bi-truck',            ibg:'#FEF2F2',ic:'#DC2626',l:'Discharge',          h:'discharge-mso.html',r:['gm','supervisor']},
+    {ico:'bi-printer-fill',     ibg:'#EEF0FB',ic:'#130656',l:'Daily Summary',      h:'summary-mso.html',  r:['owner','gm','supervisor']}
+  ];
+  document.getElementById('qaBlock').innerHTML=QA
+    .filter(function(q){return q.r.indexOf(ROLE)>=0;})
+    .map(function(q){
+      return '<button type="button" class="qa-btn" onclick="location.href=\''+q.h+'\'">'+
+        '<div class="qa-ico" style="background:'+q.ibg+'"><i class="bi '+q.ico+'" style="color:'+q.ic+';font-size:15px"></i></div>'+
+        q.l+
+        '<i class="bi bi-chevron-right qa-arr"></i>'+
+      '</button>';
+    }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   BOOT — runs immediately on page load
+═══════════════════════════════════════════════════════ */
+loadDashboard();
 </script>
 </body>
 </html>
