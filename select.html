@@ -335,6 +335,7 @@ var user = JSON.parse(sessionStorage.getItem('mso_u') || 'null');
 if (!user) window.location.replace('login.html');
 
 /* ── Welcome message ── */
+if (user) {
 document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + user.name.split(' ')[0];
 
 /* ── DateTime ── */
@@ -367,6 +368,7 @@ if (SCRIPT_URL !== 'YOUR_DEPLOYED_WEBAPP_URL') {
   })
   .catch(function(){});
 } else {
+  /* Placeholder until API is live */
   document.getElementById('mso-rev').textContent = '₦—';
   document.getElementById('mso-vol').textContent = '—';
   document.getElementById('mrs-rev').textContent = '₦—';
@@ -375,8 +377,10 @@ if (SCRIPT_URL !== 'YOUR_DEPLOYED_WEBAPP_URL') {
 
 /* ── Navigate ── */
 function goTo(station) {
-  user.station = station;
-  sessionStorage.setItem('mso_u', JSON.stringify(user));
+  if (user) {
+    user.station = station;
+    sessionStorage.setItem('mso_u', JSON.stringify(user));
+  }
   window.location.href = 'dashboard-' + station + '.html';
 }
 
@@ -385,6 +389,9 @@ function logout() {
   sessionStorage.clear();
   window.location.replace('login.html');
 }
+
+/* ── SW ── */
+/* SW registered by pwa-core.js */
 </script>
 
 <script src="/js/pwa-core.js"></script>
