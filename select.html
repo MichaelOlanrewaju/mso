@@ -329,14 +329,10 @@ h1{
 
 </div>
 
+<script src="mso-auth.js"></script>
 <script>
 /* ── Auth guard ── */
-var user = JSON.parse(sessionStorage.getItem('mso_u') || 'null');
-if (!user) window.location.replace('login.html');
-
-/* ── Welcome message ── */
-if (user) {
-document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + user.name.split(' ')[0];
+var user = MSO_AUTH.require();
 
 /* ── DateTime ── */
 function updateTime() {
@@ -346,52 +342,49 @@ function updateTime() {
     '  ·  ' +
     n.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
 }
-updateTime(); setInterval(updateTime, 30000);
-
-/* ── Live stats — replace with real API call ── */
-var SCRIPT_URL = 'YOUR_DEPLOYED_WEBAPP_URL';
-if (SCRIPT_URL !== 'YOUR_DEPLOYED_WEBAPP_URL') {
-  fetch(SCRIPT_URL, {
-    method:'POST',
-    body: JSON.stringify({ action:'getStationSummary' })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    if (d.mso) {
-      document.getElementById('mso-rev').textContent = '₦' + Number(d.mso.revenue).toLocaleString();
-      document.getElementById('mso-vol').textContent = Number(d.mso.litres).toLocaleString() + 'L';
-    }
-    if (d.mrs) {
-      document.getElementById('mrs-rev').textContent = '₦' + Number(d.mrs.revenue).toLocaleString();
-      document.getElementById('mrs-vol').textContent = Number(d.mrs.litres).toLocaleString() + 'L';
-    }
-  })
-  .catch(function(){});
-} else {
-  /* Placeholder until API is live */
-  document.getElementById('mso-rev').textContent = '₦—';
-  document.getElementById('mso-vol').textContent = '—';
-  document.getElementById('mrs-rev').textContent = '₦—';
-  document.getElementById('mrs-vol').textContent = '—';
-}
 
 /* ── Navigate ── */
 function goTo(station) {
-  if (user) {
-    user.station = station;
-    sessionStorage.setItem('mso_u', JSON.stringify(user));
+  var u = MSO_AUTH.get();
+  if (u) {
+    u.station = station;
+    MSO_AUTH.save(u);
   }
   window.location.href = 'dashboard-' + station + '.html';
 }
 
 /* ── Logout ── */
 function logout() {
-  sessionStorage.clear();
-  window.location.replace('login.html');
+  MSO_AUTH.logout();
 }
 
-/* ── SW ── */
-/* SW registered by pwa-core.js */
+/* ── Init ── */
+if (user) {
+  document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + user.name.split(' ')[0];
+  updateTime();
+  setInterval(updateTime, 30000);
+
+  /* ── Live stats — replace with real API call ── */
+  var SCRIPT_URL = 'YOUR_DEPLOYED_WEBAPP_URL';
+  if (SCRIPT_URL !== 'YOUR_DEPLOYED_WEBAPP_URL') {
+    fetch(SCRIPT_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'getStationSummary' })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.mso) {
+        document.getElementById('mso-rev').textContent = '₦' + Number(d.mso.revenue).toLocaleString();
+        document.getElementById('mso-vol').textContent = Number(d.mso.litres).toLocaleString() + 'L';
+      }
+      if (d.mrs) {
+        document.getElementById('mrs-rev').textContent = '₦' + Number(d.mrs.revenue).toLocaleString();
+        document.getElementById('mrs-vol').textContent = Number(d.mrs.litres).toLocaleString() + 'L';
+      }
+    })
+    .catch(function(){});
+  }
+}
 </script>
 
 <script src="/js/pwa-core.js"></script>

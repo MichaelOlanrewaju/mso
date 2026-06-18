@@ -757,116 +757,126 @@ function toast(title,msg,type){
 }
 
 /* ═══════════════════════════════════════════════════════
-   DEMO DATA — always loads first so page is never blank
-═══════════════════════════════════════════════════════ */
-var DEMO = {
-  ok:true, grandTotal:14090047, totalChange:8.4,
-  pmsLitres:9811, pmsChange:5.2,
-  agoLitres:885,  agoChange:-1.2,
-  cashToBank:3206388, expenses:0,
-  tanks:{
-    pms:[
-      {id:'TK 1',opening:17100,closing:10000,diff:7100,margin:385.24},
-      {id:'TK 2',opening:2300, closing:50,   diff:2250,margin:79.92},
-      {id:'TK 3',opening:0,    closing:0,    diff:0,   margin:0}
-    ],
-    ago:{opening:3200,closing:2400,diff:800,margin:85.24,capacity:3200}
-  },
-  payments:[
-    {name:'POS (MP Terminal)',amount:5150848,color:'#179DD0'},
-    {name:'Bank Transfer',    amount:5732810,color:'#06091A'},
-    {name:'Cash',             amount:3206388,color:'#16A34A'}
-  ],
-  tankLevels:[
-    {id:'TK 1',product:'PMS',pumps:'P5 P6',vol:10000,cap:19600},
-    {id:'TK 2',product:'PMS',pumps:'P1 P2',vol:50,   cap:19600},
-    {id:'TK 3',product:'PMS',pumps:'P3 P4',vol:0,    cap:19600},
-    {id:'TK 4',product:'AGO',pumps:'P1 N1',vol:2400, cap:3200}
-  ],
-  weekly:{
-    days:['Mon','Tue','Wed','Thu','Fri','Sat','Today'],
-    pms: [7820,8100,7200,8900,9400,10500,9811],
-    ago: [720, 880, 600, 920, 800, 1100, 885]
-  }
-};
-
-/* ═══════════════════════════════════════════════════════
-   APPLY DATA — fills every element from a data object
+   LOAD DASHBOARD DATA FROM SHEET
 ═══════════════════════════════════════════════════════ */
 function applyDashboardData(d){
-  /* KPIs */
+
+  /* ── Opening Only State ── */
+  if(d.openingOnly){
+    /* Show opening readings in dip table */
+    if(d.tanks&&d.tanks.pms) buildDipTable(d.tanks.pms, d.pmsPrice||1269, true);
+    if(d.tanks&&d.tanks.ago) buildAGO(d.tanks.ago, d.agoPrice||1799);
+    if(d.tankLevels) buildTankLevels(d.tankLevels);
+    if(d.weekly) buildChartFromData(d.weekly);
+    buildTransactions([]);
+    /* KPIs show as Pending */
+    var pendingKpis=[
+      {id:'kTotal',  txt:'Pending',  sub:'Closing not yet submitted'},
+      {id:'kPMS',    txt:'Pending',  sub:'opening: '+(d.tanks&&d.tanks.pms?d.tanks.pms.reduce(function(s,t){return s+t.opening;},0).toLocaleString('en-NG')+'L':'—')},
+      {id:'kAGO',    txt:'Pending',  sub:'opening: '+(d.tanks&&d.tanks.ago?Number(d.tanks.ago.opening).toLocaleString('en-NG')+'L':'—')},
+      {id:'kCash',   txt:'Pending',  sub:'cashier pending'},
+      {id:'kExp',    txt:'₦0',       sub:'no expenses yet'},
+    ];
+    pendingKpis.forEach(function(k){
+      var el=document.getElementById(k.id);
+      if(el){el.textContent=k.txt;el.style.color='var(--amber-400,#f59e0b)';el.style.opacity='1';}
+    });
+    /* Show opening banner */
+    var ft=document.getElementById('kTotalFoot');
+    if(ft)ft.innerHTML='<span class="badge-neu" style="color:#F59E0B">⏳ Opening dip recorded — awaiting closing</span>';
+    return;
+  }
+
+  /* ── Full Data State ── */
   if(d.grandTotal!==undefined){
-    document.getElementById('kTotal').textContent='₦'+Number(d.grandTotal).toLocaleString('en-NG');
-    var chg=d.totalChange;
-    document.getElementById('kTotalFoot').innerHTML=chg!==undefined
-      ?'<span class="badge-'+(chg>=0?'up':'dn')+'">'+(chg>=0?'↑':'↓')+' '+Math.abs(chg).toFixed(1)+'%</span>&nbsp;vs yesterday'
-      :'Today\'s total';
+    var el=document.getElementById('kTotal');
+    if(el){el.textContent='₦'+Number(d.grandTotal).toLocaleString('en-NG');el.style.opacity='1';el.style.color='';}
+    var ft=document.getElementById('kTotalFoot');
+    if(ft&&d.totalChange!==null&&d.totalChange!==undefined){
+      ft.innerHTML='<span class="badge-'+(d.totalChange>=0?'up':'dn')+'">'+(d.totalChange>=0?'↑':'↓')+Math.abs(d.totalChange).toFixed(1)+'%</span>&nbsp;vs yesterday';
+    }
   }
   if(d.pmsLitres!==undefined){
-    document.getElementById('kPMS').textContent=Number(d.pmsLitres).toLocaleString('en-NG')+' L';
-    if(d.pmsChange!==undefined)document.getElementById('kPMSFoot').innerHTML='<span class="badge-'+(d.pmsChange>=0?'up':'dn')+'">'+(d.pmsChange>=0?'↑':'↓')+' '+Math.abs(d.pmsChange).toFixed(1)+'%</span>';
+    var el=document.getElementById('kPMS');
+    if(el){el.textContent=Number(d.pmsLitres).toLocaleString('en-NG',{maximumFractionDigits:2})+' L';el.style.opacity='1';el.style.color='';}
+    var sub=document.getElementById('kPMSFoot');
+    if(sub)sub.textContent='₦'+Number(d.pmsRevenue||0).toLocaleString('en-NG');
+    var rv=document.getElementById('pmsRevVal');
+    if(rv)rv.textContent='₦'+Number(d.pmsRevenue||0).toLocaleString('en-NG');
   }
   if(d.agoLitres!==undefined){
-    document.getElementById('kAGO').textContent=Number(d.agoLitres).toLocaleString('en-NG')+' L';
-    if(d.agoChange!==undefined)document.getElementById('kAGOFoot').innerHTML='<span class="badge-'+(d.agoChange>=0?'up':'dn')+'">'+(d.agoChange>=0?'↑':'↓')+' '+Math.abs(d.agoChange).toFixed(1)+'%</span>';
+    var el=document.getElementById('kAGO');
+    if(el){el.textContent=Number(d.agoLitres).toLocaleString('en-NG',{maximumFractionDigits:2})+' L';el.style.opacity='1';el.style.color='';}
+    var sub=document.getElementById('kAGOFoot');
+    if(sub)sub.textContent='₦'+Number(d.agoRevenue||0).toLocaleString('en-NG');
+    var rv=document.getElementById('agoRevVal');
+    if(rv)rv.textContent='₦'+Number(d.agoRevenue||0).toLocaleString('en-NG');
   }
-  if(d.cashToBank!==undefined) document.getElementById('kCash').textContent='₦'+Number(d.cashToBank).toLocaleString('en-NG');
+  if(d.cashToBank!==undefined){
+    var el=document.getElementById('kCash');
+    if(el){el.textContent='₦'+Number(d.cashToBank).toLocaleString('en-NG');el.style.opacity='1';el.style.color='';}
+  }
   if(d.expenses!==undefined){
-    document.getElementById('kExp').textContent='₦'+Number(d.expenses).toLocaleString('en-NG');
-    document.getElementById('expensesSub').textContent='₦'+Number(d.expenses).toLocaleString('en-NG')+' today';
+    var el=document.getElementById('kExp');
+    if(el){el.textContent='₦'+Number(d.expenses).toLocaleString('en-NG');el.style.opacity='1';el.style.color='';}
   }
-  /* Dipping */
-  if(d.tanks&&d.tanks.pms) buildDipTable(d.tanks.pms);
-  if(d.tanks&&d.tanks.ago) buildAGO(d.tanks.ago);
-  /* Revenue boxes */
-  if(d.pmsLitres!==undefined){
-    var pr=Number(d.pmsLitres)*1272;
-    document.getElementById('pmsRevVal').textContent='₦'+pr.toLocaleString('en-NG');
-    document.getElementById('pmsRevSub').textContent=Number(d.pmsLitres).toLocaleString('en-NG')+'L @ ₦1,272';
-  }
-  if(d.agoLitres!==undefined){
-    var ar=Number(d.agoLitres)*1819;
-    document.getElementById('agoRevVal').textContent='₦'+ar.toLocaleString('en-NG');
-    document.getElementById('agoRevSub').textContent=Number(d.agoLitres).toLocaleString('en-NG')+'L @ ₦1,819';
-  }
-  if(d.payments)   buildPayments(d.payments);
+  if(d.tanks&&d.tanks.pms) buildDipTable(d.tanks.pms, d.pmsPrice||1269, false);
+  if(d.tanks&&d.tanks.ago) buildAGO(d.tanks.ago, d.agoPrice||1799);
+  if(d.payments&&d.payments.length>0) buildPayments(d.payments);
   if(d.tankLevels) buildTankLevels(d.tankLevels);
-  if(d.weekly)     buildChartFromData(d.weekly);
-  if(d.recentTransactions !== undefined) buildTransactions(d.recentTransactions);
+  if(d.weekly) buildChartFromData(d.weekly);
+  if(d.recentTransactions!==undefined) buildTransactions(d.recentTransactions);
 }
 
-/* ═══════════════════════════════════════════════════════
-   LOAD — demo first, then try live
-═══════════════════════════════════════════════════════ */
 function setLoading(on){
-  var s=document.getElementById('dataStatus'); if(s)s.classList.toggle('show',on);
-  var r=document.getElementById('refreshIcon'); if(r)r.style.animation=on?'spin .7s linear infinite':'none';
+  var ri=document.getElementById('rfIcon');
+  if(ri)ri.style.animation=on?'rotate .7s linear infinite':'none';
+  var sr=document.getElementById('syncRow');
+  if(sr)sr.classList.toggle('on',on);
+}
+
+function showDashboardLoading(){
+  /* Show dash on KPIs while loading */
+  var kpis=['kpiTotal','kpiPMS','kpiAGO','kpiCash','kpiExp'];
+  kpis.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){el.textContent='—';el.style.opacity='.5';}
+  });
+  buildTransactions(null);
 }
 
 function loadDashboard(){
-  /* Always show demo data immediately — page is never blank */
-  applyDashboardData(DEMO);
-
-  /* Then try to fetch live data in background */
-  if(!SCRIPT_URL || SCRIPT_URL==='YOUR_DEPLOYED_WEBAPP_URL') return;
-
+  if(!SCRIPT_URL||SCRIPT_URL==='YOUR_DEPLOYED_WEBAPP_URL')return;
   setLoading(true);
   var url=new URL(SCRIPT_URL);
   url.searchParams.set('action','getDashboard');
   url.searchParams.set('station','mso');
-  url.searchParams.set('username', USER||'owner');
-
-  fetch(url.toString(), {method:'GET', redirect:'follow'})
-    .then(function(r){ return r.json(); })
+  url.searchParams.set('username',USER||'owner');
+  fetch(url.toString(),{method:'GET',redirect:'follow'})
+    .then(function(r){return r.json();})
     .then(function(d){
       setLoading(false);
-      if(!d.ok){ return; } /* silently keep demo data if error */
+      if(!d.ok){
+        buildTransactions([]);
+        return;
+      }
+      if(d.noData){
+        /* No data at all today */
+        buildTransactions([]);
+        ['kTotal','kPMS','kAGO','kCash','kExp'].forEach(function(id){
+          var el=document.getElementById(id);
+          if(el){el.textContent='—';el.style.opacity='.5';}
+        });
+        var ft=document.getElementById('kTotalFoot');
+        if(ft)ft.innerHTML='<span class="badge-neu">No data today yet</span>';
+        return;
+      }
+      /* openingOnly and full data both handled inside applyDashboardData */
       applyDashboardData(d);
-      toast('Live data loaded','Dashboard updated from Sheets','ok');
     })
     .catch(function(){
       setLoading(false);
-      /* silently keep demo data on network error */
+      buildTransactions([]);
     });
 }
 

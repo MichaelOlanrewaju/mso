@@ -409,7 +409,7 @@ a{text-decoration:none}
 
 <script>
 /* ── Config ── */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGYrd146mi2IZ4EhIlkHDi-k61zdeJfyRDweft-tNm0K2SEqQIaE0XGTGk8ueTwnz2/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
 
 /* ── Elements ── */
 const inpUser   = document.getElementById('inp-user');
@@ -463,7 +463,16 @@ function setLoading(on){
   submitBtn.classList.toggle('loading', on);
 }
 
-function route(s){ MSO_AUTH.route(s); }
+function route(s){
+  MSO_AUTH.save(s);
+  var dest;
+  if(s.pick||s.role==='owner') dest='dashboard-owner.html';
+  else if(s.role==='gm') dest='dashboard-gm.html';
+  else if(s.role==='supervisor') dest='dashboard-supervisor.html';
+  else if(s.role==='cashier') dest='dashboard-cashier.html';
+  else dest='dashboard-'+(s.station||'mso')+'.html';
+  window.location.href=dest;
+}
 
 /* ── Submit ── */
 async function submit(){

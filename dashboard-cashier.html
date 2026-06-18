@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#F1F5FB"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+<title>Cashier — MSO</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:#F1F5FB;color:#0F172A;min-height:100dvh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+:root{
+  --cyan:#179DD0;--cyan-d:#1188B5;--cyan-l:rgba(23,157,208,.1);--cyan-b:rgba(23,157,208,.22);
+  --navy:#06091A;--green:#16A34A;--green-l:#F0FDF4;
+  --amber:#D97706;--amber-l:#FFFBEB;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --purple:#6D28D9;--purple-l:#F5F3FF;
+  --border:#E8EDF5;--surface:#F8FAFC;
+  --ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;
+  --mono:'JetBrains Mono',monospace;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+  --bn-h:66px;
+}
+/* TOPBAR */
+.topbar{padding-top:calc(var(--sat)+10px);padding-bottom:10px;padding-left:16px;padding-right:16px;min-height:calc(58px + var(--sat));background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.tb-name{font-size:15px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.tb-role{font-size:10px;color:var(--ink-4);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-date{font-size:11px;color:var(--ink-3);font-weight:500}
+.icon-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink-3);cursor:pointer;transition:all .12s}
+.icon-btn:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan)}
+/* PAGE */
+.page{padding:16px 16px calc(80px + var(--bn-h) + var(--sab));max-width:540px;margin:0 auto}
+/* STATUS HERO */
+.status-hero{border-radius:18px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+.sh-pending{background:var(--navy)}
+.sh-balanced{background:linear-gradient(135deg,#15803D,#22C55E)}
+.sh-short{background:linear-gradient(135deg,#991B1B,var(--red))}
+.sh-over{background:linear-gradient(135deg,#B45309,var(--amber))}
+.status-hero::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.sh-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.5);margin-bottom:8px;position:relative;z-index:1}
+.sh-status{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:4px;position:relative;z-index:1}
+.sh-sub{font-size:12px;color:rgba(255,255,255,.55);position:relative;z-index:1}
+.sh-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;position:relative;z-index:1;margin-top:16px}
+.sh-stat-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:3px}
+.sh-stat-val{font-family:var(--mono);font-size:16px;font-weight:800;color:#fff}
+/* SECTION */
+.sec-head{display:flex;align-items:center;gap:10px;margin:18px 0 10px}
+.sec-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-4);white-space:nowrap}
+.sec-line{flex:1;height:1px;background:var(--border)}
+/* SUMMARY CARD */
+.summary-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.sc-head{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sc-ttl{font-size:13px;font-weight:800;color:var(--ink)}
+.sc-body{padding:14px 16px}
+/* PAYMENT ROWS */
+.pay-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--surface)}
+.pay-row:last-child{border:none}
+.pay-left{display:flex;align-items:center;gap:10px}
+.pay-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.pay-label{font-size:13px;font-weight:600;color:var(--ink)}
+.pay-sub{font-size:10.5px;color:var(--ink-4);margin-top:1px}
+.pay-amount{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink)}
+.pay-charge{font-size:10px;color:var(--red);font-family:var(--mono);margin-top:1px;text-align:right}
+.pay-net{font-size:11px;color:var(--green);font-family:var(--mono);text-align:right}
+.divider-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:4px}
+.div-lbl{font-size:11.5px;color:var(--ink-3);font-weight:600}
+.div-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--ink)}
+/* CHARGES CARD */
+.charges-card{background:var(--red-l);border:1px solid #FECACA;border-radius:12px;padding:13px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.charges-lbl{font-size:12px;font-weight:700;color:var(--red)}
+.charges-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--red)}
+/* BANK CARD */
+.bank-card{background:var(--green-l);border:2px solid #BBF7D0;border-radius:14px;padding:16px;margin-bottom:14px}
+.bank-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.bank-amt{font-family:var(--mono);font-size:28px;font-weight:900;color:var(--green);letter-spacing:-.02em}
+.bank-sub{font-size:11px;color:var(--ink-3);margin-top:5px}
+/* LPG */
+.lpg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.lpg-field{display:flex;flex-direction:column;gap:4px}
+.lpg-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-4)}
+.lpg-inp{font-family:var(--mono);font-size:15px;font-weight:700;border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;background:var(--surface);color:var(--ink);width:100%;outline:none;-webkit-appearance:none;transition:all .13s}
+.lpg-inp:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+.lpg-inp[readonly]{background:rgba(23,157,208,.05);color:var(--cyan-d);border-color:rgba(23,157,208,.25)}
+.lpg-variance{border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+/* QA */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.qa-card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:15px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink);text-align:center;cursor:pointer;transition:all .13s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.qa-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(15,23,42,.1)}
+.qa-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+/* SUBMIT */
+.submit-wrap{position:fixed;bottom:calc(var(--bn-h) + var(--sab));left:0;right:0;padding:10px 16px;background:rgba(241,245,251,.9);backdrop-filter:blur(10px);border-top:1px solid var(--border)}
+.btn-recon{width:100%;max-width:540px;margin:0 auto;display:flex;height:52px;border-radius:13px;background:var(--green);color:#fff;font-size:15px;font-weight:800;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 18px rgba(22,163,74,.3);transition:all .15s;border:none;cursor:pointer}
+.btn-recon:hover{background:#15803D;transform:translateY(-1px)}
+/* BOTTOM NAV */
+.bottom-nav{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:7px 4px calc(7px + var(--sab));z-index:700;box-shadow:0 -2px 14px rgba(0,0,0,.07)}
+.bn-inner{display:flex;justify-content:space-around;max-width:540px;margin:0 auto}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 10px;border-radius:10px;font-size:9.5px;font-weight:600;color:var(--ink-4);cursor:pointer;flex:1;border:1px solid transparent;transition:all .13s}
+.bn-item i{font-size:20px;line-height:1}
+.bn-item.on{color:var(--cyan);background:var(--cyan-l);border-color:rgba(23,157,208,.18)}
+#toast{position:fixed;bottom:calc(var(--bn-h) + 80px);left:50%;transform:translateX(-50%) translateY(10px);z-index:9999;background:var(--navy);color:#fff;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media(max-width:380px){.sh-row{grid-template-columns:1fr 1fr}.qa-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left">
+    <div class="tb-av" id="tbAv">—</div>
+    <div><div class="tb-name" id="tbName">—</div><div class="tb-role">Cashier · MSO</div></div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-date" id="tbDate">—</div>
+    <div class="icon-btn" onclick="doRefresh()" title="Refresh"><i class="bi bi-arrow-clockwise" id="rfIco"></i></div>
+    <div class="icon-btn" onclick="doLogout()" title="Sign out"><i class="bi bi-box-arrow-right"></i></div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- STATUS HERO -->
+  <div class="status-hero sh-pending" id="statusHero">
+    <div class="sh-label">Today's Reconciliation</div>
+    <div class="sh-status" id="heroStatus">Awaiting Data</div>
+    <div class="sh-sub" id="heroSub">Waiting for supervisor to submit dip readings</div>
+    <div class="sh-row">
+      <div><div class="sh-stat-lbl">Expected</div><div class="sh-stat-val" id="heroExp">₦—</div></div>
+      <div><div class="sh-stat-lbl">Collected</div><div class="sh-stat-val" id="heroColl">₦—</div></div>
+      <div><div class="sh-stat-lbl">Variance</div><div class="sh-stat-val" id="heroVar">₦—</div></div>
+    </div>
+  </div>
+
+  <!-- TODAY'S COLLECTIONS SUMMARY -->
+  <div class="sec-head"><div class="sec-ttl">Today's Collections</div><div class="sec-line"></div></div>
+  <div class="summary-card">
+    <div class="sc-head"><div class="sc-ttl">Payment Breakdown</div></div>
+    <div class="sc-body">
+      <!-- POS MP -->
+      <div class="pay-row">
+        <div class="pay-left">
+          <div class="pay-dot" style="background:var(--cyan-d)"></div>
+          <div><div class="pay-label">POS — MP Terminal</div><div class="pay-sub">0.25% charge applies</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="pay-amount" id="sumPosMP">₦—</div>
+          <div class="pay-charge" id="sumMPCharge">Charge: ₦—</div>
+          <div class="pay-net" id="sumMPNet">Net: ₦—</div>
+        </div>
+      </div>
+      <!-- POS ZM -->
+      <div class="pay-row">
+        <div class="pay-left">
+          <div class="pay-dot" style="background:#7C3AED"></div>
+          <div><div class="pay-label">POS — ZM Terminal</div><div class="pay-sub">0.30% charge applies</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="pay-amount" id="sumPosZM">₦—</div>
+          <div class="pay-charge" id="sumZMCharge">Charge: ₦—</div>
+          <div class="pay-net" id="sumZMNet">Net: ₦—</div>
+        </div>
+      </div>
+      <!-- Cash -->
+      <div class="pay-row">
+        <div class="pay-left">
+          <div class="pay-dot" style="background:var(--green)"></div>
+          <div><div class="pay-label">Cash</div><div class="pay-sub">Physical cash collected</div></div>
+        </div>
+        <div><div class="pay-amount" id="sumCash">₦—</div></div>
+      </div>
+      <div class="divider-row">
+        <div class="div-lbl">Gross Total</div>
+        <div class="div-val" id="sumGross">₦—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POS CHARGES SUMMARY -->
+  <div class="charges-card">
+    <div class="charges-lbl"><i class="bi bi-dash-circle-fill"></i> Total POS Charges Deducted</div>
+    <div class="charges-val" id="sumCharges">₦—</div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="summary-card">
+    <div class="sc-head"><div class="sc-ttl">Expenses</div></div>
+    <div class="sc-body" id="expSummaryBlock">
+      <div style="text-align:center;padding:14px;color:var(--ink-4);font-size:12.5px">
+        <i class="bi bi-check-circle" style="font-size:22px;display:block;margin-bottom:6px;opacity:.3"></i>No expenses recorded
+      </div>
+    </div>
+  </div>
+
+  <!-- CASH TO BANK -->
+  <div class="bank-card">
+    <div class="bank-lbl"><i class="bi bi-safe"></i> Cash to Bank</div>
+    <div class="bank-amt" id="sumBank">₦—</div>
+    <div class="bank-sub">Cash − Expenses − POS charges</div>
+  </div>
+
+  <!-- LPG -->
+  <div class="sec-head"><div class="sec-ttl">LPG Report</div><div class="sec-line"></div></div>
+  <div class="summary-card">
+    <div class="sc-head"><div class="sc-ttl">Gas Sales Today</div></div>
+    <div class="sc-body">
+      <div class="lpg-grid">
+        <div class="lpg-field"><div class="lpg-lbl">Total KG</div><input type="number" class="lpg-inp" id="lpgKg" placeholder="0.0" min="0" step="0.1" oninput="calcLPG()"/></div>
+        <div class="lpg-field"><div class="lpg-lbl">Unit Price (₦/kg)</div><input type="number" class="lpg-inp" id="lpgPrice" placeholder="1250" min="0" step="1" oninput="calcLPG()"/></div>
+        <div class="lpg-field"><div class="lpg-lbl">Total Sales</div><input type="number" class="lpg-inp" id="lpgSales" placeholder="auto" readonly/></div>
+        <div class="lpg-field"><div class="lpg-lbl">Amount Remitted</div><input type="number" class="lpg-inp" id="lpgRemitted" placeholder="0" min="0" step="1" oninput="calcLPG()"/></div>
+      </div>
+      <div class="lpg-variance" id="lpgVarBox" style="background:var(--surface);border:1px solid var(--border)">
+        <span style="font-size:12px;font-weight:600;color:var(--ink-3)">LPG Variance</span>
+        <span style="font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink-4)" id="lpgVar">₦—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="sec-head"><div class="sec-ttl">Actions</div><div class="sec-line"></div></div>
+  <div class="qa-grid">
+    <a href="cashup-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--green-l)"><i class="bi bi-check2-all" style="color:var(--green)"></i></div>Enter Reconciliation</a>
+    <a href="expenses-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--red-l)"><i class="bi bi-receipt-cutoff" style="color:var(--red)"></i></div>Add Expense</a>
+    <a href="chat-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--purple-l)"><i class="bi bi-chat-dots" style="color:var(--purple)"></i></div>Staff Chat</a>
+    <a href="summary-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--surface)"><i class="bi bi-printer" style="color:var(--ink-3)"></i></div>Daily Summary</a>
+  </div>
+
+</div>
+
+<!-- SUBMIT -->
+<div class="submit-wrap">
+  <button type="button" class="btn-recon" onclick="location.href='cashup-mso.html'">
+    <i class="bi bi-shield-check"></i> Submit Cash Reconciliation
+  </button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bn-inner">
+    <div class="bn-item on"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></div>
+    <a class="bn-item" href="cashup-mso.html"><i class="bi bi-cash-coin"></i><span>Cashup</span></a>
+    <a class="bn-item" href="expenses-mso.html"><i class="bi bi-receipt-cutoff"></i><span>Expenses</span></a>
+    <a class="bn-item" href="chat-mso.html"><i class="bi bi-chat-dots"></i><span>Chat</span></a>
+  </div>
+</nav>
+
+<div id="toast"><i class="bi" id="tIco"></i><span id="tMsg">—</span></div>
+
+<script>
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
+function getSess(){try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}try{var s=sessionStorage.getItem('mso_u');if(s){var u=JSON.parse(s);if(u)return u;}}catch(e){}return null;}
+var _u=getSess();if(!_u){window.location.replace('login.html');}
+var NAME=_u?_u.name:'',USER=_u?_u.u:'';
+
+(function init(){
+  var ini=(NAME||'C').split(' ').map(function(n){return n[0]||'';}).join('').slice(0,2).toUpperCase();
+  document.getElementById('tbAv').textContent=ini;
+  document.getElementById('tbName').textContent=NAME||USER;
+  var t=new Date();
+  document.getElementById('tbDate').textContent=t.toLocaleDateString('en-NG',{weekday:'short',day:'numeric',month:'short'});
+  doRefresh();
+}());
+
+function doRefresh(){
+  var ri=document.getElementById('rfIco');if(ri)ri.style.animation='rot .7s linear infinite';
+  var url=new URL(SCRIPT_URL);
+  url.searchParams.set('action','getDashboard');url.searchParams.set('station','mso');url.searchParams.set('username',USER);
+  fetch(url.toString(),{method:'GET',redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(ri)ri.style.animation='none';
+      if(!d.ok)return;
+      applyData(d);
+    }).catch(function(){if(ri)ri.style.animation='none';});
+}
+
+function applyData(d){
+  var gt=Number(d.grandTotal||0);
+  var posMP=Number(d.posMP||0);
+  var posZM=Number(d.posZM||0);  /* posZM from sheet */
+  var cash=Number(d.cash||0);
+  var expenses=Number(d.expenses||0);
+  var mpCharge=Number(d.posMPCharge||Math.round(posMP*0.0025));
+  var zmCharge=Number(d.posZMCharge||Math.round(posZM*0.003));
+  var mpNet=posMP-mpCharge;
+  var zmNet=posZM-zmCharge;
+  var gross=posMP+posZM+cash;
+  var totalCharges=mpCharge+zmCharge;
+  var toBank=Math.max(0,cash-expenses-totalCharges);
+  var collected=mpNet+zmNet+cash-expenses;
+  var variance=collected-gt;
+
+  /* Hero */
+  if(gt>0){
+    document.getElementById('heroExp').textContent='₦'+gt.toLocaleString('en-NG');
+    document.getElementById('heroColl').textContent='₦'+collected.toLocaleString('en-NG');
+    var sign=variance>=0?'+':'';
+    document.getElementById('heroVar').textContent=sign+'₦'+Math.abs(Math.round(variance)).toLocaleString('en-NG');
+    var hero=document.getElementById('statusHero');
+    var hStatus=document.getElementById('heroStatus');
+    var hSub=document.getElementById('heroSub');
+    if(posMP===0&&posZM===0&&cash===0){hero.className='status-hero sh-pending';hStatus.textContent='Pending Cashup';hSub.textContent='Enter reconciliation to update status';}
+    else if(Math.abs(variance)<=500){hero.className='status-hero sh-balanced';hStatus.textContent='Balanced ✓';hSub.textContent='Within ₦500 tolerance';}
+    else if(variance<0){hero.className='status-hero sh-short';hStatus.textContent='SHORT ₦'+Math.abs(Math.round(variance)).toLocaleString('en-NG');hSub.textContent='Collection is less than expected';}
+    else{hero.className='status-hero sh-over';hStatus.textContent='OVER ₦'+Math.round(variance).toLocaleString('en-NG');hSub.textContent='Collection exceeds expected';}
+  }
+
+  /* Summary */
+  if(posMP>0||posZM>0||cash>0){
+    document.getElementById('sumPosMP').textContent='₦'+posMP.toLocaleString('en-NG');
+    document.getElementById('sumMPCharge').textContent='Charge: ₦'+mpCharge.toLocaleString('en-NG');
+    document.getElementById('sumMPNet').textContent='Net: ₦'+mpNet.toLocaleString('en-NG');
+    document.getElementById('sumPosZM').textContent='₦'+posZM.toLocaleString('en-NG');
+    document.getElementById('sumZMCharge').textContent='Charge: ₦'+zmCharge.toLocaleString('en-NG');
+    document.getElementById('sumZMNet').textContent='Net: ₦'+zmNet.toLocaleString('en-NG');
+    document.getElementById('sumCash').textContent='₦'+cash.toLocaleString('en-NG');
+    document.getElementById('sumGross').textContent='₦'+gross.toLocaleString('en-NG');
+    document.getElementById('sumCharges').textContent='₦'+totalCharges.toLocaleString('en-NG');
+    document.getElementById('sumBank').textContent='₦'+Math.round(toBank).toLocaleString('en-NG');
+  }
+
+  /* Expenses */
+  if(expenses>0){
+    document.getElementById('expSummaryBlock').innerHTML='<div class="pay-row"><div class="pay-left"><div class="pay-dot" style="background:var(--red)"></div><div><div class="pay-label">Total Expenses</div></div></div><div class="pay-amount" style="color:var(--red)">₦'+expenses.toLocaleString('en-NG')+'</div></div>';
+  }
+}
+
+function calcLPG(){
+  var kg=parseFloat(document.getElementById('lpgKg').value)||0;
+  var price=parseFloat(document.getElementById('lpgPrice').value)||0;
+  var sales=kg*price;
+  document.getElementById('lpgSales').value=sales>0?Math.round(sales):'';
+  var remitted=parseFloat(document.getElementById('lpgRemitted').value)||0;
+  var variance=remitted-sales;
+  var vEl=document.getElementById('lpgVar');
+  var vBox=document.getElementById('lpgVarBox');
+  if(sales===0){vEl.textContent='₦—';vEl.style.color='var(--ink-4)';return;}
+  vEl.textContent=(variance>=0?'+':'')+'₦'+Math.abs(Math.round(variance)).toLocaleString('en-NG');
+  if(Math.abs(variance)<=100){vEl.style.color='var(--green)';vBox.style.background='var(--green-l)';vBox.style.border='1px solid #BBF7D0';}
+  else if(variance<0){vEl.style.color='var(--red)';vBox.style.background='var(--red-l)';vBox.style.border='1px solid #FECACA';}
+  else{vEl.style.color='var(--amber)';vBox.style.background='var(--amber-l)';vBox.style.border='1px solid #FDE68A';}
+}
+
+function doLogout(){localStorage.removeItem('mso_session');sessionStorage.removeItem('mso_u');window.location.replace('login.html');}
+var _tt;
+function showToast(msg,type){var icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill'};var colors={ok:'#16A34A',err:'#DC2626'};document.getElementById('tIco').className='bi '+(icons[type]||'bi-info-circle-fill');document.getElementById('tMsg').textContent=msg;var t=document.getElementById('toast');t.style.background=colors[type]||'#06091A';t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3000);}
+</script>
+</body>
+</html>

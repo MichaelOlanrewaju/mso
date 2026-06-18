@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#06091A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+<title>Dip Entry — MSO</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#06091A;color:#F1F5FA;min-height:100dvh}
+:root{
+  --cyan:#179DD0;--cyan-l:rgba(23,157,208,.15);--cyan-b:rgba(23,157,208,.3);
+  --green:#22C55E;--green-l:rgba(34,197,94,.12);
+  --amber:#F59E0B;--amber-l:rgba(245,158,11,.12);
+  --red:#F87171;--red-l:rgba(248,113,113,.12);
+  --purple:#A78BFA;--purple-l:rgba(167,139,250,.12);
+  --border:rgba(255,255,255,.08);--surface:rgba(255,255,255,.05);
+  --muted:rgba(255,255,255,.4);
+  --mono:'JetBrains Mono',monospace;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input{font-family:inherit}
+
+/* TOPBAR */
+.topbar{padding-top:calc(var(--sat)+12px);padding-bottom:12px;padding-left:18px;padding-right:18px;background:rgba(9,13,31,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.back-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--muted)}
+.tb-title{font-size:16px;font-weight:800;color:#fff;flex:1}
+.tb-date{font-size:11px;font-family:var(--mono);color:var(--cyan);background:var(--cyan-l);border:1px solid var(--cyan-b);border-radius:99px;padding:3px 10px}
+
+/* PAGE */
+.page{padding:18px 18px calc(90px + var(--sab));max-width:680px;margin:0 auto}
+
+/* DATE ROW */
+.date-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:13px 16px}
+.date-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+.date-inp{font-family:var(--mono);font-size:15px;font-weight:700;background:transparent;border:none;color:#fff;outline:none;width:160px}
+.date-divider{width:1px;height:36px;background:var(--border)}
+.sup-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:2px}
+.sup-name{font-size:14px;font-weight:800;color:#fff}
+
+/* MODE TABS */
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:5px}
+.mode-tab{padding:11px;border-radius:9px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--muted);border:1px solid transparent;transition:all .15s;cursor:pointer}
+.mode-tab.active-open{background:rgba(34,197,94,.15);color:#4ADE80;border-color:rgba(34,197,94,.3)}
+.mode-tab.active-close{background:var(--cyan-l);color:var(--cyan);border-color:var(--cyan-b)}
+
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.sb-step{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.sb-step.done{color:#4ADE80}
+.sb-step.active{color:var(--cyan)}
+.sb-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.sb-sep{color:var(--border);font-size:14px;margin:0 2px}
+
+/* SECTION */
+.sec{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
+.sec-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);white-space:nowrap}
+.sec-line{flex:1;height:1px;background:var(--border)}
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700}
+.pill-pms{background:var(--cyan-l);color:var(--cyan);border:1px solid var(--cyan-b)}
+.pill-ago{background:var(--amber-l);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+
+/* TANK CARD */
+.tank-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.tank-card.has-open{border-color:rgba(34,197,94,.25)}
+.tank-card.has-close{border-color:var(--cyan-b)}
+.tank-hd{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}
+.tank-badge{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;font-family:var(--mono);flex-shrink:0}
+.badge-pms{background:var(--cyan-l);color:var(--cyan);border:1px solid var(--cyan-b)}
+.badge-ago{background:var(--amber-l);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.tank-info{flex:1}
+.tank-name{font-size:13px;font-weight:800;color:#fff}
+.tank-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.tank-status{font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px}
+.tank-body{padding:14px 16px}
+
+/* FIELD */
+.field-row{display:grid;gap:10px;margin-bottom:0}
+.field-row-2{grid-template-columns:1fr 1fr}
+.field-row-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:4px}
+.field-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+
+/* INPUTS */
+.inp{font-family:var(--mono);font-size:17px;font-weight:800;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;background:rgba(255,255,255,.04);color:#fff;width:100%;outline:none;transition:border-color .12s,background .12s;-webkit-appearance:none;text-align:right}
+.inp:focus{border-color:var(--cyan);background:rgba(23,157,208,.07)}
+.inp.ok{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.06)}
+.inp.err{border-color:rgba(248,113,113,.5);background:var(--red-l)}
+.inp[readonly]{background:rgba(255,255,255,.03);color:var(--muted);border-color:rgba(255,255,255,.05);text-align:right}
+
+/* RESULT BOXES */
+.res{border-radius:10px;padding:11px 13px;font-family:var(--mono);font-size:17px;font-weight:800;text-align:right;border:1.5px solid;transition:all .15s}
+.res-blank{background:rgba(255,255,255,.03);color:var(--muted);border-color:var(--border)}
+.res-ok{background:var(--green-l);color:#4ADE80;border-color:rgba(34,197,94,.3)}
+.res-err{background:var(--red-l);color:var(--red);border-color:rgba(248,113,113,.3)}
+.res-money{background:var(--cyan-l);color:var(--cyan);border-color:var(--cyan-b);font-size:14px}
+.res-margin{background:var(--purple-l);color:var(--purple);border-color:rgba(167,139,250,.3)}
+
+/* MARGIN STRIP */
+.margin-strip{margin-top:12px;padding:11px 14px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:10px}
+.ms-row{display:flex;align-items:center;justify-content:space-between}
+.ms-lbl{font-size:11px;font-weight:700;color:var(--purple)}
+.ms-val{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--purple)}
+.ms-note{font-size:10px;color:var(--muted);margin-top:4px}
+.totals-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.total-box{border-radius:9px;padding:10px 13px}
+.total-box-l{background:var(--green-l);border:1px solid rgba(34,197,94,.25)}
+.total-box-r{background:var(--cyan-l);border:1px solid var(--cyan-b)}
+.tb-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+.tb-val{font-family:var(--mono);font-size:15px;font-weight:800}
+.tb-sub{font-size:9.5px;margin-top:2px;opacity:.6}
+
+/* PUMP CARD */
+.pump-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.pump-hd{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border)}
+.pump-badge{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;font-family:var(--mono);flex-shrink:0}
+.pump-body{padding:14px 16px}
+.pump-foot{padding:10px 16px;background:rgba(255,255,255,.03);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.pf-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px}
+.pf-val{font-family:var(--mono);font-size:14px;font-weight:800}
+
+/* SESSION */
+.session{border:1.5px solid var(--border);border-radius:11px;padding:13px;margin-bottom:10px}
+.session.active-sess{border-color:var(--cyan-b)}
+.session.locked-sess{opacity:.65}
+.sess-hd{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.sess-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.sess-price{border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;background:var(--cyan-l);color:var(--cyan);border:1px solid var(--cyan-b)}
+.sess-price.new{background:var(--amber-l);color:var(--amber);border-color:rgba(245,158,11,.3)}
+.sess-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.sess-rev{margin-top:10px;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+.sr-lbl{font-size:10.5px;color:var(--muted)}
+.sr-val{font-family:var(--mono);font-size:14px;font-weight:800;color:#fff}
+
+.btn-add-sess{width:100%;margin-top:8px;padding:11px;border-radius:10px;background:rgba(245,158,11,.08);border:1.5px dashed rgba(245,158,11,.3);color:var(--amber);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:all .13s}
+.btn-add-sess:hover{background:rgba(245,158,11,.14)}
+
+/* MARGIN SUMMARY */
+.margin-summary{background:var(--surface);border:2px solid rgba(167,139,250,.3);border-radius:16px;overflow:hidden;margin-top:20px;display:none}
+.ms-card-hd{padding:13px 18px;background:rgba(167,139,250,.1);border-bottom:1px solid rgba(167,139,250,.15);display:flex;align-items:center;justify-content:space-between}
+.ms-card-ttl{font-size:13px;font-weight:800;color:var(--purple)}
+.ms-card-body{padding:16px 18px}
+.ms-row-item{display:flex;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ms-row-item:last-child{border:none;padding-top:13px;margin-top:5px;border-top:1px solid rgba(167,139,250,.2)}
+.ms-item-info{font-size:12px;font-weight:700;color:rgba(255,255,255,.8)}
+.ms-item-detail{font-size:10px;color:var(--muted);margin-top:3px}
+.ms-item-amt{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--purple);text-align:right}
+.ms-item-l{font-size:10px;color:var(--muted);text-align:right;margin-top:2px}
+.ms-total-lbl{font-size:14px;font-weight:900;color:#fff}
+.ms-total-amt{font-family:var(--mono);font-size:18px;font-weight:900;color:var(--purple)}
+
+/* GRAND TOTAL */
+.grand{background:linear-gradient(135deg,#0E7490,var(--cyan));border-radius:16px;padding:18px;margin-top:12px}
+.grand-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grand-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.55);margin-bottom:4px}
+.grand-val{font-family:var(--mono);font-size:18px;font-weight:900;color:#fff}
+.grand-sub{font-size:10px;color:rgba(255,255,255,.5);margin-top:3px}
+.grand-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+.gb{background:rgba(255,255,255,.1);border-radius:9px;padding:10px 12px}
+.gb-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.55);margin-bottom:3px}
+.gb-val{font-family:var(--mono);font-size:13px;font-weight:800;color:#fff}
+
+/* EDIT REQUEST */
+.edit-wrap{margin-top:14px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:12px;padding:14px 16px;display:none}
+.edit-note{font-size:11px;color:rgba(167,139,250,.7);margin-bottom:10px}
+.btn-edit{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:9px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.25);color:var(--purple);font-size:12px;font-weight:700;cursor:pointer;width:100%;justify-content:center;transition:all .13s}
+.btn-edit:hover{background:rgba(167,139,250,.2)}
+.edit-banner{display:none;align-items:center;gap:10px;padding:11px 18px;background:rgba(167,139,250,.1);border-bottom:2px solid rgba(167,139,250,.25)}
+.edit-banner.show{display:flex}
+
+/* PRICE ALERT */
+.price-alert{display:none;align-items:center;gap:10px;padding:12px 18px;background:rgba(245,158,11,.1);border-bottom:2px solid rgba(245,158,11,.25)}
+.price-alert.show{display:flex}
+.pa-txt{flex:1}
+.pa-ttl{font-size:13px;font-weight:800;color:#FDE68A}
+.pa-sub{font-size:11px;color:rgba(253,230,138,.6);margin-top:1px}
+.pa-btn{padding:8px 14px;border-radius:8px;background:var(--amber);color:#fff;font-size:12px;font-weight:800;flex-shrink:0;cursor:pointer}
+
+/* SUBMIT */
+.submit-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(9,13,31,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:12px 18px calc(12px + var(--sab));z-index:200}
+.submit-inner{max-width:680px;margin:0 auto}
+.btn-submit{width:100%;height:52px;border-radius:13px;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;transition:all .15s;color:#fff}
+.btn-open{background:linear-gradient(135deg,#15803D,var(--green));box-shadow:0 4px 18px rgba(34,197,94,.3)}
+.btn-close{background:linear-gradient(135deg,#0E7490,var(--cyan));box-shadow:0 4px 18px rgba(23,157,208,.3)}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+/* BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(9,13,31,.96);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:7px 4px calc(7px + var(--sab));z-index:700}
+.bn-inner{display:flex;justify-content:space-around}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 8px;border-radius:9px;font-size:9.5px;font-weight:600;color:var(--muted);flex:1;border:1px solid transparent;transition:all .12s}
+.bn-item i{font-size:19px;line-height:1}
+.bn-item.on{color:var(--cyan);background:var(--cyan-l);border-color:var(--cyan-b)}
+
+/* TOAST */
+#toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(8px);z-index:9999;background:rgba(9,13,31,.96);color:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:all .2s;white-space:nowrap;max-width:92vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;flex-shrink:0}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+@media(max-width:600px){
+  .field-row-4{grid-template-columns:1fr 1fr}
+  .sess-grid{grid-template-columns:1fr 1fr}
+  .grand-grid{grid-template-columns:1fr 1fr}
+  .grand-breakdown{grid-template-columns:1fr 1fr}
+}
+@media(max-width:767px){.bottom-nav{display:block}.page{padding-bottom:calc(90px + var(--sab) + 66px)}.submit-bar{bottom:66px}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="dashboard-supervisor.html" class="back-btn"><i class="bi bi-arrow-left"></i></a>
+  <div class="tb-title">Tank Dip &amp; Metres</div>
+  <div class="tb-date" id="tbDate">—</div>
+</header>
+
+<div class="price-alert" id="priceAlert">
+  <div style="width:36px;height:36px;border-radius:9px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--amber);flex-shrink:0"><i class="bi bi-exclamation-triangle-fill"></i></div>
+  <div class="pa-txt"><div class="pa-ttl">⚠ Price Changed — Close Metres Now</div><div class="pa-sub" id="paSub">New price in effect</div></div>
+  <button class="pa-btn" onclick="ackPrice()">Close Metres</button>
+</div>
+
+<div class="edit-banner" id="editBanner">
+  <i class="bi bi-hourglass-split" style="color:var(--purple)"></i>
+  <span style="font-size:12px;color:rgba(167,139,250,.85)"><strong style="color:var(--purple)">Edit Request Sent</strong> — waiting for GM approval</span>
+</div>
+
+<div class="page">
+
+  <!-- DATE -->
+  <div class="date-row">
+    <div style="flex:1">
+      <div class="date-label">Date *</div>
+      <input type="date" class="date-inp" id="entryDate" onchange="onDateChange()"/>
+    </div>
+    <div class="date-divider"></div>
+    <div>
+      <div class="sup-label">Supervisor</div>
+      <div class="sup-name" id="supName">—</div>
+    </div>
+    <div>
+      <div class="sup-label">Status</div>
+      <div style="font-size:12px;font-weight:700" id="dayStatus">—</div>
+    </div>
+  </div>
+
+  <!-- MODE TABS -->
+  <div class="mode-tabs">
+    <button class="mode-tab active-open" id="tabOpen" onclick="setMode('open')"><i class="bi bi-sunrise"></i> Morning Opening</button>
+    <button class="mode-tab" id="tabClose" onclick="setMode('close')"><i class="bi bi-moon-stars"></i> Evening Closing</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div class="sb-step" id="ss1"><div class="sb-dot"></div>Opening</div>
+    <span class="sb-sep">›</span>
+    <div class="sb-step" id="ss2"><div class="sb-dot"></div>Closing</div>
+    <span class="sb-sep">›</span>
+    <div class="sb-step" id="ss3"><div class="sb-dot"></div>Cashier</div>
+  </div>
+
+  <!-- TANK STOCK -->
+  <div class="sec"><div class="sec-lbl">Tank Stock — Dip Reading</div><span class="pill pill-pms">PMS · TK1 TK2 TK3</span><div class="sec-line"></div></div>
+  <div id="tankPMS"></div>
+
+  <div class="sec" style="margin-top:16px"><div class="sec-lbl">AGO Tank Stock</div><span class="pill pill-ago">TK4</span><div class="sec-line"></div></div>
+  <div id="tankAGO"></div>
+
+  <!-- PUMP METRES -->
+  <div class="sec" style="margin-top:22px"><div class="sec-lbl">Pump Metre Readings</div><span class="pill pill-pms">P1 · P2 · P3 · P4 · P5 · P6 · AGO P1</span><div class="sec-line"></div></div>
+  <div id="pumpCards"></div>
+
+  <!-- MARGIN SUMMARY -->
+  <div class="margin-summary" id="marginCard">
+    <div class="ms-card-hd">
+      <div class="ms-card-ttl"><i class="bi bi-calculator" style="margin-right:6px"></i>Margin Record</div>
+      <span class="pill" style="background:var(--purple-l);color:var(--purple);border:1px solid rgba(167,139,250,.25)">Auto-calculated</span>
+    </div>
+    <div class="ms-card-body" id="marginBody"></div>
+  </div>
+
+  <!-- GRAND TOTAL -->
+  <div class="grand" id="grandCard">
+    <div class="grand-grid">
+      <div><div class="grand-lbl">PMS Total</div><div class="grand-val" id="gPmsL">0 L</div><div class="grand-sub" id="gPmsN">₦0</div></div>
+      <div><div class="grand-lbl">AGO Total</div><div class="grand-val" id="gAgoL">0 L</div><div class="grand-sub" id="gAgoN">₦0</div></div>
+      <div><div class="grand-lbl">Grand Total</div><div class="grand-val" id="gTotal">₦0</div><div class="grand-sub" id="gLitres">0 L</div></div>
+    </div>
+    <div class="grand-breakdown">
+      <div class="gb"><div class="gb-lbl">PMS Dip Diff</div><div class="gb-val" id="gbPmsDip">0 L</div></div>
+      <div class="gb"><div class="gb-lbl">PMS Margin</div><div class="gb-val" id="gbPmsMargin">0 L</div></div>
+      <div class="gb"><div class="gb-lbl">AGO Dip Diff</div><div class="gb-val" id="gbAgoDip">0 L</div></div>
+      <div class="gb"><div class="gb-lbl">AGO Margin</div><div class="gb-val" id="gbAgoMargin">0 L</div></div>
+    </div>
+  </div>
+
+  <!-- EDIT REQUEST -->
+  <div class="edit-wrap" id="editWrap">
+    <div class="edit-note"><i class="bi bi-lock-fill" style="margin-right:5px"></i>Readings submitted. Request GM approval to edit.</div>
+    <button class="btn-edit" id="editBtn" onclick="requestEdit()"><i class="bi bi-pencil-square"></i> Request Edit Approval from GM</button>
+  </div>
+
+</div>
+
+<div class="submit-bar">
+  <div class="submit-inner">
+    <button class="btn-submit btn-open" id="submitBtn" onclick="handleSubmit()">
+      <i class="bi bi-sunrise"></i> Save Opening Stock &amp; Metres
+    </button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bn-inner">
+    <a class="bn-item" href="dashboard-supervisor.html"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></a>
+    <a class="bn-item on" href="dip-mso.html"><i class="bi bi-water"></i><span>Dip</span></a>
+    <a class="bn-item" href="discharge-mso.html"><i class="bi bi-truck"></i><span>Discharge</span></a>
+    <a class="bn-item" href="records-mso.html"><i class="bi bi-journal-text"></i><span>Records</span></a>
+    <a class="bn-item" href="chat-mso.html"><i class="bi bi-chat-dots"></i><span>Chat</span></a>
+  </div>
+</nav>
+
+<div id="toast"><i class="bi" id="tIco"></i><span id="tMsg"></span></div>
+
+<script>
+var API='https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
+
+/* ── AUTH ── */
+function getUser(){try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}return null;}
+var _u=getUser();if(!_u)window.location.replace('login.html');
+var ME=_u.u||'',NAME=_u.name||ME;
+
+/* ── CONFIG ── */
+var TANKS=[
+  {id:'TK1',product:'PMS',pumps:['P5','P6'],cap:19600},
+  {id:'TK2',product:'PMS',pumps:['P1','P2'],cap:19600},
+  {id:'TK3',product:'PMS',pumps:['P3','P4'],cap:19600},
+  {id:'TK4',product:'AGO',pumps:['P1_AGO'],cap:3200},
+];
+var PUMPS=[
+  {id:'P1',    label:'P1',      tank:'TK2',product:'PMS'},
+  {id:'P2',    label:'P2',      tank:'TK2',product:'PMS'},
+  {id:'P3',    label:'P3',      tank:'TK3',product:'PMS'},
+  {id:'P4',    label:'P4',      tank:'TK3',product:'PMS'},
+  {id:'P5',    label:'P5',      tank:'TK1',product:'PMS'},
+  {id:'P6',    label:'P6',      tank:'TK1',product:'PMS'},
+  {id:'P1_AGO',label:'P1 AGO', tank:'TK4',product:'AGO'},
+];
+
+/* ── STATE ── */
+var MODE='open';
+var PRICES={pms:1269,ago:1799};
+var SUBMITTED=false,EDIT_PENDING=false;
+var PRICE_CHANGED=false; /* true only when GM changes price mid-day */
+
+/* tankState[id] = {open,close,margin} */
+var TS={TK1:{open:0,close:0,margin:0},TK2:{open:0,close:0,margin:0},TK3:{open:0,close:0,margin:0},TK4:{open:0,close:0,margin:0}};
+
+/* pumpSessions[pumpId] = [{open,close,price,locked}] */
+var PS={};
+PUMPS.forEach(function(p){PS[p.id]=[{open:0,close:0,price:p.product==='AGO'?PRICES.ago:PRICES.pms,locked:false}];});
+
+/* ── INIT ── */
+(function(){
+  var today=new Date().toISOString().split('T')[0];
+  document.getElementById('entryDate').value=today;
+  document.getElementById('tbDate').textContent=fmt(today);
+  document.getElementById('supName').textContent=NAME;
+  loadPrices();
+  loadToday(today);
+  setInterval(function(){pollPrices();},300000);
+}());
+
+function fmt(dateStr){
+  if(!dateStr)return'—';
+  var d=new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-NG',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+
+/* ── DATE CHANGE ── */
+function onDateChange(){
+  var v=document.getElementById('entryDate').value;
+  document.getElementById('tbDate').textContent=fmt(v);
+  /* Reset everything */
+  Object.keys(TS).forEach(function(k){TS[k]={open:0,close:0,margin:0};});
+  PUMPS.forEach(function(p){PS[p.id]=[{open:0,close:0,price:p.product==='AGO'?PRICES.ago:PRICES.pms,locked:false}];});
+  SUBMITTED=false;EDIT_PENDING=false;
+  document.getElementById('editWrap').style.display='none';
+  document.getElementById('editBanner').classList.remove('show');
+  document.getElementById('marginCard').style.display='none';
+  setMode('open');
+  setStatus(false,false,false);
+  loadToday(v);
+}
+
+/* ── MODE ── */
+function setMode(m){
+  MODE=m;
+  document.getElementById('tabOpen').className='mode-tab'+(m==='open'?' active-open':'');
+  document.getElementById('tabClose').className='mode-tab'+(m==='close'?' active-close':'');
+  var btn=document.getElementById('submitBtn');
+  if(m==='open'){btn.className='btn-submit btn-open';btn.innerHTML='<i class="bi bi-sunrise"></i> Save Opening Stock &amp; Metres';}
+  else{btn.className='btn-submit btn-close';btn.innerHTML='<i class="bi bi-moon-stars"></i> Save Closing Stock &amp; Metres';}
+  render();
+}
+
+/* ── STATUS STRIP ── */
+function setStatus(hasOpen,hasClose,hasCash){
+  function upd(id,state,txt){
+    var el=document.getElementById(id);
+    el.className='sb-step'+(state==='done'?' done':state==='active'?' active':'');
+    el.innerHTML='<div class="sb-dot"></div>'+(state==='done'?'✓ ':'')+txt;
+  }
+  upd('ss1',hasOpen?'done':'active','Opening');
+  upd('ss2',hasClose?'done':hasOpen?'active':'','Closing');
+  upd('ss3',hasCash?'done':'','Cashier');
+  var ds=document.getElementById('dayStatus');
+  ds.textContent=hasClose?'Complete ✓':hasOpen?'Opening done':'Not started';
+  ds.style.color=hasClose?'#4ADE80':hasOpen?'var(--cyan)':'var(--muted)';
+}
+
+/* ═══════════════════════════════════
+   RENDER ALL
+═══════════════════════════════════ */
+function render(){
+  /* Tanks */
+  var pmsDiv=document.getElementById('tankPMS');
+  var agoDiv=document.getElementById('tankAGO');
+  pmsDiv.innerHTML=TANKS.slice(0,3).map(renderTank).join('');
+  agoDiv.innerHTML=renderTank(TANKS[3]);
+  /* Pumps */
+  document.getElementById('pumpCards').innerHTML=PUMPS.map(renderPump).join('');
+  recalcGrand();
+}
+
+/* ── TANK CARD ── */
+function renderTank(cfg){
+  var s=TS[cfg.id];
+  var isPMS=cfg.product==='PMS';
+  var bClass=isPMS?'badge-pms':'badge-ago';
+  var hasOpen=s.open>0,hasClose=s.close>0;
+  var cardClass='tank-card'+(hasClose?' has-close':hasOpen?' has-open':'');
+
+  var statusHtml='';
+  if(MODE==='open'){
+    statusHtml=hasOpen
+      ?'<span style="color:#4ADE80;font-size:11px;font-weight:700">✓ '+s.open.toLocaleString('en-NG')+'L</span>'
+      :'<span style="color:var(--muted);font-size:11px">Enter stock</span>';
+  } else {
+    var d=hasOpen&&hasClose&&s.open>s.close?s.open-s.close:0;
+    statusHtml=d>0
+      ?'<span style="color:var(--cyan);font-size:11px;font-weight:700">'+d.toLocaleString('en-NG',{maximumFractionDigits:2})+'L diff</span>'
+      :hasOpen?'<span style="color:var(--amber);font-size:11px">closing pending</span>'
+      :'<span style="color:var(--muted);font-size:11px">no opening</span>';
+  }
+
+  var bodyHtml='';
+  if(MODE==='open'){
+    bodyHtml='<div class="field"><div class="field-lbl">Opening Stock (L)</div>'+
+      '<input type="number" class="inp'+(hasOpen?' ok':'')+'"'+
+      ' id="ti_open_'+cfg.id+'" value="'+(s.open||'')+'"'+
+      ' placeholder="e.g. 12,700" min="0" step="1" onfocus="this.select()"'+
+      (SUBMITTED&&!EDIT_PENDING?' readonly':' oninput="onTankOpen(this.dataset.t,this.value)" data-t="'+cfg.id+'"')+'/></div>';
+  } else {
+    var dipDiff=hasOpen&&hasClose&&s.open>s.close?s.open-s.close:0;
+    var pumpTot=getPumpTotal(cfg.id);
+    var margin=dipDiff>0&&pumpTot>0?Math.abs(pumpTot-dipDiff):0;
+    s.margin=margin;
+    var price=isPMS?PRICES.pms:PRICES.ago;
+    var dipAmt=Math.round(dipDiff*price);
+    var totalL=dipDiff+margin;
+    var totalAmt=Math.round(totalL*price);
+
+    bodyHtml='<div class="field-row field-row-4">'+
+      '<div class="field"><div class="field-lbl">Opening Stock</div><input class="inp" value="'+(s.open||0)+'" readonly/></div>'+
+      '<div class="field"><div class="field-lbl">Closing Stock (L)</div>'+
+        '<input type="number" class="inp'+(hasClose?(s.close<s.open?' ok':' err'):'')+'"'+
+        ' id="ti_close_'+cfg.id+'" value="'+(s.close||'')+'"'+
+        ' placeholder="closing" min="0" step="1" onfocus="this.select()"'+
+        (SUBMITTED&&!EDIT_PENDING?' readonly':' oninput="onTankClose(this.dataset.t,this.value)" data-t="'+cfg.id+'"')+'/></div>'+
+      '<div class="field"><div class="field-lbl">Dip Difference</div>'+
+        '<div class="res '+(dipDiff>0?'res-ok':hasClose&&s.close>=s.open?'res-err':'res-blank')+'" id="td_diff_'+cfg.id+'">'+(dipDiff>0?dipDiff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L':hasClose&&s.close>=s.open?'ERR':'—')+'</div></div>'+
+      '<div class="field"><div class="field-lbl">Dip Amount</div>'+
+        '<div class="res '+(dipAmt>0?'res-money':'res-blank')+'" id="td_amt_'+cfg.id+'">'+(dipAmt>0?'₦'+dipAmt.toLocaleString('en-NG'):'—')+'</div></div>'+
+    '</div>';
+
+    /* Margin strip — always shown in evening mode */
+    bodyHtml+='<div class="margin-strip" id="ms_'+cfg.id+'">'+
+      '<div class="ms-row">'+
+        '<div class="ms-lbl"><i class="bi bi-calculator" style="margin-right:5px"></i>Margin (Auto)</div>'+
+        '<div class="ms-val" id="msv_'+cfg.id+'">'+(margin>0?margin.toFixed(2)+'L':'—')+'</div>'+
+      '</div>'+
+      '<div class="ms-note" id="msn_'+cfg.id+'">'+(pumpTot>0?'Pump: '+pumpTot.toFixed(2)+'L dispensed · Dip: '+dipDiff.toFixed(2)+'L reduction':'Enter pump closing metres to calculate')+'</div>'+
+    '</div>';
+
+    /* Total litres + amount boxes */
+    if(dipDiff>0){
+      bodyHtml+='<div class="totals-row">'+
+        '<div class="total-box total-box-l">'+
+          '<div class="tb-lbl" style="color:#4ADE80">Total Litres Sold</div>'+
+          '<div class="tb-val" style="color:#4ADE80" id="ttl_'+cfg.id+'">'+(totalL>0?totalL.toFixed(2)+'L':'—')+'</div>'+
+          '<div class="tb-sub" style="color:rgba(74,222,128,.6)">dip diff + margin</div>'+
+        '</div>'+
+        '<div class="total-box total-box-r">'+
+          '<div class="tb-lbl" style="color:var(--cyan)">Total Amount</div>'+
+          '<div class="tb-val" style="color:var(--cyan)" id="tta_'+cfg.id+'">'+(totalAmt>0?'₦'+totalAmt.toLocaleString('en-NG'):'—')+'</div>'+
+          '<div class="tb-sub" style="color:rgba(23,157,208,.5)">× ₦'+price.toLocaleString('en-NG')+'/L</div>'+
+        '</div>'+
+      '</div>';
+    }
+  }
+
+  return '<div class="'+cardClass+'" id="tc_'+cfg.id+'">'+
+    '<div class="tank-hd">'+
+      '<div class="tank-badge '+bClass+'">'+cfg.id+'</div>'+
+      '<div class="tank-info">'+
+        '<div class="tank-name">Tank '+cfg.id.replace('TK','')+' — '+cfg.product+'</div>'+
+        '<div class="tank-sub">Feeds: '+cfg.pumps.join(', ')+'</div>'+
+      '</div>'+
+      '<div class="tank-status">'+statusHtml+'</div>'+
+    '</div>'+
+    '<div class="tank-body">'+bodyHtml+'</div>'+
+  '</div>';
+}
+
+/* ── PUMP CARD ── */
+function renderPump(cfg){
+  var sessions=PS[cfg.id];
+  var isPMS=cfg.product==='PMS';
+  var bStyle=isPMS?'background:var(--cyan-l);color:var(--cyan);border:1px solid var(--cyan-b)':'background:var(--amber-l);color:var(--amber);border:1px solid rgba(245,158,11,.3)';
+  var totalL=0,totalN=0;
+  sessions.forEach(function(s){
+    var d=s.open>0&&s.close>0&&s.close>s.open?s.close-s.open:0;
+    totalL+=d;totalN+=Math.round(d*s.price);
+  });
+
+  var sessHtml=sessions.map(function(s,i){return renderSession(cfg,i,s,sessions.length);}).join('');
+  var addBtn=MODE==='close'&&isPMS&&PRICE_CHANGED
+    ?'<button class="btn-add-sess" onclick="addSession(this.dataset.p)" data-p="'+cfg.id+'"><i class="bi bi-plus-circle"></i> Price changed — add new session</button>'
+    :'';
+
+  return '<div class="pump-card" id="pc_'+cfg.id+'">'+
+    '<div class="pump-hd">'+
+      '<div class="pump-badge" style="'+bStyle+'">'+cfg.label+'</div>'+
+      '<div style="flex:1"><div style="font-size:13px;font-weight:800;color:#fff">Pump '+cfg.label+'</div>'+
+        '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+cfg.tank+(cfg.product==='AGO'?' · AGO':'')+'</div></div>'+
+      '<div style="text-align:right"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px">Total</div>'+
+        '<div style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--cyan)" id="pt_'+cfg.id+'">'+(totalL>0?totalL.toFixed(2)+'L':'—')+'</div></div>'+
+    '</div>'+
+    '<div class="pump-body" id="pb_'+cfg.id+'">'+sessHtml+addBtn+'</div>'+
+    '<div class="pump-foot">'+
+      '<div><div class="pf-lbl">Total Litres</div><div class="pf-val" style="color:var(--cyan)" id="pfl_'+cfg.id+'">'+(totalL>0?totalL.toFixed(2)+'L':'—')+'</div></div>'+
+      '<div><div class="pf-lbl">Total Revenue</div><div class="pf-val" style="color:#4ADE80" id="pfr_'+cfg.id+'">'+(totalN>0?'₦'+totalN.toLocaleString('en-NG'):'—')+'</div></div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ── SESSION ── */
+function renderSession(cfg,i,s,total){
+  var label=total===1?'Metre Reading':'Session '+(i+1);
+  var diff=s.open>0&&s.close>0&&s.close>s.open?s.close-s.open:0;
+  var err=s.close>0&&s.close<s.open;
+  var amt=Math.round(diff*s.price);
+
+  if(MODE==='open'){
+    return '<div class="session'+(s.open>0?' locked-sess':' active-sess')+'" id="sess_'+cfg.id+'_'+i+'">'+
+      '<div class="sess-hd"><span class="sess-lbl">'+label+'</span><span class="sess-price'+(i>0?' new':'')+'">₦'+Number(s.price).toLocaleString('en-NG')+'/L</span></div>'+
+      '<div class="field"><div class="field-lbl">Opening Metre</div>'+
+        '<input type="number" class="inp'+(s.open>0?' ok':'')+'"'+
+        ' id="pi_open_'+cfg.id+'_'+i+'" value="'+(s.open||'')+'"'+
+        ' placeholder="e.g. 126,504" min="0" step="0.01" onfocus="this.select()"'+
+        (s.open>0?' readonly':' oninput="onPumpOpen(this.dataset.p,this.dataset.i,this.value)" data-p="'+cfg.id+'" data-i="'+i+'"')+'/></div>'+
+    '</div>';
+  }
+
+  /* Evening */
+  return '<div class="session'+(s.locked?' locked-sess':' active-sess')+'" id="sess_'+cfg.id+'_'+i+'">'+
+    '<div class="sess-hd"><span class="sess-lbl">'+label+'</span><span class="sess-price'+(i>0?' new':'')+'">₦'+Number(s.price).toLocaleString('en-NG')+'/L</span></div>'+
+    '<div class="sess-grid">'+
+      '<div class="field"><div class="field-lbl">Opening Metre (locked)</div>'+
+        '<input type="number" class="inp" value="'+(s.open||0)+'" readonly/></div>'+
+      '<div class="field"><div class="field-lbl">Closing Metre</div>'+
+        '<input type="number" class="inp'+(s.close>0?(diff>0?' ok':' err'):'')+'"'+
+        ' id="pi_close_'+cfg.id+'_'+i+'" value="'+(s.close||'')+'"'+
+        ' placeholder="closing metre" min="0" step="0.01" onfocus="this.select()"'+
+        (s.locked?' readonly':' oninput="onPumpClose(this.dataset.p,this.dataset.i,this.value)" data-p="'+cfg.id+'" data-i="'+i+'"')+'/></div>'+
+      '<div class="field"><div class="field-lbl">Difference</div>'+
+        '<div class="res '+(diff>0?'res-ok':err?'res-err':'res-blank')+'" id="pd_'+cfg.id+'_'+i+'">'+(diff>0?diff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L':err?'ERR':'—')+'</div></div>'+
+      '<div class="field"><div class="field-lbl">Amount</div>'+
+        '<div class="res '+(amt>0?'res-money':'res-blank')+'" id="pa_'+cfg.id+'_'+i+'">'+(amt>0?'₦'+amt.toLocaleString('en-NG'):'—')+'</div></div>'+
+    '</div>'+
+    '<div class="sess-rev"><span class="sr-lbl">'+label+' revenue</span><span class="sr-val" id="pr_'+cfg.id+'_'+i+'">'+(amt>0?'₦'+amt.toLocaleString('en-NG'):'Enter closing metre')+'</span></div>'+
+  '</div>';
+}
+
+/* ═══════════════════════════════════
+   INPUT HANDLERS — dead simple
+═══════════════════════════════════ */
+function onTankOpen(id,val){
+  /* id comes from data-t attribute */
+  TS[id].open=parseFloat(val)||0;
+  recalcGrand();
+}
+
+function onTankClose(id,val){
+  /* id comes from data-t attribute */
+  var v=parseFloat(val)||0;
+  TS[id].close=v;
+  var s=TS[id];
+  var diff=s.open>0&&v>0&&s.open>v?s.open-v:0;
+  var err=v>0&&v>=s.open;
+  var cfg=TANKS.find(function(t){return t.id===id;});
+  var price=cfg.product==='AGO'?PRICES.ago:PRICES.pms;
+  var amt=Math.round(diff*price);
+
+  /* Update diff box */
+  var dEl=document.getElementById('td_diff_'+id);
+  if(dEl){dEl.textContent=diff>0?diff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L':err?'ERR':'—';dEl.className='res '+(diff>0?'res-ok':err?'res-err':'res-blank');}
+
+  /* Update amount box */
+  var aEl=document.getElementById('td_amt_'+id);
+  if(aEl){aEl.textContent=amt>0?'₦'+amt.toLocaleString('en-NG'):'—';aEl.className='res '+(amt>0?'res-money':'res-blank');}
+
+  /* Update margin */
+  updateMargin(id);
+  recalcGrand();
+}
+
+function onPumpOpen(pumpId,idx,val){
+  idx=parseInt(idx,10)||0;
+  PS[pumpId][idx].open=parseFloat(val)||0;
+  recalcGrand();
+}
+
+function onPumpClose(pumpId,idx,val){
+  idx=parseInt(idx,10)||0;
+  var v=parseFloat(val)||0;
+  var s=PS[pumpId][idx];
+  s.close=v;
+  /* Pump is cumulative: close > open */
+  var diff,err;
+  if(s.open>0&&v>0){
+    diff=v>s.open?v-s.open:0;
+    err=v<s.open; /* closing less than opening = error */
+  } else if(s.open===0&&v>0){
+    /* Opening metre not in state - show warning in diff box */
+    var wEl=document.getElementById('pd_'+pumpId+'_'+idx);
+    if(wEl){wEl.textContent='Need opening metre';wEl.className='res res-err';wEl.style.fontSize='10px';}
+    diff=0;err=false;
+    showToast('Switch to Morning mode and enter the opening metre for '+pumpId+' first','err');
+    return;
+  } else {
+    diff=0;err=false;
+  }
+  var amt=Math.round(diff*s.price);
+  s.diff=diff;s.amount=amt;
+
+  /* Update diff */
+  var dEl=document.getElementById('pd_'+pumpId+'_'+idx);
+  if(dEl){
+    if(diff>0){dEl.textContent=diff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';dEl.className='res res-ok';dEl.style.fontSize='';}
+    else if(err){dEl.textContent='Closing < Opening';dEl.className='res res-err';dEl.style.fontSize='10px';dEl.title='Closing metre must be greater than opening metre';}
+    else{dEl.textContent='—';dEl.className='res res-blank';dEl.style.fontSize='';}
+  }
+
+  /* Update amount */
+  var aEl=document.getElementById('pa_'+pumpId+'_'+idx);
+  if(aEl){aEl.textContent=amt>0?'₦'+amt.toLocaleString('en-NG'):'—';aEl.className='res '+(amt>0?'res-money':'res-blank');}
+
+  /* Update revenue line */
+  var rEl=document.getElementById('pr_'+pumpId+'_'+idx);
+  if(rEl)rEl.textContent=amt>0?'₦'+amt.toLocaleString('en-NG'):'Enter closing metre';
+
+  /* Update pump footer totals */
+  var tot=0,totN=0;
+  PS[pumpId].forEach(function(s2){var d2=s2.open>0&&s2.close>0&&s2.close>s2.open?s2.close-s2.open:0;tot+=d2;totN+=Math.round(d2*s2.price);});
+  var ptEl=document.getElementById('pt_'+pumpId);if(ptEl)ptEl.textContent=tot>0?tot.toFixed(2)+'L':'—';
+  var pflEl=document.getElementById('pfl_'+pumpId);if(pflEl)pflEl.textContent=tot>0?tot.toFixed(2)+'L':'—';
+  var pfrEl=document.getElementById('pfr_'+pumpId);if(pfrEl)pfrEl.textContent=totN>0?'₦'+totN.toLocaleString('en-NG'):'—';
+
+  /* Update margin for tank this pump belongs to */
+  var pCfg=PUMPS.find(function(p){return p.id===pumpId;});
+  if(pCfg)updateMargin(pCfg.tank);
+  recalcGrand();
+}
+
+/* ── GET PUMP TOTAL FOR A TANK ── */
+function getPumpTotal(tankId){
+  var total=0;
+  PUMPS.forEach(function(p){
+    if(p.tank!==tankId)return;
+    PS[p.id].forEach(function(s){
+      var d=s.open>0&&s.close>0&&s.close>s.open?s.close-s.open:0;
+      total+=d;
+    });
+  });
+  return total;
+}
+
+/* ── UPDATE MARGIN FOR A TANK ── */
+function updateMargin(tankId){
+  if(MODE!=='close')return;
+  var s=TS[tankId];
+  var dipDiff=s.open>0&&s.close>0&&s.open>s.close?s.open-s.close:0;
+  var pumpTot=getPumpTotal(tankId);
+  var margin=dipDiff>0&&pumpTot>0?Math.abs(pumpTot-dipDiff):0;
+  s.margin=margin;
+
+  var cfg=TANKS.find(function(t){return t.id===tankId;});
+  var price=cfg.product==='AGO'?PRICES.ago:PRICES.pms;
+  var totalL=dipDiff+margin;
+  var totalAmt=Math.round(totalL*price);
+
+  /* Margin value */
+  var mEl=document.getElementById('msv_'+tankId);
+  if(mEl)mEl.textContent=margin>0?margin.toFixed(2)+'L':'—';
+
+  /* Margin note */
+  var nEl=document.getElementById('msn_'+tankId);
+  if(nEl)nEl.textContent=pumpTot>0?'Pump: '+pumpTot.toFixed(2)+'L dispensed · Dip: '+dipDiff.toFixed(2)+'L reduction':'Enter pump closing metres to calculate';
+
+  /* Total litres */
+  var tEl=document.getElementById('ttl_'+tankId);
+  if(tEl)tEl.textContent=totalL>0?totalL.toFixed(2)+'L':'—';
+
+  /* Total amount */
+  var aEl=document.getElementById('tta_'+tankId);
+  if(aEl)aEl.textContent=totalAmt>0?'₦'+totalAmt.toLocaleString('en-NG'):'—';
+
+  rebuildMarginCard();
+}
+
+/* ── MARGIN SUMMARY CARD ── */
+function rebuildMarginCard(){
+  var hasAny=false;
+  var pmsDip=0,pmsMargin=0,pmsTot=0,pmsAmt=0;
+  var agoDip=0,agoMargin=0,agoTot=0,agoAmt=0;
+
+  var rows=TANKS.map(function(cfg){
+    var s=TS[cfg.id];
+    var dip=s.open>0&&s.close>0&&s.open>s.close?s.open-s.close:0;
+    if(dip===0)return'';
+    hasAny=true;
+    var price=cfg.product==='AGO'?PRICES.ago:PRICES.pms;
+    var margin=s.margin||0;
+    var total=dip+margin;
+    var totalAmt=Math.round(total*price);
+    var marginAmt=Math.round(margin*price);
+    if(cfg.product==='AGO'){agoDip+=dip;agoMargin+=margin;agoTot+=total;agoAmt+=totalAmt;}
+    else{pmsDip+=dip;pmsMargin+=margin;pmsTot+=total;pmsAmt+=totalAmt;}
+    return '<div class="ms-row-item">'+
+      '<div>'+
+        '<div class="ms-item-info">'+cfg.id+' — '+cfg.product+'</div>'+
+        '<div class="ms-item-detail">Dip: '+dip.toFixed(2)+'L · Margin: '+margin.toFixed(2)+'L · Total: '+total.toFixed(2)+'L</div>'+
+        '<div class="ms-item-detail" style="color:rgba(167,139,250,.7)">Margin: '+margin.toFixed(2)+'L × ₦'+price.toLocaleString('en-NG')+' = ₦'+marginAmt.toLocaleString('en-NG')+'</div>'+
+      '</div>'+
+      '<div><div class="ms-item-amt">₦'+totalAmt.toLocaleString('en-NG')+'</div><div class="ms-item-l">'+total.toFixed(2)+'L</div></div>'+
+    '</div>';
+  }).join('');
+
+  if(!hasAny){document.getElementById('marginCard').style.display='none';return;}
+  document.getElementById('marginCard').style.display='block';
+
+  var totRow='<div class="ms-row-item">'+
+    '<div>'+
+      (pmsTot>0?'<div class="ms-item-info">PMS Total</div><div class="ms-item-detail">'+pmsDip.toFixed(2)+'L dip + '+pmsMargin.toFixed(2)+'L margin = '+pmsTot.toFixed(2)+'L</div>':'')+''+
+      (agoTot>0?'<div class="ms-item-info" style="margin-top:6px">AGO Total</div><div class="ms-item-detail">'+agoDip.toFixed(2)+'L dip + '+agoMargin.toFixed(2)+'L margin = '+agoTot.toFixed(2)+'L</div>':'')+''+
+    '</div>'+
+    '<div>'+
+      (pmsTot>0?'<div class="ms-item-amt" style="color:var(--cyan)">₦'+pmsAmt.toLocaleString('en-NG')+'</div>':'')+
+      (agoTot>0?'<div class="ms-item-amt" style="color:var(--amber)">₦'+agoAmt.toLocaleString('en-NG')+'</div>':'')+
+    '</div>'+
+  '</div>'+
+  '<div class="ms-row-item">'+
+    '<div class="ms-total-lbl">Grand Total</div>'+
+    '<div class="ms-total-amt">₦'+(pmsAmt+agoAmt).toLocaleString('en-NG')+'</div>'+
+  '</div>';
+
+  document.getElementById('marginBody').innerHTML=rows+totRow;
+}
+
+/* ── GRAND TOTAL ── */
+function recalcGrand(){
+  var pmsDip=0,pmsM=0,agoDip=0,agoM=0;
+  TANKS.slice(0,3).forEach(function(tk){var s=TS[tk.id];var d=s.open>0&&s.close>0&&s.open>s.close?s.open-s.close:0;pmsDip+=d;pmsM+=s.margin||0;});
+  var ag=TS['TK4'];agoDip=ag.open>0&&ag.close>0&&ag.open>ag.close?ag.open-ag.close:0;agoM=ag.margin||0;
+  var pmsTotal=pmsDip+pmsM,agoTotal=agoDip+agoM;
+  var pmsRev=Math.round(pmsTotal*PRICES.pms),agoRev=Math.round(agoTotal*PRICES.ago);
+  document.getElementById('gPmsL').textContent=pmsTotal.toLocaleString('en-NG',{maximumFractionDigits:2})+' L';
+  document.getElementById('gPmsN').textContent='₦'+pmsRev.toLocaleString('en-NG');
+  document.getElementById('gAgoL').textContent=agoTotal.toLocaleString('en-NG',{maximumFractionDigits:2})+' L';
+  document.getElementById('gAgoN').textContent='₦'+agoRev.toLocaleString('en-NG');
+  document.getElementById('gTotal').textContent='₦'+(pmsRev+agoRev).toLocaleString('en-NG');
+  document.getElementById('gLitres').textContent=(pmsTotal+agoTotal).toLocaleString('en-NG',{maximumFractionDigits:2})+' L total';
+  document.getElementById('gbPmsDip').textContent=pmsDip.toLocaleString('en-NG',{maximumFractionDigits:2})+' L';
+  document.getElementById('gbPmsMargin').textContent=pmsM.toLocaleString('en-NG',{maximumFractionDigits:2})+' L';
+  document.getElementById('gbAgoDip').textContent=agoDip.toLocaleString('en-NG',{maximumFractionDigits:2})+' L';
+  document.getElementById('gbAgoMargin').textContent=agoM.toLocaleString('en-NG',{maximumFractionDigits:2})+' L';
+}
+
+/* ── ADD SESSION ── */
+function addSession(pumpId){
+  var sessions=PS[pumpId];
+  var last=sessions[sessions.length-1];
+  if(!last.close||last.close<=0){showToast('Enter closing metre for current session first','err');return;}
+  if(last.close<=last.open){showToast('Closing must be greater than opening metre','err');return;}
+  last.locked=true;
+  sessions.push({open:last.close,close:0,price:PRICES.pms,locked:false,diff:0,amount:0});
+  var cfg=PUMPS.find(function(p){return p.id===pumpId;});
+  document.getElementById('pc_'+pumpId).outerHTML=renderPump(cfg);
+  showToast('Session '+(sessions.length)+' added','ok');
+}
+
+/* ── PRICES ── */
+function loadPrices(){
+  var u=new URL(API);u.searchParams.set('action','getCurrentPrices');u.searchParams.set('station','mso');
+  fetch(u.toString(),{method:'GET',redirect:'follow'}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok)return;
+    if(d.pmsPrice)PRICES.pms=Number(d.pmsPrice);
+    if(d.agoPrice)PRICES.ago=Number(d.agoPrice);
+    /* Update session prices */
+    PUMPS.forEach(function(p){PS[p.id].forEach(function(s){if(!s.locked)s.price=p.product==='AGO'?PRICES.ago:PRICES.pms;});});
+  }).catch(function(){});
+}
+
+function pollPrices(){
+  var u=new URL(API);u.searchParams.set('action','getCurrentPrices');u.searchParams.set('station','mso');
+  fetch(u.toString(),{method:'GET',redirect:'follow'}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok)return;
+    var changed=false;
+    if(d.pmsPrice&&Number(d.pmsPrice)!==PRICES.pms){PRICES.pms=Number(d.pmsPrice);changed=true;}
+    if(d.agoPrice&&Number(d.agoPrice)!==PRICES.ago){PRICES.ago=Number(d.agoPrice);changed=true;}
+    if(changed){
+      PRICE_CHANGED=true;
+      document.getElementById('paSub').textContent=(d.pmsPrice?'PMS ₦'+Number(d.pmsPrice).toLocaleString('en-NG')+'/L ':'')+(d.agoPrice?'AGO ₦'+Number(d.agoPrice).toLocaleString('en-NG')+'/L':'');
+      document.getElementById('priceAlert').classList.add('show');
+      render(); /* re-render to show add session button */
+    }
+  }).catch(function(){});
+}
+
+function ackPrice(){document.getElementById('priceAlert').classList.remove('show');setMode('close');showToast('Enter closing metres, then add new session','info');}
+
+/* ── LOAD TODAY ── */
+function loadToday(date){
+  /* Show loading indicator */
+  document.getElementById('dayStatus').textContent='Loading…';
+  document.getElementById('dayStatus').style.color='var(--muted)';
+
+  var u=new URL(API);
+  u.searchParams.set('action','getDailyReport');
+  u.searchParams.set('station','mso');
+  u.searchParams.set('date',date);
+  u.searchParams.set('username',ME);
+
+  fetch(u.toString(),{method:'GET',redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+
+      /* No record for this date yet — fresh form */
+      if(!d.ok||!d.report){
+        render();
+        return;
+      }
+
+      var r=d.report;
+
+      /* ── 1. Restore tank stock readings ── */
+      TS['TK1'].open  = Number(r.tk1_opening)||0;
+      TS['TK1'].close = Number(r.tk1_closing)||0;
+      TS['TK1'].margin= Number(r.tk1_margin) ||0;
+      TS['TK2'].open  = Number(r.tk2_opening)||0;
+      TS['TK2'].close = Number(r.tk2_closing)||0;
+      TS['TK2'].margin= Number(r.tk2_margin) ||0;
+      TS['TK3'].open  = Number(r.tk3_opening)||0;
+      TS['TK3'].close = Number(r.tk3_closing)||0;
+      TS['TK3'].margin= Number(r.tk3_margin) ||0;
+      TS['TK4'].open  = Number(r.tk4_opening)||0;
+      TS['TK4'].close = Number(r.tk4_closing)||0;
+      TS['TK4'].margin= Number(r.tk4_margin) ||0;
+
+      /* ── 2. Restore pump metre sessions ── */
+      var pm=r.pumpMetres||{};
+      PUMPS.forEach(function(p){
+        var pdata=pm[p.id];
+        if(pdata&&pdata.sessions&&pdata.sessions.length>0){
+          /* Sort sessions by session number */
+          pdata.sessions.sort(function(a,b){return (a.sessNum||1)-(b.sessNum||1);});
+          PS[p.id]=pdata.sessions.map(function(s,i){
+            return{
+              open:   Number(s.open)  ||0,
+              close:  Number(s.close) ||0,
+              price:  Number(s.price) ||(p.product==='AGO'?PRICES.ago:PRICES.pms),
+              locked: i < pdata.sessions.length-1, /* all but last are locked */
+              diff:   Number(s.diff)  ||0,
+              amount: Number(s.amount)||0,
+            };
+          });
+        }
+        /* Ensure at least one session */
+        if(!PS[p.id]||PS[p.id].length===0){
+          PS[p.id]=[{open:0,close:0,price:p.product==='AGO'?PRICES.ago:PRICES.pms,locked:false,diff:0,amount:0}];
+        }
+      });
+
+      /* ── 3. Determine state and render ── */
+      var hasOpen  = TS['TK1'].open>0 || TS['TK2'].open>0 || TS['TK3'].open>0;
+      var hasClose = TS['TK1'].close>0 || TS['TK2'].close>0 || TS['TK3'].close>0;
+      var hasCash  = Number(r.to_bank||0)>0;
+
+      setStatus(hasOpen,hasClose,hasCash);
+
+      if(hasClose){
+        /* Full day complete — show closing mode, all readonly, edit request available */
+        SUBMITTED=true;
+        document.getElementById('editWrap').style.display='block';
+        setMode('close');
+      } else if(hasOpen){
+        /* Opening saved — switch to evening mode automatically */
+        /* Opening fields locked, closing fields ready for entry */
+        setMode('close');
+      } else {
+        /* No data — fresh morning form */
+        render();
+      }
+    })
+    .catch(function(e){
+      console.error('loadToday error:',e);
+      render();
+    });
+}
+
+/* ── SUBMIT ── */
+function handleSubmit(){
+  var date=document.getElementById('entryDate').value;
+  if(!date){showToast('Date is required','err');return;}
+  if(MODE==='open')doSaveOpening(date);
+  else doSaveClosing(date);
+}
+
+function doSaveOpening(date){
+  var hasAny=TANKS.some(function(t){return TS[t.id].open>0;});
+  if(!hasAny){showToast('Enter at least one opening stock reading','err');return;}
+  var btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.innerHTML='<div class="spin"></div> Saving…';
+  var data={tk1_opening:TS.TK1.open,tk2_opening:TS.TK2.open,tk3_opening:TS.TK3.open,tk4_opening:TS.TK4.open,
+    tk1_closing:0,tk2_closing:0,tk3_closing:0,tk4_closing:0,
+    tk1_diff:0,tk2_diff:0,tk3_diff:0,tk4_diff:0,
+    tk1_margin:0,tk2_margin:0,tk3_margin:0,tk4_margin:0,
+    pms_litres:0,pms_price:PRICES.pms,pms_revenue:0,
+    ago_litres:0,ago_price:PRICES.ago,ago_revenue:0,grand_total:0};
+  post({action:'saveDailyReport',station:'mso',username:ME,date:date,data:data},function(d){
+    btn.disabled=false;
+    if(!d.ok){btn.innerHTML='<i class="bi bi-sunrise"></i> Save Opening Stock &amp; Metres';showToast(d.error||'Save failed','err');return;}
+    /* Save pump opening metres to PumpMetres tab */
+    PUMPS.forEach(function(p){
+      var s=PS[p.id][0];
+      if(s.open>0){
+        post({action:'savePumpMetre',station:'mso',username:ME,date:date,
+          pump:p.id,product:p.product,tank:p.tank,
+          openingMetre:s.open,closingMetre:0,diff:0,
+          price:s.price,amount:0,sessionNum:1},function(){});
+      }
+    });
+    btn.innerHTML='<i class="bi bi-check-circle"></i> Opening Saved ✓';
+    btn.style.background='#15803D';
+    setStatus(true,false,false);
+    showToast('Opening saved — return at closing time','ok');
+    setTimeout(function(){btn.innerHTML='<i class="bi bi-sunrise"></i> Save Opening Stock &amp; Metres';btn.style.background='';btn.disabled=false;},4000);
+  });
+}
+
+function doSaveClosing(date){
+  var pmsDip=0,agoD=0,pmsM=0,agoM=0;
+  TANKS.slice(0,3).forEach(function(tk){var s=TS[tk.id];var d=s.open>0&&s.close>0&&s.open>s.close?s.open-s.close:0;pmsDip+=d;pmsM+=s.margin||0;});
+  var ag=TS['TK4'];agoD=ag.open>0&&ag.close>0&&ag.open>ag.close?ag.open-ag.close:0;agoM=ag.margin||0;
+  if(pmsDip===0&&agoD===0){showToast('Enter at least one closing stock reading','err');return;}
+  var pmsTotal=pmsDip+pmsM,agoTotal=agoD+agoM;
+  var pmsRev=Math.round(pmsTotal*PRICES.pms),agoRev=Math.round(agoTotal*PRICES.ago);
+  var btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.innerHTML='<div class="spin"></div> Saving…';
+  var data={
+    tk1_opening:TS.TK1.open,tk1_closing:TS.TK1.close,tk1_diff:Math.max(0,TS.TK1.open-TS.TK1.close),tk1_margin:TS.TK1.margin||0,
+    tk2_opening:TS.TK2.open,tk2_closing:TS.TK2.close,tk2_diff:Math.max(0,TS.TK2.open-TS.TK2.close),tk2_margin:TS.TK2.margin||0,
+    tk3_opening:TS.TK3.open,tk3_closing:TS.TK3.close,tk3_diff:Math.max(0,TS.TK3.open-TS.TK3.close),tk3_margin:TS.TK3.margin||0,
+    tk4_opening:ag.open,tk4_closing:ag.close,tk4_diff:agoD,tk4_margin:agoM,
+    pms_margin:pmsM,pms_litres:pmsTotal,pms_price:PRICES.pms,pms_revenue:pmsRev,
+    ago_margin:agoM,ago_litres:agoTotal,ago_price:PRICES.ago,ago_revenue:agoRev,
+    grand_total:pmsRev+agoRev
+  };
+  post({action:'saveDailyReport',station:'mso',username:ME,date:date,data:data},function(d){
+    btn.disabled=false;
+    if(!d.ok){btn.innerHTML='<i class="bi bi-moon-stars"></i> Save Closing Stock &amp; Metres';showToast(d.error||'Save failed','err');return;}
+    /* Save pump metres (closing) + sales log */
+    PUMPS.forEach(function(p){
+      PS[p.id].forEach(function(s,i){
+        var diff=s.open>0&&s.close>0&&s.close>s.open?s.close-s.open:0;
+        /* Update PumpMetres with closing values */
+        post({action:'savePumpMetre',station:'mso',username:ME,date:date,
+          pump:p.id,product:p.product,tank:p.tank,
+          openingMetre:s.open,closingMetre:s.close,
+          diff:diff,price:s.price,amount:Math.round(diff*s.price),sessionNum:i+1},function(){});
+        /* Save to SalesLog */
+        if(diff>0)post({action:'saveSale',station:'mso',username:ME,date:date,tank:p.tank,pump:p.id,product:p.product,litres:diff,pricePerL:s.price,amount:Math.round(diff*s.price),payMethod:'Mixed',attendant:NAME},function(){});
+      });
+    });
+    SUBMITTED=true;
+    btn.innerHTML='<i class="bi bi-check-circle"></i> Closing Saved ✓';
+    btn.style.background='#0E7490';
+    setStatus(true,true,false);
+    document.getElementById('editWrap').style.display='block';
+    showToast('All readings saved','ok');
+  });
+}
+
+/* ── EDIT REQUEST ── */
+function requestEdit(){
+  if(EDIT_PENDING){showToast('Request already sent','info');return;}
+  var date=document.getElementById('entryDate').value;
+  var btn=document.getElementById('editBtn');
+  btn.disabled=true;btn.innerHTML='<div class="spin"></div> Sending…';
+  post({action:'saveEditRequest',station:'mso',username:ME,date:date,name:NAME,requestedAt:new Date().toISOString(),message:NAME+' requests edit approval for '+date},function(d){
+    EDIT_PENDING=true;
+    btn.innerHTML='<i class="bi bi-clock-history"></i> Request Sent — Awaiting GM';
+    document.getElementById('editBanner').classList.add('show');
+    try{localStorage.setItem('mso_edit_request_'+Date.now(),JSON.stringify({station:'mso',supervisor:NAME,date:date,sentAt:new Date().toISOString()}));}catch(e){}
+    showToast('Edit request sent to GM','ok');
+  });
+  /* Listen for approval */
+  window.addEventListener('storage',function(e){
+    if(e.key&&e.key.indexOf('mso_edit_approved_')===0){
+      try{var d=JSON.parse(e.newValue);
+        if(d.status==='APPROVED'){EDIT_PENDING=false;SUBMITTED=false;document.getElementById('editBanner').classList.remove('show');btn.disabled=false;btn.innerHTML='<i class="bi bi-pencil-square"></i> Request Edit Approval from GM';showToast('GM approved — you can now edit','ok');render();}
+        else{showToast('Edit request rejected by GM','err');}
+      }catch(ex){}
+    }
+  });
+}
+
+/* ── HELPERS ── */
+function post(payload,cb){
+  fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'})
+    .then(function(r){return r.json();}).then(cb).catch(function(){showToast('Network error','err');});
+}
+
+var _tt;
+function showToast(msg,type){
+  var icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill',info:'bi-info-circle-fill'};
+  var colors={ok:'#16A34A',err:'#DC2626',info:'rgba(9,13,31,.96)'};
+  document.getElementById('tIco').className='bi '+(icons[type]||'bi-info-circle-fill');
+  document.getElementById('tMsg').textContent=msg;
+  var t=document.getElementById('toast');t.style.background=colors[type]||'rgba(9,13,31,.96)';
+  t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3500);
+}
+
+/* Initial render */
+render();
+</script>
+</body>
+</html>

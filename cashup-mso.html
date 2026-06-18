@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#F1F5FB"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+<title>Cash Reconciliation — MSO</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:#F1F5FB;color:#0F172A;min-height:100dvh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input{font-family:inherit}
+:root{
+  --cyan:#179DD0;--cyan-d:#1188B5;--cyan-l:rgba(23,157,208,.1);--cyan-b:rgba(23,157,208,.22);
+  --navy:#06091A;--green:#16A34A;--green-l:#F0FDF4;
+  --amber:#D97706;--amber-l:#FFFBEB;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --purple:#6D28D9;--purple-l:#F5F3FF;
+  --border:#E8EDF5;--surface:#F8FAFC;
+  --ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;
+  --mono:'JetBrains Mono',monospace;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+  --bn-h:66px;
+}
+/* TOPBAR */
+.topbar{padding-top:calc(var(--sat)+10px);padding-bottom:10px;padding-left:16px;padding-right:16px;min-height:calc(58px + var(--sat));background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.back-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--ink-2);flex-shrink:0;transition:all .13s}
+.back-btn:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan-d)}
+.tb-info{flex:1}
+.tb-title{font-size:16px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.tb-sub{font-size:10px;color:var(--ink-4);margin-top:1px}
+.tb-badge{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:4px 11px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.badge-cashier{background:#EDE9FE;color:var(--purple);border:1px solid #DDD6FE}
+/* PAGE */
+.page{padding:16px 16px calc(100px + var(--sab));max-width:600px;margin:0 auto}
+/* EXPECTED CARD */
+.expected-card{background:var(--navy);border-radius:16px;padding:18px;margin-bottom:18px;position:relative;overflow:hidden}
+.expected-card::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.exp-head{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.35);margin-bottom:14px;position:relative;z-index:1;display:flex;align-items:center;gap:8px}
+.exp-reload{width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;margin-left:auto;transition:all .13s}
+.exp-reload:hover{background:rgba(255,255,255,.15);color:#fff}
+.exp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;position:relative;z-index:1}
+.exp-item .e-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.32);margin-bottom:4px}
+.exp-item .e-val{font-family:var(--mono);font-size:18px;font-weight:800;color:#fff}
+.exp-item .e-sub{font-size:10px;color:rgba(255,255,255,.32);margin-top:3px}
+.no-data-msg{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:11px 14px;font-size:12.5px;font-weight:500;color:#FDE68A;display:flex;align-items:center;gap:8px;position:relative;z-index:1;margin-bottom:12px}
+/* SECTION */
+.sec-head{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
+.sec-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-4);white-space:nowrap}
+.sec-line{flex:1;height:1px;background:var(--border)}
+/* ENTRY CARD */
+.entry-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.entry-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+.entry-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.entry-name{font-size:13px;font-weight:800;color:var(--ink)}
+.entry-sub{font-size:10px;color:var(--ink-4);margin-top:1px}
+.entry-body{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-4)}
+.money-inp{font-family:var(--mono);font-size:18px;font-weight:800;border:2px solid var(--border);border-radius:11px;padding:12px 14px;background:var(--surface);color:var(--ink);width:100%;outline:none;transition:all .13s;-webkit-appearance:none}
+.money-inp:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+.money-inp.has-val{border-color:rgba(23,157,208,.35);background:#fff}
+/* CHARGE ROW */
+.charge-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.charge-box{border-radius:9px;padding:10px 13px}
+.charge-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+.charge-val{font-family:var(--mono);font-size:15px;font-weight:800}
+/* NET BOX */
+.net-box{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center}
+.net-lbl{font-size:11px;font-weight:600;color:var(--ink-3)}
+.net-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--ink)}
+/* RUNNING TOTAL */
+.running-row{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-top:4px}
+.rr-lbl{font-size:11px;font-weight:600;color:var(--ink-3)}
+.rr-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--ink)}
+/* RECON */
+.recon{border-radius:14px;padding:18px;margin:18px 0;border:2px solid}
+.recon.balanced{background:var(--green-l);border-color:#BBF7D0}
+.recon.short{background:var(--red-l);border-color:#FECACA}
+.recon.over{background:var(--amber-l);border-color:#FDE68A}
+.recon.pending{background:var(--surface);border-color:var(--border)}
+.recon-status{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.recon.balanced .recon-status{color:var(--green)}
+.recon.short .recon-status{color:var(--red)}
+.recon.over .recon-status{color:var(--amber)}
+.recon.pending .recon-status{color:var(--ink-4)}
+.recon-line{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.recon-line:last-child{border:none;padding-top:10px;margin-top:4px;border-top:1px solid rgba(0,0,0,.08)}
+.rl-key{font-size:12.5px;font-weight:600;color:var(--ink)}
+.rl-val{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink)}
+.rl-big{font-size:18px}
+.rl-variance{font-size:22px}
+/* BANK CARD */
+.bank-card{background:#fff;border:2px solid #BBF7D0;border-radius:14px;padding:18px;margin-bottom:16px}
+.bank-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.bank-amount{font-family:var(--mono);font-size:32px;font-weight:900;color:var(--green);letter-spacing:-.02em}
+.bank-sub{font-size:11.5px;color:var(--ink-3);margin-top:6px}
+/* EXPENSES */
+.exp-item-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.exp-item-row:last-child{margin-bottom:0}
+.exp-desc-inp{font-family:inherit;font-size:13px;font-weight:500;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--surface);color:var(--ink);flex:1;outline:none;transition:all .13s}
+.exp-desc-inp:focus{border-color:var(--cyan);background:#fff}
+.exp-amt-inp{font-family:var(--mono);font-size:14px;font-weight:700;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--surface);color:var(--ink);width:130px;outline:none;text-align:right;-webkit-appearance:none;transition:all .13s}
+.exp-amt-inp:focus{border-color:var(--cyan);background:#fff}
+.btn-rm-exp{width:30px;height:30px;border-radius:8px;background:var(--red-l);border:1px solid #FECACA;color:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;cursor:pointer;transition:all .13s}
+.btn-add-exp{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:9px;background:var(--surface);border:1.5px dashed var(--border);color:var(--ink-3);font-size:12.5px;font-weight:600;width:100%;justify-content:center;transition:all .13s;cursor:pointer;margin-top:8px}
+.btn-add-exp:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan-d)}
+/* SUBMIT */
+.submit-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:12px 16px calc(12px + var(--sab));box-shadow:0 -4px 20px rgba(0,0,0,.08);z-index:300}
+.submit-inner{max-width:600px;margin:0 auto;display:flex;gap:10px}
+.btn-submit{flex:1;height:52px;border-radius:13px;background:var(--green);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .18s;box-shadow:0 4px 18px rgba(22,163,74,.3);border:none}
+.btn-submit:hover{background:#15803D;transform:translateY(-1px)}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-reload{height:52px;width:52px;border-radius:13px;background:var(--surface);border:1.5px solid var(--border);color:var(--ink-3);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .13s;cursor:pointer}
+.btn-reload:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan-d)}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);z-index:9999;background:var(--navy);color:#fff;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media(max-width:480px){.exp-grid{grid-template-columns:1fr 1fr}.charge-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="dashboard-cashier.html" class="back-btn"><i class="bi bi-arrow-left"></i></a>
+  <div class="tb-info">
+    <div class="tb-title">Cash Reconciliation</div>
+    <div class="tb-sub" id="tbDate">—</div>
+  </div>
+  <div class="tb-badge badge-cashier"><i class="bi bi-shield-check" style="font-size:11px"></i>&nbsp;Cashier</div>
+</header>
+
+<div class="page">
+
+  <!-- EXPECTED -->
+  <div class="expected-card">
+    <div class="exp-head">
+      Expected from Today's Dip
+      <button type="button" class="exp-reload" onclick="loadExpected()"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+    <div id="noDataMsg" class="no-data-msg" style="display:none">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      Supervisor has not submitted dip readings yet.
+    </div>
+    <div class="exp-grid" id="expGrid">
+      <div class="exp-item"><div class="e-lbl">PMS Litres</div><div class="e-val" id="expPmsL">—</div><div class="e-sub" id="expPmsSub">Loading…</div></div>
+      <div class="exp-item"><div class="e-lbl">AGO Litres</div><div class="e-val" id="expAgoL">—</div><div class="e-sub" id="expAgoSub">Loading…</div></div>
+      <div class="exp-item"><div class="e-lbl">Expected Total</div><div class="e-val" id="expTotal">—</div><div class="e-sub">Grand total</div></div>
+    </div>
+  </div>
+
+  <!-- POS MP -->
+  <div class="sec-head"><div class="sec-ttl">POS Collections</div><div class="sec-line"></div></div>
+  <div class="entry-card">
+    <div class="entry-head">
+      <div class="entry-ico" style="background:var(--cyan-l)"><i class="bi bi-credit-card" style="color:var(--cyan-d)"></i></div>
+      <div><div class="entry-name">MP Terminal</div><div class="entry-sub">0.25% charge deducted</div></div>
+    </div>
+    <div class="entry-body">
+      <div class="field">
+        <div class="field-lbl">Total POS Amount (₦)</div>
+        <input type="number" class="money-inp" id="posMP" placeholder="0" min="0" step="1" oninput="onInput(this);recalc()"/>
+      </div>
+      <div class="charge-row">
+        <div class="charge-box" style="background:var(--red-l);border:1px solid #FECACA">
+          <div class="charge-lbl" style="color:var(--red)">Charge (0.25%)</div>
+          <div class="charge-val" style="color:var(--red)" id="mpCharge">₦0</div>
+        </div>
+        <div class="charge-box" style="background:var(--green-l);border:1px solid #BBF7D0">
+          <div class="charge-lbl" style="color:var(--green)">Net Amount</div>
+          <div class="charge-val" style="color:var(--green)" id="mpNet">₦0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POS ZM -->
+  <div class="entry-card">
+    <div class="entry-head">
+      <div class="entry-ico" style="background:var(--purple-l)"><i class="bi bi-credit-card-2-front" style="color:var(--purple)"></i></div>
+      <div><div class="entry-name">ZM Terminal</div><div class="entry-sub">0.30% charge deducted</div></div>
+    </div>
+    <div class="entry-body">
+      <div class="field">
+        <div class="field-lbl">Total POS Amount (₦)</div>
+        <input type="number" class="money-inp" id="posZM" placeholder="0" min="0" step="1" oninput="onInput(this);recalc()"/>
+      </div>
+      <div class="charge-row">
+        <div class="charge-box" style="background:var(--red-l);border:1px solid #FECACA">
+          <div class="charge-lbl" style="color:var(--red)">Charge (0.30%)</div>
+          <div class="charge-val" style="color:var(--red)" id="zmCharge">₦0</div>
+        </div>
+        <div class="charge-box" style="background:var(--green-l);border:1px solid #BBF7D0">
+          <div class="charge-lbl" style="color:var(--green)">Net Amount</div>
+          <div class="charge-val" style="color:var(--green)" id="zmNet">₦0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASH -->
+  <div class="sec-head"><div class="sec-ttl">Cash</div><div class="sec-line"></div></div>
+  <div class="entry-card">
+    <div class="entry-head">
+      <div class="entry-ico" style="background:var(--green-l)"><i class="bi bi-cash-stack" style="color:var(--green)"></i></div>
+      <div><div class="entry-name">Physical Cash Collected</div><div class="entry-sub">Count carefully — exact amount</div></div>
+    </div>
+    <div class="entry-body">
+      <div class="field">
+        <div class="field-lbl">Cash Amount (₦)</div>
+        <input type="number" class="money-inp" id="cashAmt" placeholder="0" min="0" step="1" oninput="onInput(this);recalc()"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="sec-head"><div class="sec-ttl">Expenses</div><div class="sec-line"></div></div>
+  <div class="entry-card">
+    <div class="entry-head">
+      <div class="entry-ico" style="background:var(--red-l)"><i class="bi bi-receipt-cutoff" style="color:var(--red)"></i></div>
+      <div><div class="entry-name">Today's Expenses</div><div class="entry-sub">Deducted from cash to bank</div></div>
+    </div>
+    <div class="entry-body">
+      <div id="expensesList"></div>
+      <button type="button" class="btn-add-exp" onclick="addExpense()"><i class="bi bi-plus-circle"></i> Add Expense</button>
+      <div class="running-row">
+        <div class="rr-lbl">Total Expenses</div>
+        <div class="rr-val" id="expTotal2">₦0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECONCILIATION -->
+  <div class="recon pending" id="reconCard">
+    <div class="recon-status" id="reconStatus"><i class="bi bi-hourglass-split"></i>Enter amounts to reconcile</div>
+    <div class="recon-line"><span class="rl-key">Expected (from dip)</span><span class="rl-val" id="rcExp">₦—</span></div>
+    <div class="recon-line"><span class="rl-key">POS MP (net)</span><span class="rl-val" id="rcPosMP">₦0</span></div>
+    <div class="recon-line"><span class="rl-key">POS ZM (net)</span><span class="rl-val" id="rcPosZM">₦0</span></div>
+    <div class="recon-line"><span class="rl-key">Cash</span><span class="rl-val" id="rcCash">₦0</span></div>
+    <div class="recon-line"><span class="rl-key">Less expenses</span><span class="rl-val" id="rcExpenses" style="color:var(--red)">−₦0</span></div>
+    <div class="recon-line"><span class="rl-key">POS charges (MP+ZM)</span><span class="rl-val" id="rcCharges" style="color:var(--red)">−₦0</span></div>
+    <div class="recon-line"><span class="rl-key rl-big" style="font-weight:800">Collected total</span><span class="rl-val rl-big" id="rcCollected">₦0</span></div>
+    <div class="recon-line"><span class="rl-key" style="font-weight:800;font-size:14px">Variance</span><span class="rl-val rl-variance" id="rcVariance">₦—</span></div>
+  </div>
+
+  <!-- CASH TO BANK -->
+  <div class="bank-card">
+    <div class="bank-label"><i class="bi bi-safe"></i> Cash to Bank</div>
+    <div class="bank-amount" id="bankAmount">₦0</div>
+    <div class="bank-sub">Cash − Expenses − POS charges (MP 0.25% + ZM 0.30%)</div>
+  </div>
+
+</div>
+
+<div class="submit-bar">
+  <div class="submit-inner">
+    <button type="button" class="btn-reload" onclick="loadExpected()"><i class="bi bi-arrow-clockwise"></i></button>
+    <button type="button" class="btn-submit" id="submitBtn" onclick="submitCashup()"><i class="bi bi-check2-all"></i> Save Reconciliation</button>
+  </div>
+</div>
+
+<div id="toast"><i class="bi" id="tIco"></i><span id="tMsg">—</span></div>
+
+<script>
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
+function getSess(){try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}try{var s=sessionStorage.getItem('mso_u');if(s){var u=JSON.parse(s);if(u)return u;}}catch(e){}return null;}
+var _u=getSess();if(!_u){window.location.replace('login.html');}
+var USER=_u?_u.u:'',NAME=_u?_u.name:'';
+var _exp={grandTotal:0,pmsLitres:0,agoLitres:0,pmsPrice:1269,agoPrice:1799,pmsRevenue:0,agoRevenue:0,hasData:false};
+var expenses=[{desc:'',amt:0}];
+
+(function init(){
+  var t=new Date();
+  document.getElementById('tbDate').textContent=t.toLocaleDateString('en-NG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderExpenses();
+  loadExpected();
+}());
+
+function loadExpected(){
+  document.getElementById('expTotal').textContent='…';
+  var url=new URL(SCRIPT_URL);
+  url.searchParams.set('action','getDashboard');url.searchParams.set('station','mso');url.searchParams.set('username',USER);
+  fetch(url.toString(),{method:'GET',redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok||d.noData||!d.grandTotal){document.getElementById('noDataMsg').style.display='flex';document.getElementById('expTotal').textContent='—';return;}
+      document.getElementById('noDataMsg').style.display='none';
+      _exp={grandTotal:Number(d.grandTotal)||0,pmsLitres:Number(d.pmsLitres)||0,agoLitres:Number(d.agoLitres)||0,
+        pmsPrice:Number(d.pmsPrice)||1269,agoPrice:Number(d.agoPrice)||1799,
+        pmsRevenue:Number(d.pmsRevenue)||0,agoRevenue:Number(d.agoRevenue)||0,hasData:true};
+      document.getElementById('expPmsL').textContent=_exp.pmsLitres.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
+      document.getElementById('expPmsSub').textContent='₦'+_exp.pmsRevenue.toLocaleString('en-NG')+' @ ₦'+_exp.pmsPrice+'/L';
+      document.getElementById('expAgoL').textContent=_exp.agoLitres.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
+      document.getElementById('expAgoSub').textContent='₦'+_exp.agoRevenue.toLocaleString('en-NG')+' @ ₦'+_exp.agoPrice+'/L';
+      document.getElementById('expTotal').textContent='₦'+_exp.grandTotal.toLocaleString('en-NG');
+      document.getElementById('rcExp').textContent='₦'+_exp.grandTotal.toLocaleString('en-NG');
+      recalc();
+    }).catch(function(){showToast('Could not load dip data','err');});
+}
+
+function onInput(el){if(parseFloat(el.value)>0)el.classList.add('has-val');else el.classList.remove('has-val');}
+
+function recalc(){
+  var posMP=parseFloat(document.getElementById('posMP').value)||0;
+  var posZM=parseFloat(document.getElementById('posZM').value)||0;
+  var cash=parseFloat(document.getElementById('cashAmt').value)||0;
+  var totalExp=expenses.reduce(function(s,e){return s+(parseFloat(e.amt)||0);},0);
+  var mpCharge=Math.round(posMP*0.0025);
+  var zmCharge=Math.round(posZM*0.003);
+  var mpNet=posMP-mpCharge;
+  var zmNet=posZM-zmCharge;
+  var totalCharges=mpCharge+zmCharge;
+  var collected=mpNet+zmNet+cash-totalExp;
+  var toBank=Math.max(0,cash-totalExp-totalCharges);
+  /* Update displays */
+  document.getElementById('mpCharge').textContent='₦'+mpCharge.toLocaleString('en-NG');
+  document.getElementById('mpNet').textContent='₦'+mpNet.toLocaleString('en-NG');
+  document.getElementById('zmCharge').textContent='₦'+zmCharge.toLocaleString('en-NG');
+  document.getElementById('zmNet').textContent='₦'+zmNet.toLocaleString('en-NG');
+  document.getElementById('expTotal2').textContent='₦'+totalExp.toLocaleString('en-NG');
+  document.getElementById('rcPosMP').textContent='₦'+mpNet.toLocaleString('en-NG');
+  document.getElementById('rcPosZM').textContent='₦'+zmNet.toLocaleString('en-NG');
+  document.getElementById('rcCash').textContent='₦'+cash.toLocaleString('en-NG');
+  document.getElementById('rcExpenses').textContent='−₦'+totalExp.toLocaleString('en-NG');
+  document.getElementById('rcCharges').textContent='−₦'+totalCharges.toLocaleString('en-NG');
+  document.getElementById('rcCollected').textContent='₦'+collected.toLocaleString('en-NG');
+  document.getElementById('bankAmount').textContent='₦'+Math.round(toBank).toLocaleString('en-NG');
+  /* Variance */
+  var card=document.getElementById('reconCard');
+  var status=document.getElementById('reconStatus');
+  var varEl=document.getElementById('rcVariance');
+  if(!_exp.hasData||_exp.grandTotal===0){card.className='recon pending';status.innerHTML='<i class="bi bi-hourglass-split"></i>Waiting for supervisor dip data';varEl.textContent='₦—';varEl.style.color='var(--ink-4)';return;}
+  var variance=collected-_exp.grandTotal;
+  var sign=variance>=0?'+':'';
+  varEl.textContent=sign+'₦'+Math.abs(Math.round(variance)).toLocaleString('en-NG');
+  if(Math.abs(variance)<=500){card.className='recon balanced';status.innerHTML='<i class="bi bi-check-circle-fill"></i> BALANCED';varEl.style.color='var(--green)';}
+  else if(variance<0){card.className='recon short';status.innerHTML='<i class="bi bi-exclamation-triangle-fill"></i> SHORT';varEl.style.color='var(--red)';}
+  else{card.className='recon over';status.innerHTML='<i class="bi bi-arrow-up-circle-fill"></i> OVER';varEl.style.color='var(--amber)';}
+}
+
+/* EXPENSES */
+function addExpense(){expenses.push({desc:'',amt:0});renderExpenses();}
+function removeExpense(i){expenses.splice(i,1);if(expenses.length===0)expenses=[{desc:'',amt:0}];renderExpenses();recalc();}
+function renderExpenses(){
+  document.getElementById('expensesList').innerHTML=expenses.map(function(e,i){
+    return '<div class="exp-item-row">'+
+      '<input type="text" class="exp-desc-inp" placeholder="Description (e.g. Logistics to bank)" value="'+e.desc+'" oninput="expenses['+i+'].desc=this.value"/>'+
+      '<input type="number" class="exp-amt-inp" placeholder="₦0" value="'+(e.amt||'')+'" min="0" step="1" oninput="expenses['+i+'].amt=parseFloat(this.value)||0;recalc()"/>'+
+      '<button type="button" class="btn-rm-exp" onclick="removeExpense('+i+')"><i class="bi bi-trash"></i></button>'+
+    '</div>';
+  }).join('');
+}
+
+function submitCashup(){
+  var btn=document.getElementById('submitBtn');
+  var posMP=parseFloat(document.getElementById('posMP').value)||0;
+  var posZM=parseFloat(document.getElementById('posZM').value)||0;
+  var cash=parseFloat(document.getElementById('cashAmt').value)||0;
+  if(posMP===0&&posZM===0&&cash===0){showToast('Enter at least one payment amount','err');return;}
+  var totalExp=expenses.reduce(function(s,e){return s+(parseFloat(e.amt)||0);},0);
+  var mpCharge=Math.round(posMP*0.0025);
+  var zmCharge=Math.round(posZM*0.003);
+  var toBank=Math.max(0,cash-totalExp-mpCharge-zmCharge);
+  var today=new Date().toISOString().split('T')[0];
+  var payload={action:'saveDailyReport',station:'mso',username:USER,date:today,data:{
+    pos_mp:posMP,pos_zm:posZM,cash:cash,
+    total_expenses:totalExp,to_bank:Math.round(toBank),
+    pos_mp_charge:mpCharge,pos_zm_charge:zmCharge,
+    grand_total:_exp.grandTotal||0,
+    pms_litres:_exp.pmsLitres||0,pms_price:_exp.pmsPrice||1269,pms_revenue:_exp.pmsRevenue||0,
+    ago_litres:_exp.agoLitres||0,ago_price:_exp.agoPrice||1799,ago_revenue:_exp.agoRevenue||0,
+  }};
+  btn.disabled=true;btn.innerHTML='<div class="spin"></div> Saving…';
+  fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      btn.disabled=false;btn.innerHTML='<i class="bi bi-check2-all"></i> Save Reconciliation';
+      if(!d.ok){showToast(d.error||'Save failed','err');return;}
+      /* Save individual expenses */
+      var expSaves=expenses.filter(function(e){return e.amt>0&&e.desc;}).map(function(e){
+        return fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify({action:'saveExpense',station:'mso',username:USER,date:today,description:e.desc,amount:e.amt}),redirect:'follow'});
+      });
+      Promise.all(expSaves).then(function(){
+        btn.innerHTML='<i class="bi bi-check-circle"></i> Saved ✓';btn.style.background='var(--green)';
+        showToast('Reconciliation saved successfully','ok');
+        setTimeout(function(){window.location.href='dashboard-cashier.html';},2000);
+      });
+    }).catch(function(){btn.disabled=false;btn.innerHTML='<i class="bi bi-check2-all"></i> Save Reconciliation';showToast('Network error','err');});
+}
+
+var _tt;
+function showToast(msg,type){
+  var icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill',info:'bi-info-circle-fill'};
+  var colors={ok:'#16A34A',err:'#DC2626',info:'#06091A'};
+  document.getElementById('tIco').className='bi '+(icons[type]||'bi-info-circle-fill');
+  document.getElementById('tMsg').textContent=msg;
+  var t=document.getElementById('toast');t.style.background=colors[type]||'#06091A';
+  t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3500);
+}
+</script>
+</body>
+</html>
