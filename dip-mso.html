@@ -221,6 +221,42 @@ input{font-family:inherit;-webkit-appearance:none}
 
 @media(max-width:380px){.inp-num{font-size:34px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.amb-top,.amb-br{display:none}}
+
+/* ── v2 mobile polish ── */
+/* Prevent number input spinners */
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+/* Suppress tap flash everywhere */
+*{-webkit-tap-highlight-color:transparent}
+/* Prevent double-tap zoom on all buttons */
+button{touch-action:manipulation}
+/* Active press states — tactile on mobile */
+.mode-tab:active{transform:scale(.96);opacity:.85}
+.nav-next:active{transform:scale(.98) translateY(0);opacity:.9}
+.nav-back:active{transform:scale(.95)}
+.photo-btn:active{transform:scale(.99);opacity:.85}
+.hdr-btn:active{transform:scale(.9)}
+/* Pulsing segment for current step */
+.seg-now{animation:segPulse 2s ease-in-out infinite}
+@keyframes segPulse{0%,100%{opacity:1}50%{opacity:.45}}
+/* Status active dot pulse */
+.ss-step.active .ss-dot{animation:dotPulse 1.4s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.8)}}
+/* Voice input button */
+.voice-btn{width:44px;height:44px;border-radius:13px;background:rgba(23,157,208,.1);border:1.5px solid rgba(23,157,208,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;margin-right:2px;touch-action:manipulation}
+.voice-btn:active{background:rgba(23,157,208,.25);transform:scale(.9)}
+.voice-btn.listening{background:rgba(220,38,38,.12);border-color:rgba(220,38,38,.35);animation:vPulse .75s ease-in-out infinite}
+@keyframes vPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}
+/* Header mode pill */
+.hdr-mode-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-top:4px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.hdr-mode-pill.morning{background:rgba(34,197,94,.14);color:#22C55E;border-color:rgba(34,197,94,.25)}
+.hdr-mode-pill.evening{background:rgba(23,157,208,.14);color:var(--cyan);border-color:rgba(23,157,208,.25)}
+.hdr-mode-pill:active{transform:scale(.95)}
+/* Larger photo icon on small phones */
+@media(max-width:480px){.photo-btn{padding:15px 14px}.pb-ico{width:44px;height:44px}}
+/* Date input legible on iOS (prevent zoom) */
+.dr-inp{font-size:max(16px,1em)}
 </style>
 </head>
 <body>
@@ -236,6 +272,7 @@ input{font-family:inherit;-webkit-appearance:none}
     <div class="hdr-mid">
       <div class="hdr-step" id="hdrStep">STEP 1 OF 11</div>
       <div class="hdr-title" id="hdrTitle">Opening Stock</div>
+      <div class="hdr-mode-pill morning" id="hdrModePill" onclick="toggleModeQuick()">☀ Morning</div>
     </div>
     <button class="hdr-btn" onclick="openDrawer()" aria-label="All steps">
       <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round"/></svg>
@@ -417,7 +454,14 @@ function setMode(m,silent){
   MODE=m;
   document.getElementById('tabOpen').className='mode-tab'+(m==='open'?' active-open':'');
   document.getElementById('tabClose').className='mode-tab'+(m==='close'?' active-close':'');
+  var pill=document.getElementById('hdrModePill');
+  if(pill){pill.className='hdr-mode-pill '+(m==='open'?'morning':'evening');pill.textContent=m==='open'?'☀ Morning':'🌙 Evening';}
   if(!silent)renderStep(CURR);
+}
+function toggleModeQuick(){
+  setMode(MODE==='open'?'close':'open');
+  var mt=document.querySelector('.mode-toggle');
+  if(mt){mt.style.transition='box-shadow .15s';mt.style.boxShadow='0 0 0 3px rgba(23,157,208,.5)';setTimeout(function(){mt.style.boxShadow='';},600);}
 }
 
 function setStatus(hasOpen,hasClose,hasCash){
@@ -484,7 +528,10 @@ function buildTankStep(cfg){
       '<div class="field-lbl">Opening Stock (Litres)</div>'+
       '<div class="inp-box'+(s.open>0?' ':'')+'" id="inpBox">'+
         '<div class="inp-row">'+
-          '<input type="number" class="inp-num" id="mainInp" value="'+(s.open||'')+'" placeholder="0" inputmode="numeric" oninput="onTankOpen(\''+cfg.id+'\',this.value)"/>'+
+          '<input type="number" class="inp-num" id="mainInp" value="'+(s.open||'')+'" placeholder="0" inputmode="decimal" onfocus="this.select()" autocomplete="off" oninput="onTankOpen(\''+cfg.id+'\',this.value)"/>'+
+          '<button class="voice-btn" id="voiceBtn" onclick="voiceInput()" type="button" title="Speak reading">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="var(--cyan)" stroke-width="1.8"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+          '</button>'+
           '<div class="inp-unit">L</div>'+
         '</div>'+
         (s.open>0?
@@ -512,7 +559,10 @@ function buildTankStep(cfg){
       '<div class="field-lbl">Closing Stock (Litres)</div>'+
       '<div class="inp-box'+(errClose?' err':s.close>0?' ':'')+'" id="inpBox">'+
         '<div class="inp-row">'+
-          '<input type="number" class="inp-num'+(errClose?' ':'')+(s.close>0&&!errClose?' ok':'')+'" id="mainInp" value="'+(s.close||'')+'" placeholder="0" inputmode="numeric" oninput="onTankClose(\''+cfg.id+'\',this.value)"/>'+
+          '<input type="number" class="inp-num'+(errClose?' ':'')+(s.close>0&&!errClose?' ok':'')+'" id="mainInp" value="'+(s.close||'')+'" placeholder="0" inputmode="decimal" onfocus="this.select()" autocomplete="off" oninput="onTankClose(\''+cfg.id+'\',this.value)"/>'+
+          '<button class="voice-btn" id="voiceBtn" onclick="voiceInput()" type="button" title="Speak reading">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="var(--cyan)" stroke-width="1.8"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+          '</button>'+
           '<div class="inp-unit'+(errClose?' inp-unit-err':'')+'">L</div>'+
         '</div>'+
         (s.close>0?
@@ -605,7 +655,10 @@ function buildPumpStep(cfg){
     body='<div class="field-lbl">Opening Metre Reading</div>'+
       '<div class="inp-box'+(s.open>0?' ':'')+'" id="inpBox">'+
         '<div class="inp-row">'+
-          '<input type="number" class="inp-num" id="mainInp" value="'+(s.open||'')+'" placeholder="0.00" inputmode="decimal" step="0.01" oninput="onPumpOpen(\''+cfg.id+'\',this.value)"/>'+
+          '<input type="number" class="inp-num" id="mainInp" value="'+(s.open||'')+'" placeholder="0.00" inputmode="decimal" step="0.01" onfocus="this.select()" autocomplete="off" oninput="onPumpOpen(\''+cfg.id+'\',this.value)"/>'+
+          '<button class="voice-btn" id="voiceBtn" onclick="voiceInput()" type="button" title="Speak reading">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="var(--cyan)" stroke-width="1.8"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+          '</button>'+
           '<div class="inp-unit">→</div>'+
         '</div>'+
         (s.open>0?'<div class="inp-status"><div class="inp-status-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#22C55E" stroke-width="2"/><path d="M8 12l3 3 5-5" stroke="#22C55E" stroke-width="2" stroke-linecap="round"/></svg> Opening metre saved</div><div class="inp-status-pct">'+Number(s.open).toLocaleString('en-NG',{maximumFractionDigits:2})+'</div></div>':'')+
@@ -618,7 +671,10 @@ function buildPumpStep(cfg){
       '<div class="field-lbl">Closing Metre Reading</div>'+
       '<div class="inp-box'+(errP?' err':diff>0?' ':'')+'" id="inpBox">'+
         '<div class="inp-row">'+
-          '<input type="number" class="inp-num" id="mainInp" value="'+(s.close||'')+'" placeholder="0.00" inputmode="decimal" step="0.01" oninput="onPumpClose(\''+cfg.id+'\',this.value)"/>'+
+          '<input type="number" class="inp-num" id="mainInp" value="'+(s.close||'')+'" placeholder="0.00" inputmode="decimal" step="0.01" onfocus="this.select()" autocomplete="off" oninput="onPumpClose(\''+cfg.id+'\',this.value)"/>'+
+          '<button class="voice-btn" id="voiceBtn" onclick="voiceInput()" type="button" title="Speak reading">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="var(--cyan)" stroke-width="1.8"/><path d="M5 11a7 7 0 0014 0M12 18v3M9 21h6" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+          '</button>'+
           '<div class="inp-unit'+(errP?' inp-unit-err':'')+'">→</div>'+
         '</div>'+
         (s.close>0?
@@ -709,12 +765,14 @@ function getPumpTotal(tankId){
 /* NAV */
 function goNext(){
   if(navigator.vibrate)navigator.vibrate(30);
+  if(document.activeElement)document.activeElement.blur();
   if(CURR<STEPS.length-1){renderStep(CURR+1);window.scrollTo(0,0);}
   else{handleSubmit();}
 }
 function goPrev(){
+  if(document.activeElement)document.activeElement.blur();
   if(CURR>0){renderStep(CURR-1);window.scrollTo(0,0);}
-  else{var date=document.getElementById('entryDate').value;if(confirm('Leave without saving?'))window.location.href='dashboard-supervisor.html';}
+  else{if(confirm('Leave without saving?'))window.location.href='dashboard-supervisor.html';}
 }
 
 /* DRAWER */
@@ -812,6 +870,54 @@ function showToast(msg,type){
   document.getElementById('tMsg').textContent=msg;
   t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3000);
 }
+
+/* VOICE INPUT */
+function voiceInput(){
+  if(!window.SpeechRecognition&&!window.webkitSpeechRecognition){showToast('Voice not supported on this device','err');return;}
+  var vb=document.getElementById('voiceBtn');
+  if(vb)vb.classList.add('listening');
+  if(navigator.vibrate)navigator.vibrate(20);
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=new SR();rec.lang='en-NG';rec.interimResults=false;rec.maxAlternatives=3;
+  showToast('Listening…','info');
+  rec.start();
+  rec.onresult=function(e){
+    if(vb)vb.classList.remove('listening');
+    for(var i=0;i<e.results[0].length;i++){
+      var raw=e.results[0][i].transcript;
+      var n=parseFloat(raw.replace(/,/g,'').replace(/[^0-9.]/g,''));
+      if(!isNaN(n)&&n>0){
+        var inp=document.getElementById('mainInp');
+        if(inp){inp.value=n;inp.dispatchEvent(new Event('input',{bubbles:true}));inp.focus();}
+        if(navigator.vibrate)navigator.vibrate([25,15,25]);
+        showToast('Got: '+n.toLocaleString('en-NG'),'ok');
+        return;
+      }
+    }
+    showToast('Didn\'t catch that — try again','err');
+  };
+  rec.onerror=function(){if(vb)vb.classList.remove('listening');showToast('Mic error — check permissions','err');};
+  rec.onend=function(){if(vb)vb.classList.remove('listening');};
+}
+
+/* SWIPE NAVIGATION */
+(function(){
+  var sx=0,sy=0,st=0;
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1)return;
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!st)return;
+    var dx=e.changedTouches[0].clientX-sx;
+    var dy=e.changedTouches[0].clientY-sy;
+    var dt=Date.now()-st;
+    if(Math.abs(dy)>70||Math.abs(dx)<60||dt>500){st=0;return;}
+    if(dx<-60&&CURR<STEPS.length-1){if(navigator.vibrate)navigator.vibrate(15);goNext();}
+    else if(dx>60&&CURR>0){if(navigator.vibrate)navigator.vibrate(15);goPrev();}
+    st=0;
+  },{passive:true});
+}());
 </script>
 </body>
 </html>
