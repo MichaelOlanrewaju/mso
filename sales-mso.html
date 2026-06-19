@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#06091A"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+<title>Metre Entry — MSO Limpid</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:#F1F5FB;color:#0F172A;min-height:100vh;min-height:100dvh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input{font-family:inherit}
+:root{
+  --cyan:#179DD0;--cyan-d:#1188B5;--cyan-l:rgba(23,157,208,.1);--cyan-b:rgba(23,157,208,.22);
+  --navy:#06091A;--green:#16A34A;--green-l:#F0FDF4;
+  --amber:#D97706;--amber-l:#FFFBEB;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --border:#E8EDF5;--surface:#F8FAFC;
+  --ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;
+  --mono:'JetBrains Mono',monospace;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+}
+
+/* ── TOPBAR ── */
+.topbar{
+  padding-top:calc(var(--sat) + 10px);padding-bottom:10px;
+  padding-left:16px;padding-right:16px;
+  min-height:calc(56px + var(--sat));
+  background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.back-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--ink-2);flex-shrink:0;transition:all .13s}
+.back-btn:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan-d)}
+.topbar-info{flex:1;min-width:0}
+.topbar-title{font-size:16px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.topbar-sub{font-size:10px;color:var(--ink-4);margin-top:1px}
+.topbar-badge{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:4px 11px;font-size:10.5px;font-weight:700;background:var(--green-l);color:var(--green);border:1px solid #BBF7D0;white-space:nowrap;flex-shrink:0}
+
+/* ── BODY ── */
+.page{padding:16px 16px calc(100px + var(--sab));max-width:680px;margin:0 auto}
+
+/* ── DATE/SHIFT BAR ── */
+.shift-bar{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.shift-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-4);margin-bottom:4px}
+.shift-val{font-size:13.5px;font-weight:700;color:var(--ink)}
+.shift-date input{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--surface);outline:none;transition:border-color .13s}
+.shift-date input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+
+/* ── SECTION ── */
+.sec-head{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
+.sec-title{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-4)}
+.sec-line{flex:1;height:1px;background:var(--border)}
+.sec-pill{border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700}
+.pms-pill{background:rgba(23,157,208,.1);color:var(--cyan-d);border:1px solid var(--cyan-b)}
+.ago-pill{background:var(--amber-l);color:var(--amber);border:1px solid #FDE68A}
+
+/* ── PUMP CARD ── */
+.pump-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.pump-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--surface);background:var(--surface)}
+.pump-id{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.pump-id-pms{background:var(--cyan-l);color:var(--cyan-d);border:1px solid var(--cyan-b)}
+.pump-id-ago{background:var(--amber-l);color:var(--amber);border:1px solid #FDE68A}
+.pump-name{font-size:13px;font-weight:800;color:var(--ink)}
+.pump-sub{font-size:10px;color:var(--ink-4);margin-top:1px}
+.pump-total{margin-left:auto;text-align:right;flex-shrink:0}
+.pump-total-lbl{font-size:9px;color:var(--ink-4);font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.pump-total-val{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink)}
+
+/* ── NOZZLE ROW ── */
+.nozzle-row{padding:12px 16px;border-bottom:1px solid var(--surface);display:grid;grid-template-columns:auto 1fr 1fr 1fr auto;align-items:center;gap:10px}
+.nozzle-row:last-child{border-bottom:none}
+.nozzle-badge{width:28px;height:28px;border-radius:7px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--ink-3);flex-shrink:0}
+.field-grp{display:flex;flex-direction:column;gap:3px}
+.field-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-4)}
+.metre-input{
+  font-family:var(--mono);font-size:14px;font-weight:700;
+  border:1.5px solid var(--border);border-radius:9px;
+  padding:8px 10px;background:var(--surface);
+  color:var(--ink);width:100%;outline:none;
+  transition:all .13s;-webkit-appearance:none;
+  text-align:center;
+}
+.metre-input:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+.metre-input.has-val{border-color:rgba(23,157,208,.3);background:#fff}
+.metre-input.err{border-color:var(--red);background:var(--red-l)}
+.diff-box{display:flex;flex-direction:column;gap:3px}
+.diff-val{font-family:var(--mono);font-size:14px;font-weight:800;padding:8px 10px;border-radius:9px;text-align:center;min-width:70px;transition:all .2s}
+.diff-neutral{background:var(--surface);color:var(--ink-4);border:1.5px solid var(--border)}
+.diff-ok{background:var(--green-l);color:var(--green);border:1.5px solid #BBF7D0}
+.diff-err{background:var(--red-l);color:var(--red);border:1.5px solid #FECACA}
+
+/* ── PUMP SUMMARY ── */
+.pump-summary{background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.sum-item{display:flex;flex-direction:column;gap:2px}
+.sum-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-4)}
+.sum-val{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--ink)}
+.sum-val.cyan{color:var(--cyan-d)}
+.sum-val.green{color:var(--green)}
+
+/* ── TOTALS CARD ── */
+.totals-card{background:var(--navy);border-radius:14px;padding:16px;margin-top:20px;margin-bottom:16px;position:relative;overflow:hidden}
+.totals-card::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.totals-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;position:relative;z-index:1}
+.tot-item{display:flex;flex-direction:column;gap:3px}
+.tot-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.38)}
+.tot-val{font-family:var(--mono);font-size:18px;font-weight:800;color:#fff}
+.tot-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+
+/* ── SUPERVISOR SIGN-OFF ── */
+.signoff-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+.signoff-title{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.signoff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-wrap{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-4)}
+.std-input{font-family:inherit;font-size:13.5px;font-weight:500;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--surface);color:var(--ink);width:100%;outline:none;transition:all .13s;-webkit-appearance:none}
+.std-input:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+.std-select{font-family:inherit;font-size:13.5px;font-weight:500;border:1.5px solid var(--border);border-radius:9px;padding:9px 12px;background:var(--surface);color:var(--ink);width:100%;outline:none;transition:all .13s}
+.std-select:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+
+/* ── SUBMIT BAR ── */
+.submit-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:12px 16px calc(12px + var(--sab));box-shadow:0 -4px 20px rgba(0,0,0,.08);z-index:200}
+.submit-bar-inner{max-width:680px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.btn-submit{flex:1;height:50px;border-radius:12px;background:var(--cyan);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;transition:all .18s;box-shadow:0 4px 18px rgba(23,157,208,.35)}
+.btn-submit:hover{background:var(--cyan-d);transform:translateY(-1px);box-shadow:0 6px 24px rgba(23,157,208,.45)}
+.btn-submit:active{transform:none}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-clear{height:50px;width:50px;border-radius:12px;background:var(--surface);border:1.5px solid var(--border);color:var(--ink-3);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .13s}
+.btn-clear:hover{background:var(--red-l);border-color:#FECACA;color:var(--red)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);z-index:999;background:var(--navy);color:#fff;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast i{font-size:15px}
+
+/* ── SPINNER ── */
+.spin{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rotate .7s linear infinite}
+@keyframes rotate{to{transform:rotate(360deg)}}
+
+@media(max-width:480px){
+  .nozzle-row{grid-template-columns:auto 1fr 1fr auto;gap:8px}
+  .nozzle-row .field-grp:last-of-type{display:none}
+  .totals-grid{grid-template-columns:1fr 1fr}
+  .signoff-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="dashboard-mso.html" class="back-btn"><i class="bi bi-arrow-left"></i></a>
+  <div class="topbar-info">
+    <div class="topbar-title">Metre Entry</div>
+    <div class="topbar-sub" id="topDate">—</div>
+  </div>
+  <div class="topbar-badge"><i class="bi bi-fuel-pump" style="font-size:11px"></i>&nbsp;MSO</div>
+</header>
+
+<div class="page">
+
+  <!-- DATE + SHIFT -->
+  <div class="shift-bar">
+    <div>
+      <div class="shift-lbl">Date</div>
+      <div class="shift-date"><input type="date" id="entryDate"/></div>
+    </div>
+    <div style="flex:1">
+      <div class="shift-lbl">Supervisor</div>
+      <div class="shift-val" id="supName">—</div>
+    </div>
+    <div>
+      <div class="shift-lbl">Status</div>
+      <div class="shift-val" id="shiftStatus" style="color:var(--amber)">Pending</div>
+    </div>
+  </div>
+
+  <!-- PMS SECTION -->
+  <div class="sec-head"><div class="sec-title">PMS Pumps</div><span class="sec-pill pms-pill">Petrol</span><div class="sec-line"></div></div>
+
+  <!-- TK1: P5, P6 -->
+  <div id="pumpCards"></div>
+
+  <!-- AGO SECTION -->
+  <div class="sec-head"><div class="sec-title">AGO Pump</div><span class="sec-pill ago-pill">Diesel</span><div class="sec-line"></div></div>
+  <div id="agoPumpCard"></div>
+
+  <!-- GRAND TOTALS -->
+  <div class="totals-card">
+    <div class="totals-grid">
+      <div class="tot-item">
+        <div class="tot-lbl">Total PMS</div>
+        <div class="tot-val" id="totPmsL">0 L</div>
+        <div class="tot-sub" id="totPmsN">₦0</div>
+      </div>
+      <div class="tot-item">
+        <div class="tot-lbl">Total AGO</div>
+        <div class="tot-val" id="totAgoL">0 L</div>
+        <div class="tot-sub" id="totAgoN">₦0</div>
+      </div>
+      <div class="tot-item">
+        <div class="tot-lbl">Grand Total</div>
+        <div class="tot-val" id="totGrand">₦0</div>
+        <div class="tot-sub" id="totLitres">0 L</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGN-OFF -->
+  <div class="signoff-card">
+    <div class="signoff-title"><i class="bi bi-pen" style="color:var(--cyan)"></i>Shift Sign-Off</div>
+    <div class="signoff-grid">
+      <div class="field-wrap">
+        <div class="field-label">PMS Price (₦/L)</div>
+        <input type="number" class="std-input" id="pmsPrice" value="1272" min="0" step="1"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">AGO Price (₦/L)</div>
+        <input type="number" class="std-input" id="agoPrice" value="1819" min="0" step="1"/>
+      </div>
+      <div class="field-wrap" style="grid-column:1/-1">
+        <div class="field-label">Notes / Incidents</div>
+        <input type="text" class="std-input" id="shiftNotes" placeholder="Any issues, shortages, or remarks…"/>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- SUBMIT BAR -->
+<div class="submit-bar">
+  <div class="submit-bar-inner">
+    <button type="button" class="btn-clear" onclick="clearAll()" title="Clear all metres"><i class="bi bi-arrow-counterclockwise"></i></button>
+    <button type="button" class="btn-submit" id="submitBtn" onclick="submitMetres()">
+      <i class="bi bi-send-check"></i> Submit Metres
+    </button>
+  </div>
+</div>
+
+<div id="toast"><i class="bi bi-check-circle-fill" id="toastIco"></i><span id="toastMsg">—</span></div>
+
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGYrd146mi2IZ4EhIlkHDi-k61zdeJfyRDweft-tNm0K2SEqQIaE0XGTGk8ueTwnz2/exec';
+var PMS_PRICE = 1272;
+var AGO_PRICE = 1819;
+
+/* ── AUTH ── */
+function getSession(){
+  try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}
+  try{var s=sessionStorage.getItem('mso_u');if(s){var u=JSON.parse(s);if(u)return u;}}catch(e){}
+  return null;
+}
+var _u=getSession();
+if(!_u){window.location.replace('login.html');}
+var ROLE=_u?_u.role:'', NAME=_u?_u.name:'', USER=_u?_u.u:'';
+
+/* ── PUMP CONFIG ── */
+/* MSO: TK1→P5,P6  TK2→P1,P2  TK3→P3,P4  TK4(AGO)→P1 */
+var PUMPS = [
+  { tank:'TK1', product:'PMS', pumps:[
+    { id:'P5', nozzles:['N1','N2'] },
+    { id:'P6', nozzles:['N1','N2'] },
+  ]},
+  { tank:'TK2', product:'PMS', pumps:[
+    { id:'P1', nozzles:['N1','N2'] },
+    { id:'P2', nozzles:['N1','N2'] },
+  ]},
+  { tank:'TK3', product:'PMS', pumps:[
+    { id:'P3', nozzles:['N1','N2'] },
+    { id:'P4', nozzles:['N1','N2'] },
+  ]},
+];
+var AGO_PUMP = { tank:'TK4', product:'AGO', pumps:[
+  { id:'P1', nozzles:['N1'] },
+]};
+
+/* ── INIT ── */
+(function init(){
+  document.getElementById('supName').textContent = NAME || USER;
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('entryDate').value = today;
+  document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-NG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderPumpCards();
+  bindPriceUpdates();
+}());
+
+function bindPriceUpdates(){
+  document.getElementById('pmsPrice').addEventListener('input', recalcAll);
+  document.getElementById('agoPrice').addEventListener('input', recalcAll);
+}
+
+/* ── RENDER ── */
+function renderPumpCards(){
+  document.getElementById('pumpCards').innerHTML = PUMPS.map(function(tk){
+    return tk.pumps.map(function(pump){
+      return renderPump(tk.tank, pump.id, pump.nozzles, 'pms');
+    }).join('');
+  }).join('');
+
+  document.getElementById('agoPumpCard').innerHTML =
+    AGO_PUMP.pumps.map(function(pump){
+      return renderPump(AGO_PUMP.tank, pump.id, pump.nozzles, 'ago');
+    }).join('');
+}
+
+function renderPump(tank, pumpId, nozzles, type){
+  var nozzleRows = nozzles.map(function(nz){
+    var key = tank+pumpId+nz;
+    return '<div class="nozzle-row" id="row_'+key+'">'+
+      '<div class="nozzle-badge">'+nz+'</div>'+
+      '<div class="field-grp">'+
+        '<div class="field-lbl">Opening</div>'+
+        '<input type="number" class="metre-input" id="open_'+key+'" placeholder="0.00" min="0" step="0.01"'+
+        ' oninput="onMetreInput(\''+key+'\')" onfocus="this.select()"/>'+
+      '</div>'+
+      '<div class="field-grp">'+
+        '<div class="field-lbl">Closing</div>'+
+        '<input type="number" class="metre-input" id="close_'+key+'" placeholder="0.00" min="0" step="0.01"'+
+        ' oninput="onMetreInput(\''+key+'\')" onfocus="this.select()"/>'+
+      '</div>'+
+      '<div class="diff-box">'+
+        '<div class="field-lbl">Diff (L)</div>'+
+        '<div class="diff-val diff-neutral" id="diff_'+key+'">—</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var colorClass = type==='ago' ? 'pump-id-ago' : 'pump-id-pms';
+  var tankLabel  = type==='ago' ? 'AGO · TK4' : 'PMS · '+tank;
+
+  return '<div class="pump-card" id="card_'+tank+pumpId+'">'+
+    '<div class="pump-head">'+
+      '<div class="pump-id '+colorClass+'">'+pumpId+'</div>'+
+      '<div><div class="pump-name">Pump '+pumpId+'</div><div class="pump-sub">'+tankLabel+'</div></div>'+
+      '<div class="pump-total">'+
+        '<div class="pump-total-lbl">Litres</div>'+
+        '<div class="pump-total-val" id="ptot_'+tank+pumpId+'">0 L</div>'+
+      '</div>'+
+    '</div>'+
+    nozzleRows+
+    '<div class="pump-summary" id="psum_'+tank+pumpId+'">'+
+      '<div class="sum-item"><div class="sum-lbl">Litres</div><div class="sum-val cyan" id="pl_'+tank+pumpId+'">0 L</div></div>'+
+      '<div class="sum-item"><div class="sum-lbl">Revenue</div><div class="sum-val green" id="pr_'+tank+pumpId+'">₦0</div></div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ── INPUT HANDLER ── */
+function onMetreInput(key){
+  var op  = parseFloat(document.getElementById('open_'+key).value)  || 0;
+  var cl  = parseFloat(document.getElementById('close_'+key).value) || 0;
+  var dEl = document.getElementById('diff_'+key);
+  var opEl= document.getElementById('open_'+key);
+  var clEl= document.getElementById('close_'+key);
+
+  if(op>0) opEl.classList.add('has-val'); else opEl.classList.remove('has-val');
+  if(cl>0) clEl.classList.add('has-val'); else clEl.classList.remove('has-val');
+
+  if(op===0 && cl===0){ dEl.textContent='—'; dEl.className='diff-val diff-neutral'; }
+  else if(cl<op){
+    dEl.textContent='ERR';
+    dEl.className='diff-val diff-err';
+    clEl.classList.add('err');
+  } else {
+    var diff=(cl-op);
+    dEl.textContent=diff.toFixed(2)+'L';
+    dEl.className='diff-val diff-ok';
+    clEl.classList.remove('err');
+  }
+  recalcPump(key);
+}
+
+/* ── RECALC ── */
+function recalcPump(changedKey){
+  /* Find which pump this key belongs to */
+  var allKeys = getAllKeys();
+  allKeys.forEach(function(group){
+    var groupKeys = group.nozzles.map(function(nz){ return group.tank+group.pump+nz; });
+    if(groupKeys.indexOf(changedKey)<0) return;
+    var totalL = 0;
+    groupKeys.forEach(function(k){
+      var op=parseFloat(document.getElementById('open_'+k).value)||0;
+      var cl=parseFloat(document.getElementById('close_'+k).value)||0;
+      if(cl>=op && (op>0||cl>0)) totalL+=(cl-op);
+    });
+    var price = group.product==='AGO' ? (parseFloat(document.getElementById('agoPrice').value)||AGO_PRICE) : (parseFloat(document.getElementById('pmsPrice').value)||PMS_PRICE);
+    var rev = totalL * price;
+    var pkey = group.tank+group.pump;
+    var ptot = document.getElementById('ptot_'+pkey); if(ptot) ptot.textContent=totalL.toFixed(2)+' L';
+    var pl = document.getElementById('pl_'+pkey);     if(pl)   pl.textContent=totalL.toFixed(2)+' L';
+    var pr = document.getElementById('pr_'+pkey);     if(pr)   pr.textContent='₦'+Math.round(rev).toLocaleString('en-NG');
+  });
+  recalcTotals();
+}
+
+function recalcAll(){ getAllKeys().forEach(function(g){ onMetreInput(g.tank+g.pump+g.nozzles[0]); }); recalcTotals(); }
+
+function recalcTotals(){
+  var pmsL=0, agoL=0;
+  var pmsP=parseFloat(document.getElementById('pmsPrice').value)||PMS_PRICE;
+  var agoP=parseFloat(document.getElementById('agoPrice').value)||AGO_PRICE;
+
+  getAllKeys().forEach(function(g){
+    g.nozzles.forEach(function(nz){
+      var k=g.tank+g.pump+nz;
+      var op=parseFloat(document.getElementById('open_'+k).value)||0;
+      var cl=parseFloat(document.getElementById('close_'+k).value)||0;
+      if(cl>=op&&(op>0||cl>0)){
+        var diff=cl-op;
+        if(g.product==='AGO') agoL+=diff; else pmsL+=diff;
+      }
+    });
+  });
+
+  var pmsN=pmsL*pmsP, agoN=agoL*agoP, grand=pmsN+agoN;
+  document.getElementById('totPmsL').textContent=pmsL.toFixed(2)+' L';
+  document.getElementById('totPmsN').textContent='₦'+Math.round(pmsN).toLocaleString('en-NG');
+  document.getElementById('totAgoL').textContent=agoL.toFixed(2)+' L';
+  document.getElementById('totAgoN').textContent='₦'+Math.round(agoN).toLocaleString('en-NG');
+  document.getElementById('totGrand').textContent='₦'+Math.round(grand).toLocaleString('en-NG');
+  document.getElementById('totLitres').textContent=(pmsL+agoL).toFixed(2)+' L total';
+}
+
+function getAllKeys(){
+  var out=[];
+  PUMPS.forEach(function(tk){ tk.pumps.forEach(function(p){ out.push({tank:tk.tank,pump:p.id,nozzles:p.nozzles,product:tk.product}); }); });
+  AGO_PUMP.pumps.forEach(function(p){ out.push({tank:AGO_PUMP.tank,pump:p.id,nozzles:p.nozzles,product:AGO_PUMP.product}); });
+  return out;
+}
+
+/* ── CLEAR ── */
+function clearAll(){
+  if(!confirm('Clear all metre readings?')) return;
+  getAllKeys().forEach(function(g){
+    g.nozzles.forEach(function(nz){
+      var k=g.tank+g.pump+nz;
+      ['open_','close_'].forEach(function(pf){ var el=document.getElementById(pf+k); if(el){el.value='';el.classList.remove('has-val','err');} });
+      var d=document.getElementById('diff_'+k); if(d){d.textContent='—';d.className='diff-val diff-neutral';}
+    });
+  });
+  recalcTotals();
+}
+
+/* ── SUBMIT ── */
+function submitMetres(){
+  var btn=document.getElementById('submitBtn');
+  var date=document.getElementById('entryDate').value;
+  if(!date){ showToast('Select a date first','err'); return; }
+
+  var pmsP=parseFloat(document.getElementById('pmsPrice').value)||PMS_PRICE;
+  var agoP=parseFloat(document.getElementById('agoPrice').value)||AGO_PRICE;
+  var pmsL=0, agoL=0;
+  var readings={};
+  var hasError=false;
+
+  getAllKeys().forEach(function(g){
+    g.nozzles.forEach(function(nz){
+      var k=g.tank+g.pump+nz;
+      var op=parseFloat(document.getElementById('open_'+k).value)||0;
+      var cl=parseFloat(document.getElementById('close_'+k).value)||0;
+      if(cl>0 && cl<op){ hasError=true; document.getElementById('close_'+k).classList.add('err'); }
+      var diff=cl>=op&&(op>0||cl>0)?cl-op:0;
+      readings[k]={open:op, close:cl, diff:diff, product:g.product, tank:g.tank, pump:g.pump, nozzle:nz};
+      if(g.product==='AGO') agoL+=diff; else pmsL+=diff;
+    });
+  });
+
+  if(hasError){ showToast('Fix errors before submitting','err'); return; }
+
+  var pmsRev=Math.round(pmsL*pmsP), agoRev=Math.round(agoL*agoP);
+  var notes=document.getElementById('shiftNotes').value;
+
+  /* Build saveDailyReport payload from metre readings */
+  var payload={
+    action:'saveDailyReport', station:'mso', username:USER, date:date,
+    data:{
+      tk1_opening: avg('open', 'TK1'), tk1_closing: avg('close','TK1'), tk1_diff: sum('diff','TK1'), tk1_margin:0,
+      tk2_opening: avg('open', 'TK2'), tk2_closing: avg('close','TK2'), tk2_diff: sum('diff','TK2'), tk2_margin:0,
+      tk3_opening: avg('open', 'TK3'), tk3_closing: avg('close','TK3'), tk3_diff: sum('diff','TK3'), tk3_margin:0,
+      tk4_opening: avgAgo('open'),     tk4_closing: avgAgo('close'),     tk4_diff: agoL, tk4_margin:0,
+      pms_litres: pmsL, pms_price: pmsP, pms_revenue: pmsRev, pms_margin:0,
+      ago_litres: agoL, ago_price: agoP, ago_revenue: agoRev, ago_margin:0,
+      grand_total: pmsRev+agoRev,
+    }
+  };
+
+  btn.disabled=true;
+  btn.innerHTML='<div class="spin"></div> Saving…';
+
+  fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      btn.disabled=false;
+      btn.innerHTML='<i class="bi bi-send-check"></i> Submit Metres';
+      if(!d.ok){ showToast(d.error||'Save failed','err'); return; }
+
+      /* Also save individual nozzle readings to SalesLog */
+      var saleSaves=Object.keys(readings).map(function(k){
+        var rd=readings[k];
+        if(rd.diff===0) return Promise.resolve();
+        var price=rd.product==='AGO'?agoP:pmsP;
+        return fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify({
+            action:'saveSale',station:'mso',username:USER,date:date,
+            tank:rd.tank,pump:rd.pump,nozzle:rd.nozzle,product:rd.product,
+            litres:rd.diff,pricePerL:price,amount:Math.round(rd.diff*price),
+            payMethod:'Mixed',attendant:NAME||USER,notes:notes
+          }),redirect:'follow'});
+      });
+      Promise.all(saleSaves).then(function(){
+        document.getElementById('shiftStatus').textContent='Submitted ✓';
+        document.getElementById('shiftStatus').style.color='var(--green)';
+        showToast('Metres saved successfully','ok');
+      });
+    })
+    .catch(function(){
+      btn.disabled=false;
+      btn.innerHTML='<i class="bi bi-send-check"></i> Submit Metres';
+      showToast('Network error — check connection','err');
+    });
+}
+
+/* helper: average opening metre for a tank (representative value) */
+function avg(type, tank){
+  var vals=[], keys=getAllKeys().filter(function(g){return g.tank===tank;});
+  keys.forEach(function(g){ g.nozzles.forEach(function(nz){
+    var v=parseFloat(document.getElementById(type+'_'+g.tank+g.pump+nz).value)||0;
+    if(v>0) vals.push(v);
+  }); });
+  return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
+}
+function sum(type, tank){
+  var total=0, keys=getAllKeys().filter(function(g){return g.tank===tank;});
+  keys.forEach(function(g){ g.nozzles.forEach(function(nz){
+    var v=parseFloat(document.getElementById(type+'_'+g.tank+g.pump+nz).value)||0;
+    total+=v;
+  }); });
+  return total;
+}
+function avgAgo(type){
+  var v=parseFloat(document.getElementById(type+'_TK4P1N1').value)||0; return v;
+}
+
+/* ── TOAST ── */
+var _tt;
+function showToast(msg, type){
+  var ico={'ok':'bi-check-circle-fill','err':'bi-x-circle-fill','info':'bi-info-circle-fill'};
+  var t=document.getElementById('toast');
+  document.getElementById('toastIco').className='bi '+(ico[type]||'bi-info-circle-fill');
+  document.getElementById('toastMsg').textContent=msg;
+  t.style.background=type==='err'?'#DC2626':type==='ok'?'#16A34A':'#06091A';
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt=setTimeout(function(){t.classList.remove('show');},3000);
+}
+</script>
+</body>
+</html>

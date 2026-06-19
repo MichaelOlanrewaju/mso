@@ -3,240 +3,319 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#0F172A"/>
+<meta name="theme-color" content="#F1F5FB"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="manifest" href="manifest.json"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
 <title>Supervisor — MSO</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Geist',system-ui,sans-serif;background:#F0F2F5;color:#0F172A;-webkit-font-smoothing:antialiased;min-height:100dvh}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:#F1F5FB;color:#0F172A;min-height:100dvh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
 :root{
-  --navy:#0F172A;--navy-2:#1E293B;--navy-3:#334155;
-  --cyan:#0EA5E9;--cyan-d:#0284C7;
-  --green:#22C55E;--green-d:#16A34A;--green-l:#F0FDF4;--green-b:#BBF7D0;
-  --amber:#F59E0B;--amber-d:#D97706;--amber-l:#FFFBEB;--amber-b:#FDE68A;
-  --red:#EF4444;--red-d:#DC2626;--red-l:#FEF2F2;--red-b:#FECACA;
-  --g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;
-  --g400:#94A3B8;--g500:#64748B;--g700:#334155;--g900:#0F172A;
-  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --cyan:#179DD0;--cyan-d:#1188B5;--cyan-l:rgba(23,157,208,.1);--cyan-b:rgba(23,157,208,.22);
+  --navy:#06091A;--green:#16A34A;--green-l:#F0FDF4;
+  --amber:#D97706;--amber-l:#FFFBEB;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --purple:#6D28D9;--purple-l:#EDE9FE;
+  --border:#E8EDF5;--surface:#F8FAFC;
+  --ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;
+  --mono:'JetBrains Mono',monospace;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+  --bn-h:66px;
 }
 
-/* HEADER */
-.hdr{background:var(--navy);padding:calc(var(--sat)+14px) 20px 20px}
-.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.hdr-user{display:flex;align-items:center;gap:10px}
-.av{width:38px;height:38px;border-radius:10px;background:var(--navy-2);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--g400)}
-.hdr-role{font-size:11px;color:var(--g500);font-weight:500}
-.hdr-name{font-size:15px;font-weight:600;color:#F8FAFC;margin-top:1px}
-.hdr-right{display:flex;align-items:center;gap:8px}
-.hdr-clock{font-size:12px;font-weight:500;color:var(--g500);background:var(--navy-2);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:5px 10px}
-.hdr-btn{width:34px;height:34px;border-radius:10px;background:var(--navy-2);border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--g400);font-size:16px}
+/* TOPBAR */
+.topbar{padding-top:calc(var(--sat)+10px);padding-bottom:10px;padding-left:16px;padding-right:16px;min-height:calc(58px + var(--sat));background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--cyan-d),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.tb-name{font-size:15px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.tb-role{font-size:10px;color:var(--ink-4);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-time{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:4px 10px}
+.icon-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink-3);cursor:pointer;transition:all .12s;position:relative}
+.icon-btn:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan)}
+.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid #fff}
 
-/* TODAY STATUS CARD */
-.status-card{background:var(--navy-2);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:16px;margin-bottom:16px}
-.sc-label{font-size:10px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
-.sc-steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.sc-step{background:var(--navy-3);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 10px;text-align:center}
-.sc-step.done{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2)}
-.sc-step.active{background:rgba(14,165,233,.08);border-color:rgba(14,165,233,.2)}
-.sc-step.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)}
-.ss-ico{font-size:20px;margin-bottom:6px;display:block}
-.ss-lbl{font-size:10px;font-weight:600;color:var(--g400);display:block;text-transform:uppercase;letter-spacing:.4px}
-.ss-val{font-size:11px;font-weight:700;margin-top:3px;display:block}
-.sc-step.done .ss-val{color:var(--green)}
-.sc-step.active .ss-val{color:var(--cyan)}
-.sc-step.warn .ss-val{color:var(--amber)}
-.sc-step .ss-val{color:var(--g500)}
+/* PRICE ALERT */
+.price-alert{display:none;align-items:center;gap:10px;padding:11px 16px;background:var(--amber-l);border-bottom:2px solid #FDE68A}
+.price-alert.show{display:flex}
+.pa-ico{width:34px;height:34px;border-radius:9px;background:#FEF3C7;border:1px solid #FDE68A;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--amber);flex-shrink:0}
+.pa-title{font-size:13px;font-weight:800;color:#92400E}
+.pa-sub{font-size:11px;color:#B45309;margin-top:1.5px}
+.pa-btn{margin-left:auto;padding:7px 13px;border-radius:8px;background:var(--amber);color:#fff;font-size:12px;font-weight:700;flex-shrink:0;transition:all .13s}
+.pa-btn:hover{background:#B45309}
 
-/* MAIN CTA BUTTON */
-.cta-wrap{margin-bottom:14px}
-.cta{width:100%;border:none;cursor:pointer;font-family:'Geist',system-ui,sans-serif;font-size:15px;font-weight:700;border-radius:14px;height:54px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s}
-.cta-open{background:linear-gradient(135deg,var(--green-d),var(--green));color:#fff;box-shadow:0 4px 16px rgba(34,197,94,.25)}
-.cta-close{background:linear-gradient(135deg,var(--cyan-d),var(--cyan));color:#fff;box-shadow:0 4px 16px rgba(14,165,233,.25)}
-.cta-done{background:var(--navy-2);color:var(--g400);border:1px solid rgba(255,255,255,.07)}
-.cta:hover:not(.cta-done){transform:translateY(-1px)}
-
-/* BODY */
-.body{padding:14px 14px calc(80px + var(--sab))}
+/* PAGE */
+.page{padding:16px 16px calc(16px + var(--bn-h) + var(--sab))}
 
 /* SECTION */
-.sec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;margin-top:4px}
-.sec-t{font-size:14px;font-weight:700;color:var(--g900)}
-.sec-a{font-size:12px;font-weight:600;color:var(--cyan-d)}
+.sec-head{display:flex;align-items:center;gap:10px;margin:18px 0 10px}
+.sec-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-4);white-space:nowrap}
+.sec-line{flex:1;height:1px;background:var(--border)}
 
-/* ALERTS */
-.alert-card{border-radius:14px;padding:13px 14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;border:1px solid}
-.alert-red{background:var(--red-l);border-color:var(--red-b)}
-.alert-amber{background:var(--amber-l);border-color:var(--amber-b)}
-.alert-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
-.alert-red .alert-ico{background:var(--red-b);color:var(--red-d)}
-.alert-amber .alert-ico{background:var(--amber-b);color:var(--amber-d)}
-.alert-title{font-size:13px;font-weight:700}
-.alert-red .alert-title{color:var(--red-d)}
-.alert-amber .alert-title{color:var(--amber-d)}
-.alert-sub{font-size:12px;color:var(--g500);margin-top:2px}
+/* DIP STATUS CARD */
+.dip-status{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.ds-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ds-title{font-size:14px;font-weight:800;color:var(--navy)}
+.ds-date{font-size:11px;color:var(--ink-4);font-family:var(--mono)}
+.ds-steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ds-step{border-radius:11px;padding:12px;text-align:center;border:1.5px solid var(--border)}
+.ds-step.done{background:var(--green-l);border-color:#BBF7D0}
+.ds-step.active{background:var(--cyan-l);border-color:var(--cyan-b)}
+.ds-step.pending{background:var(--surface);border-color:var(--border)}
+.ds-step-ico{font-size:22px;margin-bottom:5px;line-height:1}
+.ds-step.done .ds-step-ico{color:var(--green)}
+.ds-step.active .ds-step-ico{color:var(--cyan-d)}
+.ds-step.pending .ds-step-ico{color:var(--ink-4)}
+.ds-step-lbl{font-size:11px;font-weight:700}
+.ds-step.done .ds-step-lbl{color:var(--green)}
+.ds-step.active .ds-step-lbl{color:var(--cyan-d)}
+.ds-step.pending .ds-step-lbl{color:var(--ink-3)}
+.ds-step-time{font-size:9.5px;color:var(--ink-4);margin-top:2px;font-family:var(--mono)}
+.btn-dip{width:100%;margin-top:12px;height:48px;border-radius:11px;color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;transition:all .15s}
+.btn-dip-open{background:var(--green);box-shadow:0 3px 14px rgba(22,163,74,.28)}
+.btn-dip-open:hover{background:#15803D}
+.btn-dip-close{background:var(--cyan);box-shadow:0 3px 14px rgba(23,157,208,.28)}
+.btn-dip-close:hover{background:var(--cyan-d)}
+.btn-dip-done{background:var(--surface);color:var(--ink-3);border:1.5px solid var(--border);box-shadow:none}
 
-/* QA GRID */
-.qa-wrap{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;border:1px solid var(--g200)}
-.qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.qa{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 4px;border-radius:12px;cursor:pointer;transition:background .12s}
-.qa:hover{background:var(--g50)}
-.qa:active{transform:scale(.95)}
-.qa-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.qa-lbl{font-size:10px;font-weight:600;color:var(--g700);text-align:center;line-height:1.3}
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border-radius:13px;border:1px solid var(--border);padding:14px 16px;box-shadow:0 1px 3px rgba(15,23,42,.04);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0}
+.kpi-c::before{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
+.kpi-a::before{background:linear-gradient(90deg,#B45309,#F59E0B)}
+.kpi-g::before{background:linear-gradient(90deg,#059669,#34D399)}
+.kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-4);margin-bottom:5px}
+.kpi-val{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--ink);line-height:1;margin-bottom:4px;letter-spacing:-.01em}
+.kpi-sub{font-size:10px;color:var(--ink-4)}
 
-/* TANK CARD */
-.tank-card{background:#fff;border-radius:16px;padding:15px;margin-bottom:12px;border:1px solid var(--g200)}
-.tr{margin-bottom:13px}
-.tr:last-child{margin-bottom:0}
-.tr-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
-.tr-left{display:flex;align-items:center;gap:8px}
-.tr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:2px}
-.tr-name{font-size:13px;font-weight:600;color:var(--g700)}
-.tr-pumps{font-size:11px;color:var(--g400);margin-top:1px}
-.tr-right{text-align:right}
-.tr-vol{font-size:13px;font-weight:700;color:var(--g700)}
-.tr-pct{font-size:11px;color:var(--g400);margin-top:1px}
-.tr-bar{height:5px;background:var(--g100);border-radius:3px;overflow:hidden}
-.tr-fill{height:100%;border-radius:3px;transition:width .5s}
-.tr-warn{display:flex;align-items:center;gap:6px;margin-top:8px;padding:8px 10px;background:var(--red-l);border:1px solid var(--red-b);border-radius:8px;font-size:11px;font-weight:600;color:var(--red-d)}
+/* TANK READINGS TABLE */
+.readings-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.rc-head{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.rc-ttl{font-size:13px;font-weight:800;color:var(--ink)}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--ink-4);padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.tbl tbody td{font-size:12px;padding:10px 14px;border-bottom:1px solid var(--surface);color:var(--ink-2);vertical-align:middle}
+.tbl tbody tr:last-child td{border:none}
+.tbl tbody tr:hover td{background:var(--surface)}
+.tbl tfoot td{font-size:12px;font-weight:800;padding:10px 14px;background:var(--cyan-l);color:var(--cyan-d);border-top:1px solid rgba(23,157,208,.2)}
 
-/* PUMP TABLE */
-.pump-card{background:#fff;border-radius:16px;overflow:hidden;border:1px solid var(--g200);margin-bottom:12px}
-.tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--g400);background:var(--g50);border-bottom:1px solid var(--g200)}
-.tbl td{padding:11px 12px;border-bottom:1px solid var(--g100);vertical-align:middle}
-.tbl tr:last-child td{border:none}
-.pill{display:inline-flex;align-items:center;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700}
-.p-c{background:var(--cyan-ll,#E0F2FE);color:var(--cyan-d);border:1px solid #BAE6FD}
-.p-a{background:var(--amber-l);color:var(--amber-d);border:1px solid var(--amber-b)}
-.p-g{background:var(--green-l);color:var(--green-d);border:1px solid var(--green-b)}
-.p-gr{background:var(--g100);color:var(--g500);border:1px solid var(--g200)}
+/* PILL */
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700;white-space:nowrap}
+.p-c{background:var(--cyan-l);color:var(--cyan-d);border:1px solid var(--cyan-b)}
+.p-a{background:var(--amber-l);color:var(--amber);border:1px solid #FDE68A}
+.p-g{background:var(--green-l);color:var(--green);border:1px solid #BBF7D0}
+.p-r{background:var(--red-l);color:var(--red);border:1px solid #FECACA}
+.p-n{background:var(--surface);color:var(--ink-3);border:1px solid var(--border)}
+.p-purple{background:var(--purple-l);color:var(--purple);border:1px solid #DDD6FE}
 
-/* FINANCIAL STRIP — secondary, bottom of page */
-.fin-strip{background:var(--navy-2);border-radius:16px;padding:14px 16px;border:1px solid rgba(255,255,255,.07);margin-bottom:12px}
-.fin-strip-title{font-size:10px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
-.fin-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.fg-item{text-align:center}
-.fg-lbl{font-size:10px;color:var(--g500);font-weight:500;margin-bottom:3px}
-.fg-val{font-size:14px;font-weight:700;color:#F8FAFC}
-.fg-val.muted{color:var(--g500);font-size:12px}
+/* PUMP METRES TABLE */
+.pump-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+
+/* TANK LEVELS */
+.tank-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.tank-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.tank-row:last-of-type{margin-bottom:0}
+.tid{width:52px;flex-shrink:0}
+.tid-name{font-size:12px;font-weight:800}
+.tid-pump{font-size:8.5px;color:var(--ink-4);margin-top:1px}
+.tbar{flex:1;height:9px;background:var(--surface);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.tfill{height:100%;border-radius:99px;transition:width .7s ease}
+.tf-pms{background:linear-gradient(90deg,var(--cyan-d),var(--cyan))}
+.tf-ago{background:linear-gradient(90deg,#B45309,#F59E0B)}
+.tmeta{width:90px;display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-shrink:0}
+.tvol{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink)}
+.tpct{font-size:9px;font-weight:700;border-radius:99px;padding:2px 7px}
+.tp-ok{background:var(--green-l);color:var(--green)}
+.tp-med{background:var(--amber-l);color:var(--amber)}
+.tp-low{background:var(--red-l);color:var(--red)}
+.discharge-alert{display:flex;align-items:center;gap:8px;padding:9px 12px;margin-top:12px;background:var(--red-l);border:1px solid #FECACA;border-radius:10px;font-size:11.5px;font-weight:600;color:var(--red)}
+
+/* EXPECTED REVENUE */
+.revenue-card{background:var(--navy);border-radius:14px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden}
+.revenue-card::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.rev-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;position:relative;z-index:1}
+.rev-item .r-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);margin-bottom:4px}
+.rev-item .r-val{font-family:var(--mono);font-size:18px;font-weight:800;color:#fff}
+.rev-item .r-sub{font-size:10px;color:rgba(255,255,255,.32);margin-top:3px}
+
+/* CASHIER STATUS */
+.cashier-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.04);display:flex;align-items:center;gap:12px}
+.cs-ico{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.cs-title{font-size:13px;font-weight:800;color:var(--ink)}
+.cs-sub{font-size:11px;color:var(--ink-4);margin-top:2px}
+
+/* QUICK ACTIONS */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.qa-card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:14px;display:flex;align-items:center;gap:11px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:all .13s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.qa-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(15,23,42,.1);background:var(--cyan-l);border-color:var(--cyan-b)}
+.qa-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.qa-arr{color:var(--ink-4);font-size:13px;margin-left:auto}
+.qa-card:hover .qa-arr{color:var(--cyan-d)}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--g200);display:flex;padding:10px 8px calc(10px + var(--sab));z-index:700;max-width:480px;margin:0 auto}
-.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;border-radius:10px;cursor:pointer;text-decoration:none}
-.bn-ico{font-size:22px;color:var(--g400)}
-.bn-lbl{font-size:10px;font-weight:600;color:var(--g400)}
-.bn.on .bn-ico{color:var(--navy)}
-.bn.on .bn-lbl{color:var(--navy)}
-.bn.on{background:var(--g50)}
-.bn-dot{width:4px;height:4px;border-radius:50%;background:var(--cyan);margin:1px auto 0}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:7px 4px calc(7px + var(--sab));z-index:700;box-shadow:0 -2px 14px rgba(0,0,0,.07)}
+.bn-inner{display:flex;justify-content:space-around}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 10px;border-radius:10px;font-size:9.5px;font-weight:600;color:var(--ink-4);cursor:pointer;flex:1;border:1px solid transparent;transition:all .13s}
+.bn-item i{font-size:20px;line-height:1}
+.bn-item.on{color:var(--cyan);background:var(--cyan-l);border-color:rgba(23,157,208,.18)}
 
-/* TOAST */
-#toast{position:fixed;bottom:calc(68px + 12px);left:50%;transform:translateX(-50%) translateY(8px);z-index:9999;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 8px 24px rgba(15,23,42,.2);opacity:0;pointer-events:none;transition:all .2s;white-space:nowrap;max-width:92vw}
+#toast{position:fixed;bottom:calc(var(--bn-h)+10px);left:50%;transform:translateX(-50%) translateY(10px);z-index:9999;background:var(--navy);color:#fff;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;max-width:90vw}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:rot .7s linear infinite}
+@media(max-width:420px){.kpi-row{grid-template-columns:1fr 1fr}.rev-grid{grid-template-columns:1fr 1fr}.ds-steps{grid-template-columns:1fr 1fr 1fr;gap:6px}}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="hdr">
-  <div class="hdr-top">
-    <div class="hdr-user">
-      <div class="av" id="sbAv">HA</div>
-      <div>
-        <div class="hdr-role">Supervisor · MSO Station</div>
-        <div class="hdr-name" id="sbName">—</div>
-      </div>
-    </div>
-    <div class="hdr-right">
-      <div class="hdr-clock" id="tbClock">—</div>
-      <button class="hdr-btn" onclick="doRefresh()" title="Refresh">
-        <i class="bi bi-arrow-clockwise" id="rfIco"></i>
-      </button>
-    </div>
+<header class="topbar">
+  <div class="tb-left">
+    <div class="tb-av" id="tbAv">—</div>
+    <div><div class="tb-name" id="tbName">—</div><div class="tb-role">Supervisor · MSO</div></div>
   </div>
+  <div class="tb-right">
+    <div class="tb-time" id="tbClock">--:--</div>
+    <div class="icon-btn" onclick="doRefresh()" title="Refresh"><i class="bi bi-arrow-clockwise" id="rfIco"></i></div>
+    <div class="icon-btn" id="bellBtn"><i class="bi bi-bell"></i><div class="bell-dot" id="bellDot" style="display:none"></div></div>
+    <div class="icon-btn" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i></div>
+  </div>
+</header>
 
-  <!-- DAY STATUS -->
-  <div class="status-card">
-    <div class="sc-label">Today's Progress · <span id="scDate">—</span></div>
-    <div class="sc-steps">
-      <div class="sc-step active" id="stepOpen">
-        <i class="bi bi-sunrise ss-ico" id="openIco"></i>
-        <span class="ss-lbl">Opening</span>
-        <span class="ss-val" id="openVal">Pending</span>
-      </div>
-      <div class="sc-step" id="stepClose">
-        <i class="bi bi-moon-stars ss-ico" id="closeIco"></i>
-        <span class="ss-lbl">Closing</span>
-        <span class="ss-val" id="closeVal">Later today</span>
-      </div>
-      <div class="sc-step" id="stepCash">
-        <i class="bi bi-cash-coin ss-ico" id="cashIco"></i>
-        <span class="ss-lbl">Cashier</span>
-        <span class="ss-val" id="cashVal">Pending</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN CTA -->
-  <div class="cta-wrap">
-    <button class="cta cta-open" id="ctaBtn" onclick="window.location.href='dip-wizard-mso.html'">
-      <i class="bi bi-sunrise" id="ctaIco"></i>
-      <span id="ctaTxt">Enter Opening Dip Readings</span>
-    </button>
-  </div>
+<!-- PRICE ALERT -->
+<div class="price-alert" id="priceAlert">
+  <div class="pa-ico"><i class="bi bi-exclamation-triangle-fill"></i></div>
+  <div><div class="pa-title" id="paTitle">⚠ Price Change — Close Metres Now</div><div class="pa-sub" id="paSub">New price in effect</div></div>
+  <button type="button" class="pa-btn" onclick="location.href='dip-mso.html'">Close Metres</button>
 </div>
 
-<!-- BODY -->
-<div class="body">
+<div class="page">
 
-  <!-- ALERTS -->
-  <div id="alertsBlock"></div>
+  <!-- DIP STATUS -->
+  <div class="dip-status">
+    <div class="ds-top">
+      <div class="ds-title">Today's Dip Status</div>
+      <div class="ds-date" id="dsDate">—</div>
+    </div>
+    <div class="ds-steps">
+      <div class="ds-step pending" id="stepOpen">
+        <div class="ds-step-ico">🌅</div>
+        <div class="ds-step-lbl">Opening</div>
+        <div class="ds-step-time" id="stepOpenTime">Not submitted</div>
+      </div>
+      <div class="ds-step pending" id="stepClose">
+        <div class="ds-step-ico">🌙</div>
+        <div class="ds-step-lbl">Closing</div>
+        <div class="ds-step-time" id="stepCloseTime">Pending</div>
+      </div>
+      <div class="ds-step pending" id="stepCashier">
+        <div class="ds-step-ico">💳</div>
+        <div class="ds-step-lbl">Cashier</div>
+        <div class="ds-step-time" id="stepCashierTime">Pending</div>
+      </div>
+    </div>
+    <button type="button" class="btn-dip btn-dip-open" id="dipBtn" onclick="location.href='dip-mso.html'">
+      <i class="bi bi-water"></i> <span id="dipBtnTxt">Enter Opening Dip Readings</span>
+    </button>
+  </div>
 
-  <!-- QUICK ACTIONS -->
-  <div class="qa-wrap">
-    <div class="qa-grid">
-      <div class="qa" onclick="location.href='dip-wizard-mso.html'">
-        <div class="qa-ico" style="background:#EFF6FF"><i class="bi bi-water" style="color:var(--cyan-d)"></i></div>
-        <div class="qa-lbl">Dip Entry</div>
+  <!-- KPIs — litres and expected only, NO cash -->
+  <div class="sec-head"><div class="sec-ttl">Today's Sales</div><div class="sec-line"></div></div>
+  <div class="kpi-row">
+    <div class="kpi kpi-c">
+      <div class="kpi-lbl">PMS Sold</div>
+      <div class="kpi-val" id="kPMS">—</div>
+      <div class="kpi-sub">litres (from dip)</div>
+    </div>
+    <div class="kpi kpi-a">
+      <div class="kpi-lbl">AGO Sold</div>
+      <div class="kpi-val" id="kAGO">—</div>
+      <div class="kpi-sub">litres (from dip)</div>
+    </div>
+    <div class="kpi kpi-g">
+      <div class="kpi-lbl">Total Litres</div>
+      <div class="kpi-val" id="kTotal">—</div>
+      <div class="kpi-sub">PMS + AGO</div>
+    </div>
+  </div>
+
+  <!-- EXPECTED REVENUE (litres × price only) -->
+  <div class="revenue-card">
+    <div class="rev-grid">
+      <div class="rev-item">
+        <div class="r-lbl">PMS Expected</div>
+        <div class="r-val" id="revPMS">₦—</div>
+        <div class="r-sub" id="revPMSsub">— L × ₦—/L</div>
       </div>
-      <div class="qa" onclick="location.href='cashup-mso.html'">
-        <div class="qa-ico" style="background:#F0FDF4"><i class="bi bi-cash-coin" style="color:var(--green-d)"></i></div>
-        <div class="qa-lbl">Cash Up</div>
+      <div class="rev-item">
+        <div class="r-lbl">AGO Expected</div>
+        <div class="r-val" id="revAGO">₦—</div>
+        <div class="r-sub" id="revAGOsub">— L × ₦—/L</div>
       </div>
-      <div class="qa" onclick="location.href='records-mso.html'">
-        <div class="qa-ico" style="background:#F5F3FF"><i class="bi bi-journal-text" style="color:#7C3AED"></i></div>
-        <div class="qa-lbl">Records</div>
-      </div>
-      <div class="qa" onclick="doLogout()">
-        <div class="qa-ico" style="background:var(--red-l)"><i class="bi bi-box-arrow-right" style="color:var(--red-d)"></i></div>
-        <div class="qa-lbl">Sign Out</div>
+      <div class="rev-item">
+        <div class="r-lbl">Grand Expected</div>
+        <div class="r-val" id="revTotal">₦—</div>
+        <div class="r-sub">Cashier reconciles cash</div>
       </div>
     </div>
   </div>
 
-  <!-- TANK LEVELS -->
-  <div class="sec-row">
-    <div class="sec-t">Tank Levels</div>
-    <div class="sec-a" onclick="doRefresh()">Refresh</div>
-  </div>
-  <div class="tank-card" id="tankCard">
-    <div style="text-align:center;padding:16px;color:var(--g400);font-size:13px">Loading tank data…</div>
+  <!-- TANK DIP READINGS -->
+  <div class="sec-head"><div class="sec-ttl">Tank Dip Readings</div><div class="sec-line"></div></div>
+  <div class="readings-card">
+    <div class="rc-head">
+      <div class="rc-ttl">Today — TK1 · TK2 · TK3 · TK4</div>
+      <span class="pill p-n" id="readingsBadge">Pending</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Tank</th>
+            <th>Opening (L)</th>
+            <th>Closing (L)</th>
+            <th>Dip Diff</th>
+            <th>Pump Diff</th>
+            <th>Margin</th>
+            <th>Litres Sold</th>
+          </tr>
+        </thead>
+        <tbody id="readingsTbody">
+          <tr><td colspan="7" style="text-align:center;padding:22px;color:var(--ink-4);font-size:12px">
+            <i class="bi bi-water" style="font-size:22px;display:block;margin-bottom:8px;opacity:.3"></i>
+            No dip readings submitted yet today
+          </td></tr>
+        </tbody>
+        <tfoot id="readingsFoot" style="display:none">
+          <tr>
+            <td colspan="3">Total PMS Margin</td>
+            <td id="footDipDiff">—</td>
+            <td id="footPumpDiff">—</td>
+            <td id="footMargin" style="color:var(--purple)">—</td>
+            <td id="footLitres">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   </div>
 
-  <!-- PUMP STATUS -->
-  <div class="sec-row">
-    <div class="sec-t">Pump Readings</div>
-    <span class="pill p-gr" id="pumpBadge">Pending</span>
-  </div>
+  <!-- PUMP METRES -->
+  <div class="sec-head"><div class="sec-ttl">Pump Metre Readings</div><div class="sec-line"></div></div>
   <div class="pump-card">
-    <div style="overflow-x:auto">
+    <div class="rc-head">
+      <div class="rc-ttl">P1 · P2 · P3 · P4 · P5 · P6 + AGO P1</div>
+      <span class="pill p-n" id="pumpBadge">Pending</span>
+    </div>
+    <div class="tbl-wrap">
       <table class="tbl">
         <thead>
           <tr>
@@ -244,300 +323,340 @@ body{font-family:'Geist',system-ui,sans-serif;background:#F0F2F5;color:#0F172A;-
             <th>Tank</th>
             <th>Opening</th>
             <th>Closing</th>
-            <th>Diff</th>
+            <th>Difference</th>
+            <th>Amount</th>
           </tr>
         </thead>
-        <tbody id="pumpBody">
-          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--g400)">No pump data yet</td></tr>
+        <tbody id="pumpTbody">
+          <tr><td colspan="6" style="text-align:center;padding:22px;color:var(--ink-4);font-size:12px">
+            <i class="bi bi-speedometer2" style="font-size:22px;display:block;margin-bottom:8px;opacity:.3"></i>
+            No pump metre readings yet
+          </td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- FINANCIAL SUMMARY — secondary focus -->
-  <div class="sec-row">
-    <div class="sec-t">Financial Snapshot</div>
-    <span style="font-size:11px;color:var(--g400);font-weight:500">Est. projection</span>
+  <!-- TANK LEVELS -->
+  <div class="sec-head"><div class="sec-ttl">Tank Levels</div><div class="sec-line"></div></div>
+  <div class="tank-card" id="tankBlock">
+    <div style="text-align:center;padding:14px;color:var(--ink-4);font-size:12px">Submit closing dip to see tank levels</div>
   </div>
-  <div class="fin-strip">
-    <div class="fin-strip-title">Today's Estimates — Based on Dip Readings</div>
-    <div class="fin-grid">
-      <div class="fg-item">
-        <div class="fg-lbl">Est. Revenue</div>
-        <div class="fg-val" id="finRev">₦—</div>
-      </div>
-      <div class="fg-item">
-        <div class="fg-lbl">PMS Margin</div>
-        <div class="fg-val" id="finMargin">—</div>
-      </div>
-      <div class="fg-item">
-        <div class="fg-lbl">Grand Total</div>
-        <div class="fg-val" id="finTotal">₦—</div>
-      </div>
+
+  <!-- CASHIER STATUS -->
+  <div class="sec-head"><div class="sec-ttl">Cashier Status</div><div class="sec-line"></div></div>
+  <div class="cashier-card">
+    <div class="cs-ico" id="csIco" style="background:var(--surface);border:1px solid var(--border)">
+      <i class="bi bi-hourglass-split" style="color:var(--ink-4)"></i>
     </div>
+    <div style="flex:1">
+      <div class="cs-title" id="csTitle">Reconciliation Pending</div>
+      <div class="cs-sub" id="csSub">Cashier has not submitted yet today</div>
+    </div>
+    <span class="pill p-n" id="csBadge">Pending</span>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="sec-head"><div class="sec-ttl">Quick Actions</div><div class="sec-line"></div></div>
+  <div class="qa-grid">
+    <a href="dip-mso.html" class="qa-card">
+      <div class="qa-ico" style="background:var(--cyan-l)"><i class="bi bi-water" style="color:var(--cyan-d)"></i></div>
+      Tank Dip &amp; Metres<i class="bi bi-chevron-right qa-arr"></i>
+    </a>
+    <a href="discharge-mso.html" class="qa-card">
+      <div class="qa-ico" style="background:var(--amber-l)"><i class="bi bi-truck" style="color:var(--amber)"></i></div>
+      Discharge<i class="bi bi-chevron-right qa-arr"></i>
+    </a>
+    <a href="records-mso.html" class="qa-card">
+      <div class="qa-ico" style="background:var(--surface)"><i class="bi bi-journal-text" style="color:var(--ink-3)"></i></div>
+      Records<i class="bi bi-chevron-right qa-arr"></i>
+    </a>
+    <a href="chat-mso.html" class="qa-card">
+      <div class="qa-ico" style="background:var(--purple-l)"><i class="bi bi-chat-dots" style="color:var(--purple)"></i></div>
+      Staff Chat<i class="bi bi-chevron-right qa-arr"></i>
+    </a>
+    <a href="incidents-mso.html" class="qa-card">
+      <div class="qa-ico" style="background:var(--red-l)"><i class="bi bi-exclamation-triangle" style="color:var(--red)"></i></div>
+      Incidents<i class="bi bi-chevron-right qa-arr"></i>
+    </a>
+    <a href="summary-mso.html" class="qa-card">
+      <div class="qa-ico" style="background:var(--surface)"><i class="bi bi-printer" style="color:var(--ink-3)"></i></div>
+      Daily Summary<i class="bi bi-chevron-right qa-arr"></i>
+    </a>
   </div>
 
 </div>
 
 <!-- BOTTOM NAV -->
-<nav class="bnav">
-  <div class="bn on">
-    <i class="bi bi-house-fill bn-ico"></i>
-    <div class="bn-lbl">Home</div>
-    <div class="bn-dot"></div>
+<nav class="bottom-nav">
+  <div class="bn-inner">
+    <div class="bn-item on"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></div>
+    <a class="bn-item" href="dip-mso.html"><i class="bi bi-water"></i><span>Dip</span></a>
+    <a class="bn-item" href="discharge-mso.html"><i class="bi bi-truck"></i><span>Discharge</span></a>
+    <a class="bn-item" href="records-mso.html"><i class="bi bi-journal-text"></i><span>Records</span></a>
+    <a class="bn-item" href="chat-mso.html"><i class="bi bi-chat-dots"></i><span>Chat</span></a>
   </div>
-  <a class="bn" href="dip-wizard-mso.html">
-    <i class="bi bi-water bn-ico"></i>
-    <div class="bn-lbl">Dip</div>
-  </a>
-  <a class="bn" href="cashup-mso.html">
-    <i class="bi bi-cash-coin bn-ico"></i>
-    <div class="bn-lbl">Cash Up</div>
-  </a>
-  <a class="bn" href="records-mso.html">
-    <i class="bi bi-journal-text bn-ico"></i>
-    <div class="bn-lbl">Records</div>
-  </a>
 </nav>
 
-<div id="toast"><span id="tMsg"></span></div>
+<div id="toast"><i class="bi" id="tIco"></i><span id="tMsg">—</span></div>
 
 <script>
-var API='https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
-function getSess(){try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}return null;}
-var _u=getSess();if(!_u)window.location.replace('login.html');
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
+function getSess(){try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}try{var s=sessionStorage.getItem('mso_u');if(s){var u=JSON.parse(s);if(u)return u;}}catch(e){}return null;}
+var _u=getSess();if(!_u){window.location.replace('login.html');}
 var NAME=_u?_u.name:'',USER=_u?_u.u:'';
+
+/* Tank capacities */
 var CAPS={TK1:19600,TK2:19600,TK3:19600,TK4:3200};
-var PRICES={pms:1272,ago:1819};
+/* Tank → Pump mapping for margin calculation */
+var TANK_PUMPS={TK1:['P5','P6'],TK2:['P1','P2'],TK3:['P3','P4'],TK4:['P1_AGO']};
 
 (function init(){
   var ini=(NAME||'S').split(' ').map(function(n){return n[0]||'';}).join('').slice(0,2).toUpperCase();
-  document.getElementById('sbAv').textContent=ini;
-  document.getElementById('sbName').textContent=NAME||USER;
+  document.getElementById('tbAv').textContent=ini;
+  document.getElementById('tbName').textContent=NAME||USER;
   var t=new Date();
-  document.getElementById('scDate').textContent=t.toLocaleDateString('en-NG',{weekday:'long',day:'numeric',month:'short'});
+  document.getElementById('dsDate').textContent=t.toLocaleDateString('en-NG',{weekday:'long',day:'numeric',month:'long'});
   tick();setInterval(tick,1000);
   doRefresh();
   setInterval(pollPrices,300000);
+  window.addEventListener('storage',function(e){
+    if(e.key&&e.key.indexOf('mso_price_alert_')===0){
+      try{var d=JSON.parse(e.newValue);if(d&&d.station==='mso')showPriceAlert(d);}catch(ex){}
+    }
+  });
 }());
 
-function tick(){
-  var c=document.getElementById('tbClock');
-  if(c)c.textContent=new Date().toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
-}
+function tick(){var c=document.getElementById('tbClock');if(c)c.textContent=new Date().toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});}
 
 function doRefresh(){
-  var ri=document.getElementById('rfIco');
-  if(ri)ri.style.animation='rot .7s linear infinite';
-  var url=new URL(API);
+  var ri=document.getElementById('rfIco');if(ri)ri.style.animation='rot .7s linear infinite';
+  var url=new URL(SCRIPT_URL);
   url.searchParams.set('action','getDashboard');
   url.searchParams.set('station','mso');
   url.searchParams.set('username',USER);
   fetch(url.toString(),{method:'GET',redirect:'follow'})
     .then(function(r){return r.json();})
-    .then(function(d){
-      if(ri)ri.style.animation='none';
-      if(d.ok)applyData(d);
-    })
+    .then(function(d){if(ri)ri.style.animation='none';if(d.ok)applyData(d);})
     .catch(function(){if(ri)ri.style.animation='none';});
 }
 
 function applyData(d){
+  var pmsP=Number(d.pmsPrice||1269);
+  var agoP=Number(d.agoPrice||1799);
+
+  /* ── Dip status ── */
   var tanks=d.tanks||{};
   var pms=tanks.pms||[];
   var ago=tanks.ago||{};
-  var hasOpen=pms.length>0&&pms[0]&&pms[0].opening>0;
-  var hasClose=pms.length>0&&pms[0]&&pms[0].closing>0;
+  var hasOpen=pms.length>0&&pms[0].opening>0;
+  var hasClose=pms.length>0&&pms[0].closing>0;
   var hasCash=Number(d.cashToBank||0)>0;
 
   /* Step indicators */
-  updateStep('stepOpen','openIco','openVal',
-    hasOpen?'done':'active',
-    hasOpen?'bi-check-circle-fill':'bi-sunrise',
-    hasOpen?'Submitted ✓':'Enter now');
-  updateStep('stepClose','closeIco','closeVal',
-    hasClose?'done':hasOpen?'warn':'',
-    hasClose?'bi-check-circle-fill':hasOpen?'bi-hourglass-split':'bi-moon-stars',
-    hasClose?'Submitted ✓':hasOpen?'Pending':'Later today');
-  updateStep('stepCash','cashIco','cashVal',
-    hasCash?'done':'',
-    hasCash?'bi-check-circle-fill':'bi-cash-coin',
-    hasCash?'Done ✓':'Pending');
-
-  /* CTA button */
-  var btn=document.getElementById('ctaBtn');
-  var ico=document.getElementById('ctaIco');
-  var txt=document.getElementById('ctaTxt');
+  if(hasOpen){
+    document.getElementById('stepOpen').className='ds-step done';
+    document.getElementById('stepOpenTime').textContent='Submitted ✓';
+  } else {
+    document.getElementById('stepOpen').className='ds-step active';
+  }
   if(hasClose){
-    btn.className='cta cta-done';
-    ico.className='bi bi-check-circle-fill';
-    txt.textContent='Both readings submitted for today';
-    btn.onclick=null;
+    document.getElementById('stepClose').className='ds-step done';
+    document.getElementById('stepCloseTime').textContent='Submitted ✓';
   } else if(hasOpen){
-    btn.className='cta cta-close';
-    ico.className='bi bi-moon-stars';
-    txt.textContent='Enter Closing Dip Readings';
-    btn.onclick=function(){location.href='dip-wizard-mso.html';};
+    document.getElementById('stepClose').className='ds-step active';
+    document.getElementById('stepCloseTime').textContent='Enter closing';
+  }
+  if(hasCash){
+    document.getElementById('stepCashier').className='ds-step done';
+    document.getElementById('stepCashierTime').textContent='Done ✓';
+  }
+
+  /* Dip button state */
+  var btn=document.getElementById('dipBtn');
+  var btnTxt=document.getElementById('dipBtnTxt');
+  if(hasClose){
+    btn.className='btn-dip btn-dip-done';
+    btnTxt.textContent='Both readings submitted ✓';
+  } else if(hasOpen){
+    btn.className='btn-dip btn-dip-close';
+    btnTxt.textContent='Enter Closing Dip Readings';
   } else {
-    btn.className='cta cta-open';
-    ico.className='bi bi-sunrise';
-    txt.textContent='Enter Opening Dip Readings';
-    btn.onclick=function(){location.href='dip-wizard-mso.html';};
+    btn.className='btn-dip btn-dip-open';
+    btnTxt.textContent='Enter Opening Dip Readings';
   }
 
-  /* Alerts */
-  buildAlerts(d,hasOpen,hasClose);
-
-  /* Tank levels */
-  if(d.tankLevels&&d.tankLevels.length>0){
-    buildTanks(d.tankLevels);
-  } else if(hasClose&&pms.length>0){
-    var tl=[
-      {id:'TK1',product:'PMS',pumps:'P5, P6',vol:pms[0]?pms[0].closing:0,cap:CAPS.TK1},
-      {id:'TK2',product:'PMS',pumps:'P1, P2',vol:pms[1]?pms[1].closing:0,cap:CAPS.TK2},
-      {id:'TK3',product:'PMS',pumps:'P3, P4',vol:pms[2]?pms[2].closing:0,cap:CAPS.TK3},
-      {id:'TK4',product:'AGO',pumps:'P1 AGO',vol:ago.closing||0,cap:CAPS.TK4},
-    ];
-    buildTanks(tl);
-  } else if(hasOpen&&pms.length>0){
-    var tl2=[
-      {id:'TK1',product:'PMS',pumps:'P5, P6',vol:pms[0]?pms[0].opening:0,cap:CAPS.TK1},
-      {id:'TK2',product:'PMS',pumps:'P1, P2',vol:pms[1]?pms[1].opening:0,cap:CAPS.TK2},
-      {id:'TK3',product:'PMS',pumps:'P3, P4',vol:pms[2]?pms[2].opening:0,cap:CAPS.TK3},
-      {id:'TK4',product:'AGO',pumps:'P1 AGO',vol:ago.opening||0,cap:CAPS.TK4},
-    ];
-    buildTanks(tl2);
+  /* ── KPIs — litres only ── */
+  var pmsL=Number(d.pmsLitres||0);
+  var agoL=Number(d.agoLitres||0);
+  if(pmsL>0||agoL>0){
+    document.getElementById('kPMS').textContent=pmsL.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
+    document.getElementById('kAGO').textContent=agoL.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
+    document.getElementById('kTotal').textContent=(pmsL+agoL).toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
   }
 
-  /* Pump readings */
+  /* ── Expected revenue (litres × price) — NO cash ── */
+  var pmsRev=Math.round(pmsL*pmsP);
+  var agoRev=Math.round(agoL*agoP);
+  if(pmsL>0||agoL>0){
+    document.getElementById('revPMS').textContent='₦'+pmsRev.toLocaleString('en-NG');
+    document.getElementById('revPMSsub').textContent=pmsL.toLocaleString('en-NG',{maximumFractionDigits:2})+'L × ₦'+pmsP.toLocaleString('en-NG')+'/L';
+    document.getElementById('revAGO').textContent='₦'+agoRev.toLocaleString('en-NG');
+    document.getElementById('revAGOsub').textContent=agoL.toLocaleString('en-NG',{maximumFractionDigits:2})+'L × ₦'+agoP.toLocaleString('en-NG')+'/L';
+    document.getElementById('revTotal').textContent='₦'+(pmsRev+agoRev).toLocaleString('en-NG');
+  }
+
+  /* ── Tank dip readings table ── */
+  if(hasOpen&&pms.length>0){
+    buildReadingsTable(pms,ago,pmsP,agoP,d);
+  }
+
+  /* ── Pump metres table ── */
   if(d.recentTransactions&&d.recentTransactions.length>0){
-    buildPumps(d.recentTransactions);
+    buildPumpTable(d.recentTransactions,pmsP,agoP);
   }
 
-  /* Financial snapshot — secondary */
-  var pmsRev=Math.round((d.pmsLitres||0)*PRICES.pms);
-  var agoRev=Math.round((d.agoLitres||0)*PRICES.ago);
-  var total=pmsRev+agoRev;
-  if(total>0){
-    document.getElementById('finRev').textContent='₦'+pmsRev.toLocaleString('en-NG');
-    document.getElementById('finMargin').textContent=(d.pmsMargin||0).toFixed?Number(d.pmsMargin||0).toFixed(1)+'L':'—';
-    document.getElementById('finTotal').textContent='₦'+total.toLocaleString('en-NG');
-  } else {
-    document.getElementById('finRev').textContent='—';
-    document.getElementById('finRev').className='fg-val muted';
-    document.getElementById('finMargin').textContent='—';
-    document.getElementById('finMargin').className='fg-val muted';
-    document.getElementById('finTotal').textContent='After closing';
-    document.getElementById('finTotal').className='fg-val muted';
+  /* ── Tank levels ── */
+  if(hasClose){
+    buildTankLevels([
+      {id:'TK1',product:'PMS',pumps:'P5 P6',vol:pms[0]?pms[0].closing:0,cap:CAPS.TK1},
+      {id:'TK2',product:'PMS',pumps:'P1 P2',vol:pms[1]?pms[1].closing:0,cap:CAPS.TK2},
+      {id:'TK3',product:'PMS',pumps:'P3 P4',vol:pms[2]?pms[2].closing:0,cap:CAPS.TK3},
+      {id:'TK4',product:'AGO',pumps:'P1 N1',vol:ago.closing||0,cap:CAPS.TK4},
+    ]);
+  }
+
+  /* ── Cashier status ── */
+  if(hasCash){
+    document.getElementById('csIco').innerHTML='<i class="bi bi-check-circle-fill" style="color:var(--green)"></i>';
+    document.getElementById('csIco').style.background='var(--green-l)';
+    document.getElementById('csTitle').textContent='Reconciliation Complete ✓';
+    document.getElementById('csSub').textContent='Cashier has submitted today\'s reconciliation';
+    document.getElementById('csBadge').className='pill p-g';
+    document.getElementById('csBadge').textContent='Done';
   }
 }
 
-function updateStep(stepId,icoId,valId,state,icoClass,val){
-  var step=document.getElementById(stepId);
-  var ico=document.getElementById(icoId);
-  var valEl=document.getElementById(valId);
-  if(!step)return;
-  step.className='sc-step '+(state||'');
-  if(ico)ico.className='bi '+icoClass+' ss-ico';
-  if(valEl)valEl.textContent=val;
-}
+function buildReadingsTable(pms,ago,pmsP,agoP,d){
+  /* Build rows: tank dip diff, pump diff per tank, margin = dip diff − pump diff */
+  var TANKS=[
+    {id:'TK1',label:'TK 1',product:'PMS',price:pmsP},
+    {id:'TK2',label:'TK 2',product:'PMS',price:pmsP},
+    {id:'TK3',label:'TK 3',product:'PMS',price:pmsP},
+    {id:'TK4',label:'TK 4',product:'AGO',price:agoP},
+  ];
 
-function buildAlerts(d,hasOpen,hasClose){
-  var alerts=[];
-  /* Tank low alert */
-  if(d.tankLevels){
-    d.tankLevels.forEach(function(t){
-      if(t.cap>0&&t.vol>0&&Math.round(t.vol/t.cap*100)<=20){
-        alerts.push({type:'red',ico:'bi-exclamation-triangle-fill',title:t.id+' tank critically low',sub:'Only '+Math.round(t.vol)+'L remaining ('+Math.round(t.vol/t.cap*100)+'%). Inform GM to arrange discharge.'});
-      }
+  /* Get pump diffs from recentTransactions (SalesLog) */
+  var pumpDiffByTank={TK1:0,TK2:0,TK3:0,TK4:0};
+  if(d.recentTransactions){
+    d.recentTransactions.forEach(function(t){
+      if(pumpDiffByTank[t.tank]!==undefined)pumpDiffByTank[t.tank]+=Number(t.litres||0);
     });
   }
-  /* Price change alert */
-  if(d._priceChanged){
-    alerts.push({type:'amber',ico:'bi-tag-fill',title:'Fuel price changed',sub:'Close current pump metre sessions and start new sessions with the updated price.'});
-  }
-  var block=document.getElementById('alertsBlock');
-  if(!block)return;
-  if(alerts.length===0){block.innerHTML='';return;}
-  block.innerHTML=alerts.map(function(a){
-    return '<div class="alert-card alert-'+a.type+'">'+
-      '<div class="alert-ico"><i class="bi '+a.ico+'"></i></div>'+
-      '<div><div class="alert-title">'+a.title+'</div><div class="alert-sub">'+a.sub+'</div></div>'+
-    '</div>';
+
+  var totalDipDiff=0,totalPumpDiff=0,totalMargin=0,totalLitres=0;
+  var rows=TANKS.map(function(tk,i){
+    var t=i<3?pms[i]:ago;
+    if(!t)return '';
+    var dipDiff=Number(t.diff||0);
+    var pumpDiff=pumpDiffByTank[tk.id]||0;
+    /* Margin = dip diff − pump diff */
+    var margin=dipDiff>0?Math.max(0,dipDiff-pumpDiff):0;
+    /* Litres sold = dip diff (authoritative figure) */
+    var litresSold=dipDiff;
+    totalDipDiff+=dipDiff;totalPumpDiff+=pumpDiff;totalMargin+=margin;totalLitres+=litresSold;
+    var pillClass=tk.product==='AGO'?'p-a':'p-c';
+    var isEmpty=!t.opening&&!t.closing;
+    return '<tr>'+
+      '<td><span class="pill '+pillClass+'">'+tk.label+'</span></td>'+
+      '<td style="font-family:var(--mono);font-weight:600">'+(t.opening>0?Number(t.opening).toLocaleString('en-NG')+'L':'—')+'</td>'+
+      '<td style="font-family:var(--mono)">'+(t.closing>0?Number(t.closing).toLocaleString('en-NG')+'L':'<span style="color:var(--amber);font-weight:700">Pending</span>')+'</td>'+
+      '<td style="font-family:var(--mono);font-weight:700;color:var(--cyan-d)">'+(dipDiff>0?dipDiff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L':'—')+'</td>'+
+      '<td style="font-family:var(--mono);color:var(--ink-3)">'+(pumpDiff>0?pumpDiff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L':'—')+'</td>'+
+      '<td style="font-family:var(--mono);font-weight:700;color:#7C3AED">'+(margin>0?margin.toFixed(2)+'L':'—')+'</td>'+
+      '<td style="font-family:var(--mono);font-weight:800;color:var(--green)">'+(litresSold>0?litresSold.toLocaleString('en-NG',{maximumFractionDigits:2})+'L':'—')+'</td>'+
+    '</tr>';
   }).join('');
+
+  document.getElementById('readingsTbody').innerHTML=rows||'<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--ink-4)">No data</td></tr>';
+  document.getElementById('readingsBadge').className='pill p-g';
+  document.getElementById('readingsBadge').textContent='Submitted';
+
+  /* Footer totals */
+  var foot=document.getElementById('readingsFoot');
+  foot.style.display='';
+  document.getElementById('footDipDiff').textContent=totalDipDiff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
+  document.getElementById('footPumpDiff').textContent=totalPumpDiff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
+  document.getElementById('footMargin').textContent=totalMargin.toFixed(2)+'L';
+  document.getElementById('footLitres').textContent=totalLitres.toLocaleString('en-NG',{maximumFractionDigits:2})+'L';
 }
 
-function buildTanks(tanks){
-  var html=tanks.map(function(t){
-    var pct=t.cap>0?Math.round(t.vol/t.cap*100):0;
-    var color=pct>40?'#22C55E':pct>20?'#F59E0B':'#EF4444';
-    var pctColor=pct>40?'var(--g400)':pct>20?'#D97706':'#DC2626';
-    return '<div class="tr">'+
-      '<div class="tr-row">'+
-        '<div class="tr-left">'+
-          '<div class="tr-dot" style="background:'+color+'"></div>'+
-          '<div>'+
-            '<div class="tr-name">'+t.id+' — '+t.product+'</div>'+
-            '<div class="tr-pumps">Feeds '+t.pumps+'</div>'+
-          '</div>'+
-        '</div>'+
-        '<div class="tr-right">'+
-          '<div class="tr-vol">'+Number(t.vol).toLocaleString('en-NG')+'L</div>'+
-          '<div class="tr-pct" style="color:'+pctColor+'">'+pct+'% capacity'+(pct<=20?' — Low':pct<=40?' — Medium':'')+'</div>'+
-        '</div>'+
-      '</div>'+
-      '<div class="tr-bar"><div class="tr-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'+
-    '</div>';
-  }).join('');
-  /* Critical warning */
-  var crit=tanks.filter(function(t){return t.cap>0&&Math.round(t.vol/t.cap*100)<=20;});
-  if(crit.length>0){
-    html+='<div class="tr-warn"><i class="bi bi-exclamation-triangle-fill"></i>'+crit.map(function(t){return t.id;}).join(', ')+' critically low — inform GM immediately</div>';
-  }
-  document.getElementById('tankCard').innerHTML=html;
-}
-
-function buildPumps(txns){
+function buildPumpTable(txns,pmsP,agoP){
+  /* Aggregate by pump */
   var pumpMap={};
   txns.forEach(function(t){
-    if(!pumpMap[t.pump])pumpMap[t.pump]={pump:t.pump,tank:t.tank,product:t.product,open:0,close:0,diff:Number(t.litres||0)};
-    else pumpMap[t.pump].diff+=Number(t.litres||0);
+    var key=t.pump;
+    if(!pumpMap[key])pumpMap[key]={pump:key,tank:t.tank,product:t.product,litres:0,amount:0};
+    pumpMap[key].litres+=Number(t.litres||0);
+    pumpMap[key].amount+=Number(t.amount||0);
   });
   var pumps=Object.keys(pumpMap).sort();
   if(pumps.length===0)return;
   document.getElementById('pumpBadge').className='pill p-g';
   document.getElementById('pumpBadge').textContent='Submitted';
-  document.getElementById('pumpBody').innerHTML=pumps.map(function(k){
+  document.getElementById('pumpTbody').innerHTML=pumps.map(function(k){
     var p=pumpMap[k];
-    var pc=p.product==='AGO'?'p-a':'p-c';
+    var pillClass=p.product==='AGO'?'p-a':'p-c';
     return '<tr>'+
-      '<td><span class="pill '+pc+'">'+p.pump+'</span></td>'+
-      '<td style="color:var(--g500);font-size:11px">'+p.tank+'</td>'+
-      '<td style="color:var(--g400);font-size:11px">—</td>'+
-      '<td style="color:var(--g400);font-size:11px">—</td>'+
-      '<td style="font-weight:700;color:var(--cyan-d)">'+p.diff.toLocaleString('en-NG',{maximumFractionDigits:2})+'L</td>'+
+      '<td><span class="pill '+pillClass+'">'+p.pump+'</span></td>'+
+      '<td style="font-size:11px;color:var(--ink-4)">'+p.tank+'</td>'+
+      '<td style="font-family:var(--mono);color:var(--ink-4)">—</td>'+
+      '<td style="font-family:var(--mono);color:var(--ink-4)">—</td>'+
+      '<td style="font-family:var(--mono);font-weight:700;color:var(--cyan-d)">'+p.litres.toLocaleString('en-NG',{maximumFractionDigits:2})+'L</td>'+
+      '<td style="font-family:var(--mono);font-weight:800;color:var(--green)">₦'+p.amount.toLocaleString('en-NG')+'</td>'+
     '</tr>';
   }).join('');
 }
 
+function buildTankLevels(tanks){
+  var rows=tanks.map(function(t){
+    var pct=t.cap>0?Math.round(t.vol/t.cap*100):0;
+    var pcls=pct>40?'tp-ok':pct>20?'tp-med':'tp-low';
+    var icol=pct>40?'var(--cyan-d)':pct>20?'var(--amber)':'var(--red)';
+    return '<div class="tank-row">'+
+      '<div class="tid"><div class="tid-name" style="color:'+icol+'">'+t.id+'</div><div class="tid-pump">'+t.product+'·'+t.pumps+'</div></div>'+
+      '<div class="tbar"><div class="tfill '+(t.product==='AGO'?'tf-ago':'tf-pms')+'" style="width:'+pct+'%"></div></div>'+
+      '<div class="tmeta"><div class="tvol">'+(t.vol>0?t.vol.toLocaleString('en-NG')+'L':'—')+'</div><div class="tpct '+pcls+'">'+(pct>0?pct+'%':'—')+'</div></div>'+
+    '</div>';
+  }).join('');
+  var crit=tanks.filter(function(t){return t.cap>0&&t.vol>0&&Math.round(t.vol/t.cap*100)<=20;});
+  var warn=crit.length>0
+    ?'<div class="discharge-alert"><i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0"></i>'+crit.map(function(t){return t.id;}).join(', ')+' critically low — inform GM to arrange discharge</div>':''
+  document.getElementById('tankBlock').innerHTML=rows+warn;
+}
+
 function pollPrices(){
-  var url=new URL(API);url.searchParams.set('action','getCurrentPrices');url.searchParams.set('station','mso');
-  fetch(url.toString(),{method:'GET',redirect:'follow'}).then(function(r){return r.json();}).then(function(d){
-    if(d.ok){if(d.pmsPrice)PRICES.pms=Number(d.pmsPrice);if(d.agoPrice)PRICES.ago=Number(d.agoPrice);}
-  }).catch(function(){});
+  var url=new URL(SCRIPT_URL);
+  url.searchParams.set('action','getCurrentPrices');url.searchParams.set('station','mso');
+  fetch(url.toString(),{method:'GET',redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){if(d.ok&&(d._changed||false))showPriceAlert(d);}).catch(function(){});
+}
+
+function showPriceAlert(d){
+  document.getElementById('paTitle').textContent='⚠ Price Change — Close Metres Now';
+  document.getElementById('paSub').textContent=(d.pmsPrice?'PMS ₦'+Number(d.pmsPrice).toLocaleString('en-NG')+'/L  ':'')+(d.agoPrice?'AGO ₦'+Number(d.agoPrice).toLocaleString('en-NG')+'/L':'');
+  document.getElementById('priceAlert').classList.add('show');
+  document.getElementById('bellDot').style.display='block';
+  if('Notification' in window&&Notification.permission==='granted'){
+    new Notification('⚠ MSO Price Change',{body:document.getElementById('paSub').textContent+'\nClose metres now.',icon:'/icons/icon-192.png',tag:'price-change'});
+  }
 }
 
 function doLogout(){localStorage.removeItem('mso_session');sessionStorage.removeItem('mso_u');window.location.replace('login.html');}
-
 var _tt;
-function showToast(msg,type){
-  var colors={ok:'#16A34A',err:'#DC2626',info:'#1E293B'};
-  var t=document.getElementById('toast');
-  t.style.background=colors[type]||'#1E293B';
-  document.getElementById('tMsg').textContent=msg;
-  t.classList.add('show');clearTimeout(_tt);
-  _tt=setTimeout(function(){t.classList.remove('show');},3000);
-}
+function showToast(msg,type){var icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill',info:'bi-info-circle-fill'};var colors={ok:'#16A34A',err:'#DC2626',info:'#06091A'};document.getElementById('tIco').className='bi '+(icons[type]||'bi-info-circle-fill');document.getElementById('tMsg').textContent=msg;var t=document.getElementById('toast');t.style.background=colors[type]||'#06091A';t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3000);}
+if('Notification' in window&&Notification.permission==='default')setTimeout(function(){Notification.requestPermission();},4000);
 </script>
 </body>
 </html>

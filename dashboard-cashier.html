@@ -1,131 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#ffffff"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#F1F5FB"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="manifest" href="manifest.json"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-<link rel="stylesheet" href="mso-styles.css"/>
-<title>Cashier Dashboard — MSO</title>
+<title>Cashier — MSO</title>
 <style>
-.hdr{background:#fff;border-bottom:1px solid var(--border);padding:calc(var(--sat)+14px) 16px 14px;position:sticky;top:0;z-index:100;max-width:430px;margin:0 auto;display:flex;align-items:center;gap:10px}
-.status-hero{border-radius:var(--r-xl);padding:18px;margin-bottom:12px;transition:all .3s}
-.sh-pending{background:var(--g100);border:1px solid var(--border)}
-.sh-balanced{background:var(--success-l);border:2px solid var(--success-b)}
-.sh-short{background:var(--danger-l);border:2px solid var(--danger-b)}
-.sh-over{background:var(--warning-l);border:2px solid var(--warning-b)}
-.hero-status{font-size:19px;font-weight:700;margin-bottom:3px}
-.sh-pending .hero-status{color:var(--text-2)}
-.sh-balanced .hero-status{color:var(--success)}
-.sh-short .hero-status{color:var(--danger)}
-.sh-over .hero-status{color:var(--warning)}
-.hero-sub{font-size:12px;color:var(--text-3);margin-bottom:12px}
-.hero-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.hg{background:rgba(255,255,255,.7);border-radius:var(--r-md);padding:10px;text-align:center}
-.hg-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:3px}
-.hg-v{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text-1)}
-.pay-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow);overflow:hidden;margin-bottom:10px}
-.pc-hd{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
-.pc-ico{width:38px;height:38px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.pc-name{font-size:14px;font-weight:600;color:var(--text-1)}
-.pc-rate{font-size:11px;color:var(--text-3)}
-.pc-body{padding:12px 16px}
-.pc-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
-.pc-row:last-child{border:none}
-.pc-lbl{font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:6px}
-.pc-dot{width:8px;height:8px;border-radius:50%}
-.pc-val{font-family:var(--mono);font-size:13px;font-weight:600}
-.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.sg{background:var(--g50);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 12px}
-.sg-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);margin-bottom:3px}
-.sg-v{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--text-1)}
-.bank-box{background:linear-gradient(135deg,#15803D,#16A34A);border-radius:var(--r-xl);padding:18px;text-align:center;margin-bottom:12px;color:#fff}
-.bb-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.6);margin-bottom:5px}
-.bb-v{font-family:var(--mono);font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1}
-.bb-s{font-size:11px;color:rgba(255,255,255,.55);margin-top:5px}
-.lpg-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
-.lpg-hd{padding:13px 16px;background:linear-gradient(135deg,#6D28D9,#8B5CF6);display:flex;align-items:center;gap:10px}
-.lpg-var{border-radius:var(--r-md);padding:11px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;border:1px solid var(--border)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;background:#F1F5FB;color:#0F172A;min-height:100dvh}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+:root{
+  --cyan:#179DD0;--cyan-d:#1188B5;--cyan-l:rgba(23,157,208,.1);--cyan-b:rgba(23,157,208,.22);
+  --navy:#06091A;--green:#16A34A;--green-l:#F0FDF4;
+  --amber:#D97706;--amber-l:#FFFBEB;
+  --red:#DC2626;--red-l:#FEF2F2;
+  --purple:#6D28D9;--purple-l:#F5F3FF;
+  --border:#E8EDF5;--surface:#F8FAFC;
+  --ink:#0F172A;--ink-2:#334155;--ink-3:#64748B;--ink-4:#94A3B8;
+  --mono:'JetBrains Mono',monospace;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+  --bn-h:66px;
+}
+/* TOPBAR */
+.topbar{padding-top:calc(var(--sat)+10px);padding-bottom:10px;padding-left:16px;padding-right:16px;min-height:calc(58px + var(--sat));background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A78BFA);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.tb-name{font-size:15px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+.tb-role{font-size:10px;color:var(--ink-4);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-date{font-size:11px;color:var(--ink-3);font-weight:500}
+.icon-btn{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink-3);cursor:pointer;transition:all .12s}
+.icon-btn:hover{background:var(--cyan-l);border-color:var(--cyan-b);color:var(--cyan)}
+/* PAGE */
+.page{padding:16px 16px calc(80px + var(--bn-h) + var(--sab));max-width:540px;margin:0 auto}
+/* STATUS HERO */
+.status-hero{border-radius:18px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+.sh-pending{background:var(--navy)}
+.sh-balanced{background:linear-gradient(135deg,#15803D,#22C55E)}
+.sh-short{background:linear-gradient(135deg,#991B1B,var(--red))}
+.sh-over{background:linear-gradient(135deg,#B45309,var(--amber))}
+.status-hero::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.sh-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.5);margin-bottom:8px;position:relative;z-index:1}
+.sh-status{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:4px;position:relative;z-index:1}
+.sh-sub{font-size:12px;color:rgba(255,255,255,.55);position:relative;z-index:1}
+.sh-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;position:relative;z-index:1;margin-top:16px}
+.sh-stat-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:3px}
+.sh-stat-val{font-family:var(--mono);font-size:16px;font-weight:800;color:#fff}
+/* SECTION */
+.sec-head{display:flex;align-items:center;gap:10px;margin:18px 0 10px}
+.sec-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-4);white-space:nowrap}
+.sec-line{flex:1;height:1px;background:var(--border)}
+/* SUMMARY CARD */
+.summary-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.sc-head{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sc-ttl{font-size:13px;font-weight:800;color:var(--ink)}
+.sc-body{padding:14px 16px}
+/* PAYMENT ROWS */
+.pay-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--surface)}
+.pay-row:last-child{border:none}
+.pay-left{display:flex;align-items:center;gap:10px}
+.pay-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.pay-label{font-size:13px;font-weight:600;color:var(--ink)}
+.pay-sub{font-size:10.5px;color:var(--ink-4);margin-top:1px}
+.pay-amount{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink)}
+.pay-charge{font-size:10px;color:var(--red);font-family:var(--mono);margin-top:1px;text-align:right}
+.pay-net{font-size:11px;color:var(--green);font-family:var(--mono);text-align:right}
+.divider-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:4px}
+.div-lbl{font-size:11.5px;color:var(--ink-3);font-weight:600}
+.div-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--ink)}
+/* CHARGES CARD */
+.charges-card{background:var(--red-l);border:1px solid #FECACA;border-radius:12px;padding:13px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.charges-lbl{font-size:12px;font-weight:700;color:var(--red)}
+.charges-val{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--red)}
+/* BANK CARD */
+.bank-card{background:var(--green-l);border:2px solid #BBF7D0;border-radius:14px;padding:16px;margin-bottom:14px}
+.bank-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.bank-amt{font-family:var(--mono);font-size:28px;font-weight:900;color:var(--green);letter-spacing:-.02em}
+.bank-sub{font-size:11px;color:var(--ink-3);margin-top:5px}
+/* LPG */
+.lpg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.lpg-field{display:flex;flex-direction:column;gap:4px}
+.lpg-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-4)}
+.lpg-inp{font-family:var(--mono);font-size:15px;font-weight:700;border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;background:var(--surface);color:var(--ink);width:100%;outline:none;-webkit-appearance:none;transition:all .13s}
+.lpg-inp:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(23,157,208,.1)}
+.lpg-inp[readonly]{background:rgba(23,157,208,.05);color:var(--cyan-d);border-color:rgba(23,157,208,.25)}
+.lpg-variance{border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+/* QA */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.qa-card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:15px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink);text-align:center;cursor:pointer;transition:all .13s;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+.qa-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(15,23,42,.1)}
+.qa-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+/* SUBMIT */
+.submit-wrap{position:fixed;bottom:calc(var(--bn-h) + var(--sab));left:0;right:0;padding:10px 16px;background:rgba(241,245,251,.9);backdrop-filter:blur(10px);border-top:1px solid var(--border)}
+.btn-recon{width:100%;max-width:540px;margin:0 auto;display:flex;height:52px;border-radius:13px;background:var(--green);color:#fff;font-size:15px;font-weight:800;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 18px rgba(22,163,74,.3);transition:all .15s;border:none;cursor:pointer}
+.btn-recon:hover{background:#15803D;transform:translateY(-1px)}
+/* BOTTOM NAV */
+.bottom-nav{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:7px 4px calc(7px + var(--sab));z-index:700;box-shadow:0 -2px 14px rgba(0,0,0,.07)}
+.bn-inner{display:flex;justify-content:space-around;max-width:540px;margin:0 auto}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 10px;border-radius:10px;font-size:9.5px;font-weight:600;color:var(--ink-4);cursor:pointer;flex:1;border:1px solid transparent;transition:all .13s}
+.bn-item i{font-size:20px;line-height:1}
+.bn-item.on{color:var(--cyan);background:var(--cyan-l);border-color:rgba(23,157,208,.18)}
+#toast{position:fixed;bottom:calc(var(--bn-h) + 80px);left:50%;transform:translateX(-50%) translateY(10px);z-index:9999;background:var(--navy);color:#fff;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:all .22s;white-space:nowrap;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media(max-width:380px){.sh-row{grid-template-columns:1fr 1fr}.qa-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="hdr">
-  <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#15803D,#16A34A);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0" id="tbAv">C</div>
-  <div style="flex:1"><div style="font-size:11px;color:var(--text-3)">Cashier · MSO Station</div><div style="font-size:16px;font-weight:700;color:var(--text-1)" id="tbName">—</div></div>
-  <div style="font-size:12px;color:var(--text-3)" id="tbDate">—</div>
-  <button onclick="doRefresh()" style="width:36px;height:36px;border-radius:50%;background:var(--g100);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--text-2);cursor:pointer"><i class="bi bi-arrow-clockwise" id="rfIco"></i></button>
-</div>
 
-<div class="page" style="padding-top:16px">
+<header class="topbar">
+  <div class="tb-left">
+    <div class="tb-av" id="tbAv">—</div>
+    <div><div class="tb-name" id="tbName">—</div><div class="tb-role">Cashier · MSO</div></div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-date" id="tbDate">—</div>
+    <div class="icon-btn" onclick="doRefresh()" title="Refresh"><i class="bi bi-arrow-clockwise" id="rfIco"></i></div>
+    <div class="icon-btn" onclick="doLogout()" title="Sign out"><i class="bi bi-box-arrow-right"></i></div>
+  </div>
+</header>
 
+<div class="page">
+
+  <!-- STATUS HERO -->
   <div class="status-hero sh-pending" id="statusHero">
-    <div class="hero-status" id="heroStatus">Pending Cashup</div>
-    <div class="hero-sub" id="heroSub">Enter reconciliation to update</div>
-    <div class="hero-grid">
-      <div class="hg"><div class="hg-l">Expected</div><div class="hg-v" id="heroExp">₦—</div></div>
-      <div class="hg"><div class="hg-l">Collected</div><div class="hg-v" id="heroColl">₦—</div></div>
-      <div class="hg"><div class="hg-l">Variance</div><div class="hg-v" id="heroVar">₦—</div></div>
+    <div class="sh-label">Today's Reconciliation</div>
+    <div class="sh-status" id="heroStatus">Awaiting Data</div>
+    <div class="sh-sub" id="heroSub">Waiting for supervisor to submit dip readings</div>
+    <div class="sh-row">
+      <div><div class="sh-stat-lbl">Expected</div><div class="sh-stat-val" id="heroExp">₦—</div></div>
+      <div><div class="sh-stat-lbl">Collected</div><div class="sh-stat-val" id="heroColl">₦—</div></div>
+      <div><div class="sh-stat-lbl">Variance</div><div class="sh-stat-val" id="heroVar">₦—</div></div>
     </div>
   </div>
 
-  <div class="pay-card">
-    <div class="pc-hd"><div class="pc-ico" style="background:var(--primary-ll)"><i class="bi bi-credit-card" style="color:var(--primary-d)"></i></div><div><div class="pc-name">POS Moniepoint</div><div class="pc-rate">0.25% charge</div></div></div>
-    <div class="pc-body">
-      <div class="pc-row"><div class="pc-lbl"><div class="pc-dot" style="background:var(--primary)"></div>Total</div><div class="pc-val" id="sumPosMP">₦—</div></div>
-      <div class="pc-row"><div class="pc-lbl"><div class="pc-dot" style="background:var(--danger)"></div>Charge</div><div class="pc-val text-red" id="sumMPCharge">₦—</div></div>
-      <div class="pc-row"><div class="pc-lbl"><div class="pc-dot" style="background:var(--success)"></div>Net</div><div class="pc-val text-green" id="sumMPNet">₦—</div></div>
-    </div>
-  </div>
-
-  <div class="pay-card">
-    <div class="pc-hd"><div class="pc-ico" style="background:#F5F3FF"><i class="bi bi-credit-card-2-front" style="color:#7C3AED"></i></div><div><div class="pc-name">POS Zenith Mobile</div><div class="pc-rate">0.30% charge</div></div></div>
-    <div class="pc-body">
-      <div class="pc-row"><div class="pc-lbl"><div class="pc-dot" style="background:#8B5CF6"></div>Total</div><div class="pc-val" id="sumPosZM">₦—</div></div>
-      <div class="pc-row"><div class="pc-lbl"><div class="pc-dot" style="background:var(--danger)"></div>Charge</div><div class="pc-val text-red" id="sumZMCharge">₦—</div></div>
-      <div class="pc-row"><div class="pc-lbl"><div class="pc-dot" style="background:var(--success)"></div>Net</div><div class="pc-val text-green" id="sumZMNet">₦—</div></div>
-    </div>
-  </div>
-
-  <div class="section"><div class="section-title">Cash Summary</div><div class="section-line"></div></div>
-  <div class="sum-grid">
-    <div class="sg"><div class="sg-l">Cash Collected</div><div class="sg-v" id="sumCash">₦—</div></div>
-    <div class="sg"><div class="sg-l">Gross Total</div><div class="sg-v" id="sumGross">₦—</div></div>
-    <div class="sg"><div class="sg-l">POS Charges</div><div class="sg-v text-red" id="sumCharges">₦—</div></div>
-    <div class="sg"><div class="sg-l">Expenses</div><div id="expSummaryBlock"><div class="sg-v text-muted">₦0</div></div></div>
-  </div>
-
-  <div class="bank-box"><div class="bb-l">Cash To Bank</div><div class="bb-v" id="sumBank">₦—</div><div class="bb-s">Cash − Expenses − POS Charges</div></div>
-
-  <div class="section"><div class="section-title">LPG / Gas</div><div class="section-line"></div></div>
-  <div class="lpg-card">
-    <div class="lpg-hd"><div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0"><i class="bi bi-fire" style="color:#fff"></i></div><div><div style="font-size:14px;font-weight:700;color:#fff">LPG Sales</div><div style="font-size:11px;color:rgba(255,255,255,.6)">Gas cylinder tracking</div></div></div>
-    <div style="padding:14px 16px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div class="field"><div class="field-lbl">KG Sold</div><input type="number" class="inp" id="lpgKg" placeholder="0" min="0" step="0.1" oninput="calcLPG()"/></div>
-        <div class="field"><div class="field-lbl">Price / KG (₦)</div><input type="number" class="inp" id="lpgPrice" placeholder="0" min="0" step="1" oninput="calcLPG()"/></div>
-        <div class="field"><div class="field-lbl">Expected (₦)</div><input type="number" class="inp" id="lpgSales" placeholder="Auto" readonly style="color:var(--text-3)"/></div>
-        <div class="field"><div class="field-lbl">Remitted (₦)</div><input type="number" class="inp" id="lpgRemitted" placeholder="0" min="0" step="1" oninput="calcLPG()"/></div>
+  <!-- TODAY'S COLLECTIONS SUMMARY -->
+  <div class="sec-head"><div class="sec-ttl">Today's Collections</div><div class="sec-line"></div></div>
+  <div class="summary-card">
+    <div class="sc-head"><div class="sc-ttl">Payment Breakdown</div></div>
+    <div class="sc-body">
+      <!-- POS MP -->
+      <div class="pay-row">
+        <div class="pay-left">
+          <div class="pay-dot" style="background:var(--cyan-d)"></div>
+          <div><div class="pay-label">POS — MP Terminal</div><div class="pay-sub">0.25% charge applies</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="pay-amount" id="sumPosMP">₦—</div>
+          <div class="pay-charge" id="sumMPCharge">Charge: ₦—</div>
+          <div class="pay-net" id="sumMPNet">Net: ₦—</div>
+        </div>
       </div>
-      <div class="lpg-var" id="lpgVarBox"><div style="font-size:13px;font-weight:600;color:var(--text-3)">LPG Variance</div><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text-4)" id="lpgVar">₦—</div></div>
+      <!-- POS ZM -->
+      <div class="pay-row">
+        <div class="pay-left">
+          <div class="pay-dot" style="background:#7C3AED"></div>
+          <div><div class="pay-label">POS — ZM Terminal</div><div class="pay-sub">0.30% charge applies</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="pay-amount" id="sumPosZM">₦—</div>
+          <div class="pay-charge" id="sumZMCharge">Charge: ₦—</div>
+          <div class="pay-net" id="sumZMNet">Net: ₦—</div>
+        </div>
+      </div>
+      <!-- Cash -->
+      <div class="pay-row">
+        <div class="pay-left">
+          <div class="pay-dot" style="background:var(--green)"></div>
+          <div><div class="pay-label">Cash</div><div class="pay-sub">Physical cash collected</div></div>
+        </div>
+        <div><div class="pay-amount" id="sumCash">₦—</div></div>
+      </div>
+      <div class="divider-row">
+        <div class="div-lbl">Gross Total</div>
+        <div class="div-val" id="sumGross">₦—</div>
+      </div>
     </div>
   </div>
 
-  <div class="section"><div class="section-title">Actions</div><div class="section-line"></div></div>
-  <a href="cashup-mso.html" class="btn btn-success btn-lg btn-full" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none"><i class="bi bi-cash-coin"></i> Open Cash Reconciliation</a>
-  <a href="records-mso.html" class="btn btn-outline btn-lg btn-full" style="margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none"><i class="bi bi-journal-text"></i> View Records</a>
-  <button onclick="doLogout()" class="btn btn-lg btn-full" style="background:var(--danger-l);color:var(--danger);border:1px solid var(--danger-b);display:flex;align-items:center;justify-content:center;gap:8px"><i class="bi bi-box-arrow-right"></i> Sign Out</button>
+  <!-- POS CHARGES SUMMARY -->
+  <div class="charges-card">
+    <div class="charges-lbl"><i class="bi bi-dash-circle-fill"></i> Total POS Charges Deducted</div>
+    <div class="charges-val" id="sumCharges">₦—</div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="summary-card">
+    <div class="sc-head"><div class="sc-ttl">Expenses</div></div>
+    <div class="sc-body" id="expSummaryBlock">
+      <div style="text-align:center;padding:14px;color:var(--ink-4);font-size:12.5px">
+        <i class="bi bi-check-circle" style="font-size:22px;display:block;margin-bottom:6px;opacity:.3"></i>No expenses recorded
+      </div>
+    </div>
+  </div>
+
+  <!-- CASH TO BANK -->
+  <div class="bank-card">
+    <div class="bank-lbl"><i class="bi bi-safe"></i> Cash to Bank</div>
+    <div class="bank-amt" id="sumBank">₦—</div>
+    <div class="bank-sub">Cash − Expenses − POS charges</div>
+  </div>
+
+  <!-- LPG -->
+  <div class="sec-head"><div class="sec-ttl">LPG Report</div><div class="sec-line"></div></div>
+  <div class="summary-card">
+    <div class="sc-head"><div class="sc-ttl">Gas Sales Today</div></div>
+    <div class="sc-body">
+      <div class="lpg-grid">
+        <div class="lpg-field"><div class="lpg-lbl">Total KG</div><input type="number" class="lpg-inp" id="lpgKg" placeholder="0.0" min="0" step="0.1" oninput="calcLPG()"/></div>
+        <div class="lpg-field"><div class="lpg-lbl">Unit Price (₦/kg)</div><input type="number" class="lpg-inp" id="lpgPrice" placeholder="1250" min="0" step="1" oninput="calcLPG()"/></div>
+        <div class="lpg-field"><div class="lpg-lbl">Total Sales</div><input type="number" class="lpg-inp" id="lpgSales" placeholder="auto" readonly/></div>
+        <div class="lpg-field"><div class="lpg-lbl">Amount Remitted</div><input type="number" class="lpg-inp" id="lpgRemitted" placeholder="0" min="0" step="1" oninput="calcLPG()"/></div>
+      </div>
+      <div class="lpg-variance" id="lpgVarBox" style="background:var(--surface);border:1px solid var(--border)">
+        <span style="font-size:12px;font-weight:600;color:var(--ink-3)">LPG Variance</span>
+        <span style="font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink-4)" id="lpgVar">₦—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="sec-head"><div class="sec-ttl">Actions</div><div class="sec-line"></div></div>
+  <div class="qa-grid">
+    <a href="cashup-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--green-l)"><i class="bi bi-check2-all" style="color:var(--green)"></i></div>Enter Reconciliation</a>
+    <a href="expenses-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--red-l)"><i class="bi bi-receipt-cutoff" style="color:var(--red)"></i></div>Add Expense</a>
+    <a href="chat-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--purple-l)"><i class="bi bi-chat-dots" style="color:var(--purple)"></i></div>Staff Chat</a>
+    <a href="summary-mso.html" class="qa-card"><div class="qa-ico" style="background:var(--surface)"><i class="bi bi-printer" style="color:var(--ink-3)"></i></div>Daily Summary</a>
+  </div>
 
 </div>
-<nav class="bottom-nav"><div class="bn-inner">
-  <div class="bn-tab on"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></div>
-  <a class="bn-tab" href="cashup-mso.html"><i class="bi bi-cash-coin"></i><span>Cash Up</span></a>
-  <a class="bn-tab" href="records-mso.html"><i class="bi bi-journal-text"></i><span>Records</span></a>
-  <button class="bn-tab" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i><span>Sign Out</span></button>
-</div></nav>
-<div id="toast"><i class="bi" id="tIco"></i><span id="tMsg"></span></div>
-<script>
 
+<!-- SUBMIT -->
+<div class="submit-wrap">
+  <button type="button" class="btn-recon" onclick="location.href='cashup-mso.html'">
+    <i class="bi bi-shield-check"></i> Submit Cash Reconciliation
+  </button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bn-inner">
+    <div class="bn-item on"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></div>
+    <a class="bn-item" href="cashup-mso.html"><i class="bi bi-cash-coin"></i><span>Cashup</span></a>
+    <a class="bn-item" href="expenses-mso.html"><i class="bi bi-receipt-cutoff"></i><span>Expenses</span></a>
+    <a class="bn-item" href="chat-mso.html"><i class="bi bi-chat-dots"></i><span>Chat</span></a>
+  </div>
+</nav>
+
+<div id="toast"><i class="bi" id="tIco"></i><span id="tMsg">—</span></div>
+
+<script>
 var SCRIPT_URL='https://script.google.com/macros/s/AKfycbw8Dj1PqN5GbBXNzBCQomqJA4755mALMaSXNg_1qWUzSXBZHXaaorXuIrVyAotk0eRc/exec';
 function getSess(){try{var r=localStorage.getItem('mso_session');if(r){var p=JSON.parse(r);if(p&&p.user)return p.user;}}catch(e){}try{var s=sessionStorage.getItem('mso_u');if(s){var u=JSON.parse(s);if(u)return u;}}catch(e){}return null;}
 var _u=getSess();if(!_u){window.location.replace('login.html');}
@@ -223,8 +357,6 @@ function calcLPG(){
 function doLogout(){localStorage.removeItem('mso_session');sessionStorage.removeItem('mso_u');window.location.replace('login.html');}
 var _tt;
 function showToast(msg,type){var icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill'};var colors={ok:'#16A34A',err:'#DC2626'};document.getElementById('tIco').className='bi '+(icons[type]||'bi-info-circle-fill');document.getElementById('tMsg').textContent=msg;var t=document.getElementById('toast');t.style.background=colors[type]||'#06091A';t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3000);}
-
-var _tt;function showToast(msg,type){var colors={ok:'#16A34A',err:'#DC2626'};document.getElementById('tMsg').textContent=msg;var t=document.getElementById('toast');t.style.background=colors[type]||'#1E293B';t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},3000);}
 </script>
 </body>
 </html>
