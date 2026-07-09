@@ -1,0 +1,178 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-pagebg text-ink font-sans antialiased min-h-screen overflow-x-hidden;
+  }
+  a {
+    @apply text-inherit no-underline;
+  }
+  button {
+    @apply cursor-pointer font-sans;
+  }
+}
+
+@layer utilities {
+  .mono {
+    font-family: theme("fontFamily.mono");
+  }
+
+  .scrollbar-thin-dark {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+  .scrollbar-thin-dark::-webkit-scrollbar {
+    width: 2px;
+  }
+  .scrollbar-thin-dark::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+
+  .skel {
+    border-radius: 6px;
+    background: linear-gradient(90deg, #e8edf5 25%, #f0f4f8 50%, #e8edf5 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  .skel-dark {
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.08) 25%,
+      rgba(255, 255, 255, 0.14) 50%,
+      rgba(255, 255, 255, 0.08) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+
+  .dot-grid {
+    position: relative;
+  }
+  .dot-grid::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Thin animated gradient line under the topbar's LIVE chip — flashes
+     when a fresh fetch lands. */
+  .pulse-line {
+    background: linear-gradient(90deg, transparent, #179dd0 35%, #4ade80 50%, #179dd0 65%, transparent);
+    background-size: 200% 100%;
+    animation: pulse-line 2.4s linear infinite;
+  }
+
+  /* Staggered entrance — each child gets an incremental delay via
+     inline `--delay` (set from JS as style={{animationDelay: ...}}). */
+  .enter {
+    animation: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MOBILE VIEWPORT HEIGHT FIX — placed outside @layer so it always
+   wins the cascade over Tailwind's own .min-h-screen / .h-screen.
+
+   Mobile browsers report 100vh as taller than what's actually
+   visible when the address bar/toolbar is on screen. Combined with
+   position:fixed bottom bars (BottomNav, WizardNav), this can push
+   them below the visible viewport — they're still in the DOM, just
+   off-screen until you scroll or the toolbar hides.
+
+   100dvh tracks the REAL visible viewport and updates live as
+   browser chrome shows/hides. Falls back to 100vh automatically in
+   browsers that don't understand dvh (the second declaration is
+   simply ignored by those browsers, not overridden). */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PRINT SYSTEM — shared across every printable document (Payroll
+   payslips, Daily Summary reports, and anything added later).
+
+   Usage on a page that prints:
+     1. Add className="no-print" to anything that shouldn't appear on
+        paper — sticky headers, tab bars, buttons, bottom nav.
+     2. Drop <PrintHeader /> and <PrintWatermark /> (both in
+        components/ui/PrintElements.jsx) somewhere in the page — they
+        render nothing on screen and only appear when printing.
+
+   Without this, hitting Print previously printed the raw app UI as-is
+   — nav bars, buttons, tabs and all — not a clean document. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* Printed documents should read top-to-bottom without being clipped
+     by the app's normal scroll containers or fixed-height layouts. */
+  .min-h-screen,
+  .h-screen {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-header {
+    display: flex !important;
+  }
+
+  .print-watermark {
+    display: flex !important;
+  }
+
+  /* Keep a card/table row from being sliced across a page boundary. */
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    margin: 14mm 12mm;
+  }
+}
+
+.print-header {
+  display: none;
+}
+
+.print-watermark {
+  display: none;
+}
+
