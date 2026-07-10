@@ -524,7 +524,7 @@ function ChatInner() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
   const { status: convStatus, conversations, refresh } = useConversations({ username: auth.username })
-  const { staff } = useStaff(auth.username)
+  const { staff } = useStaff()
   const [activeConv, setActiveConv] = useState(null)
   usePageTitle("Chat — MSO Limpid")
 

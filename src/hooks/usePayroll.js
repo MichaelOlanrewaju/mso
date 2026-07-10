@@ -4,13 +4,7 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
 
 /* ── useStaff ─────────────────────────────────────────────── */
-// actingUsername = the currently logged-in caller (auth.username), used
-// server-side to verify THIS person actually has permission to view/edit
-// the roster — the backend looks up their real role rather than trusting
-// anything the client claims, so this must always be the real, logged-in
-// user's own username, never the username of the staff record being
-// viewed or edited.
-export function useStaff(actingUsername) {
+export function useStaff() {
   const [status, setStatus] = useState("loading")
   const [staff, setStaff] = useState([])
   const [saving, setSaving] = useState(false)
@@ -22,12 +16,11 @@ export function useStaff(actingUsername) {
   }, [])
 
   const load = useCallback(() => {
-    if (!SCRIPT_URL || !actingUsername) { setStatus("idle"); return }
+    if (!SCRIPT_URL) { setStatus("idle"); return }
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getStaff")
     url.searchParams.set("station", STATION_KEY)
-    url.searchParams.set("username", actingUsername)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
       .then(d => {
@@ -36,7 +29,7 @@ export function useStaff(actingUsername) {
         setStatus("ready")
       })
       .catch(() => { if (isMounted.current) setStatus("error") })
-  }, [actingUsername])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
@@ -46,7 +39,7 @@ export function useStaff(actingUsername) {
     try {
       const res = await fetch(SCRIPT_URL, {
         method: "POST", headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveStaff", station: STATION_KEY, username: actingUsername, targetUsername: username, name, role, phone, basicSalary, status: empStatus || "active" }),
+        body: JSON.stringify({ action: "saveStaff", station: STATION_KEY, username, name, role, phone, basicSalary, status: empStatus || "active" }),
       })
       const text = await res.text()
       const d = JSON.parse(text)
@@ -57,7 +50,7 @@ export function useStaff(actingUsername) {
     } finally {
       if (isMounted.current) setSaving(false)
     }
-  }, [load, actingUsername])
+  }, [load])
 
   const inviteStaff = useCallback(async ({ username, name, role, phone, basicSalary, email }) => {
     if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
@@ -65,7 +58,7 @@ export function useStaff(actingUsername) {
     try {
       const res = await fetch(SCRIPT_URL, {
         method: "POST", headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "inviteStaff", station: STATION_KEY, username: actingUsername, username_new: username, name, role, phone, basicSalary, email }),
+        body: JSON.stringify({ action: "inviteStaff", station: STATION_KEY, username, name, role, phone, basicSalary, email }),
       })
       const text = await res.text()
       const d = JSON.parse(text)
@@ -76,13 +69,13 @@ export function useStaff(actingUsername) {
     } finally {
       if (isMounted.current) setSaving(false)
     }
-  }, [load, actingUsername])
+  }, [load])
 
   return { status, staff, saving, saveStaffMember, inviteStaff, refresh: load }
 }
 
 /* ── usePayroll ───────────────────────────────────────────── */
-export function usePayroll(month, username) {
+export function usePayroll(month) {
   const [status, setStatus] = useState("loading")
   const [lines, setLines] = useState([])
   const [saving, setSaving] = useState(false)
@@ -94,13 +87,12 @@ export function usePayroll(month, username) {
   }, [])
 
   const load = useCallback((targetMonth) => {
-    if (!SCRIPT_URL || !targetMonth || !username) { setStatus("idle"); return }
+    if (!SCRIPT_URL || !targetMonth) { setStatus("idle"); return }
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPayroll")
     url.searchParams.set("station", STATION_KEY)
     url.searchParams.set("month", targetMonth)
-    url.searchParams.set("username", username)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
       .then(d => {
@@ -109,12 +101,12 @@ export function usePayroll(month, username) {
         setStatus("ready")
       })
       .catch(() => { if (isMounted.current) setStatus("error") })
-  }, [username])
+  }, [])
 
   useEffect(() => { load(month) }, [month, load])
 
   /* Save via GET to avoid POST/redirect issues with Apps Script */
-  const savePayrollRun = useCallback(async ({ month: targetMonth, lines: payLines, username, remarks }) => {
+  const savePayrollRun = useCallback(async ({ month: targetMonth, lines: payLines, username }) => {
     if (!SCRIPT_URL) return { ok: false, error: "Script URL not configured." }
     if (!payLines || payLines.length === 0) return { ok: false, error: "No staff lines to save — add staff first." }
     setSaving(true)
@@ -124,7 +116,6 @@ export function usePayroll(month, username) {
       url.searchParams.set("station", STATION_KEY)
       url.searchParams.set("month", targetMonth)
       url.searchParams.set("username", username || "")
-      url.searchParams.set("remarks", remarks || "")
       url.searchParams.set("lines", encodeURIComponent(JSON.stringify(payLines)))
       const res = await fetch(url.toString(), { method: "GET", redirect: "follow" })
       const text = await res.text()
@@ -162,7 +153,7 @@ export function usePayroll(month, username) {
 }
 
 /* ── usePendingPayroll — Owner dashboard ──────────────────── */
-export function usePendingPayroll(username) {
+export function usePendingPayroll() {
   const [pending, setPending] = useState([])
   const [status, setStatus] = useState("loading")
   const isMounted = useRef(true)
@@ -173,11 +164,10 @@ export function usePendingPayroll(username) {
   }, [])
 
   const load = useCallback(() => {
-    if (!SCRIPT_URL || !username) { setStatus("idle"); return }
+    if (!SCRIPT_URL) { setStatus("idle"); return }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPendingPayroll")
     url.searchParams.set("station", STATION_KEY)
-    url.searchParams.set("username", username)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
       .then(d => {
@@ -186,7 +176,7 @@ export function usePendingPayroll(username) {
         setStatus("ready")
       })
       .catch(() => { if (isMounted.current) setStatus("error") })
-  }, [username])
+  }, [])
 
   useEffect(() => { load() }, [load])
 

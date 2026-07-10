@@ -6,7 +6,6 @@ import { useStaff, usePayroll, usePendingPayroll } from "../hooks/usePayroll"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
 import { PrintHeader, PrintWatermark } from "../components/ui/PrintElements"
-import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 
 function currentMonth() {
   const d = new Date()
@@ -125,12 +124,10 @@ function GMView({ auth, navigate }) {
   const [searchParams] = useSearchParams()
   const [month, setMonth] = useState(searchParams.get("month") || currentMonth())
   const [tab, setTab] = useState("run")
-  const { status: staffStatus, staff } = useStaff(auth.username)
-  const { status: payStatus, lines, saving, savePayrollRun } = usePayroll(month, auth.username)
+  const { status: staffStatus, staff } = useStaff()
+  const { status: payStatus, lines, saving, savePayrollRun } = usePayroll(month)
   const [draft, setDraft] = useState(null)
   const [feedback, setFeedback] = useState(null)
-  const [remarks, setRemarks] = useState("")
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const seededKey = useRef("")
   usePageTitle("Payroll — MSO Limpid")
 
@@ -190,10 +187,13 @@ function GMView({ auth, navigate }) {
     count: lines.length,
   }), [lines])
 
-  const doSubmit = async () => {
-    setConfirmOpen(false)
+  const handleSubmit = async () => {
     setFeedback(null)
     const entries = isRejected ? Object.entries(activeDraft) : draftEntries
+    if (entries.length === 0) {
+      setFeedback({ ok: false, text: "No staff with names found. Go to Staff Roster and make sure names are filled in." })
+      return
+    }
     const payLines = entries.map(([staffName, l]) => ({
       staffName, role: l.role,
       basicSalary: Number(l.basicSalary) || 0,
@@ -201,40 +201,13 @@ function GMView({ auth, navigate }) {
       bonus:       Number(l.bonus) || 0,
       deductions:  Number(l.deductions) || 0,
     }))
-    const res = await savePayrollRun({ month, username: auth.username, lines: payLines, remarks })
+    const res = await savePayrollRun({ month, username: auth.username, lines: payLines })
     if (res.ok) {
       setFeedback({ ok: true, text: `${monthLabel(month)} payroll submitted for owner approval.` })
       seededKey.current = "" // reset so it reloads as a record
     } else {
       setFeedback({ ok: false, text: res.error || "Save failed — try again." })
     }
-  }
-
-  const handleSubmit = () => {
-    setFeedback(null)
-    const entries = isRejected ? Object.entries(activeDraft) : draftEntries
-    if (entries.length === 0) {
-      setFeedback({ ok: false, text: "No staff with names found. Go to Staff Roster and make sure names are filled in." })
-      return
-    }
-    setConfirmOpen(true)
-  }
-
-  const reviewRows = [
-    { label: "Staff", value: String(draftTotals.count) },
-    { label: "Total Basic Salary", value: naira(draftTotals.b) },
-    { label: "Total Allowances", value: naira(draftTotals.a) },
-    ...(draftTotals.bo > 0 ? [{ label: "Total Bonus", value: naira(draftTotals.bo) }] : []),
-    { label: "Total Deductions", value: `−${naira(draftTotals.d)}` },
-    { label: "Net Payroll", value: naira(draftTotals.net) },
-    ...(remarks.trim() ? [{ label: "Remarks", value: remarks.trim() }] : []),
-  ]
-  const reviewWarnings = []
-  if (draftEntries.some(([, l]) => !Number(l.basicSalary))) {
-    reviewWarnings.push("At least one staff member has no Basic Salary entered — double-check before submitting.")
-  }
-  if (!remarks.trim()) {
-    reviewWarnings.push("No remarks added — if anything's unusual this month (a bonus, a deduction reason), the owner won't see context unless you add it.")
   }
 
   const loading = payStatus === "loading" || staffStatus === "loading"
@@ -360,13 +333,6 @@ function GMView({ auth, navigate }) {
                   </div>
                 )}
 
-                {lines[0]?.remarks && (
-                  <div className="mb-5 rounded-[14px] border border-amber/20 bg-amber-light px-4 py-3.5">
-                    <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.7px] text-amber">General Remarks</div>
-                    <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink">{lines[0].remarks}</div>
-                  </div>
-                )}
-
                 {/* Full breakdown */}
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">Payroll Breakdown</div>
                 <div className="overflow-hidden rounded-[16px] bg-white shadow-sm">
@@ -450,17 +416,6 @@ function GMView({ auth, navigate }) {
                       })}
                     </div>
 
-                    {/* General Remarks — the one place a whole month's story lives */}
-                    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">General Remarks</div>
-                    <div className="mb-5 overflow-hidden rounded-[16px] bg-white p-4 shadow-sm">
-                      <textarea
-                        rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
-                        placeholder="e.g. Two staff on annual leave got a holiday bonus this month. One deduction is a salary advance repayment."
-                        className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none focus:border-cyan focus:bg-white"
-                      />
-                      <div className="mt-2 text-[11px] text-ink-4">Anything the owner should know before approving — bonuses, unusual deductions, anything worth flagging.</div>
-                    </div>
-
                     <button type="button" onClick={handleSubmit} disabled={saving}
                       className="flex w-full items-center justify-center gap-2.5 rounded-[14px] py-4 text-[14.5px] font-bold text-white shadow-lift disabled:opacity-60"
                       style={{ background: "linear-gradient(135deg,#130656,#1a0875)" }}>
@@ -525,17 +480,6 @@ function GMView({ auth, navigate }) {
           </>
         )}
       </div>
-
-      <ConfirmSubmitModal
-        open={confirmOpen}
-        title="Confirm Payroll Submission"
-        subtitle={`${monthLabel(month)} — once submitted, this locks until the owner approves or rejects it`}
-        rows={reviewRows}
-        warnings={reviewWarnings}
-        confirming={saving}
-        onConfirm={doSubmit}
-        onCancel={() => setConfirmOpen(false)}
-      />
     </div>
   )
 }
@@ -593,8 +537,8 @@ function EditableRow({ name, line, net, isLast, onChange }) {
 function OwnerView({ auth, navigate }) {
   const [searchParams] = useSearchParams()
   const [month, setMonth] = useState(searchParams.get("month") || currentMonth())
-  const { status: payStatus, lines, approvePayrollRun } = usePayroll(month, auth.username)
-  const { pending } = usePendingPayroll(auth.username)
+  const { status: payStatus, lines, approvePayrollRun } = usePayroll(month)
+  const { pending } = usePendingPayroll()
   const [feedback, setFeedback] = useState(null)
   const [processing, setProcessing] = useState(null) // "approve" | "reject" | null
   const autoPicked = useRef(false)
@@ -757,13 +701,6 @@ function OwnerView({ auth, navigate }) {
                 ))}
               </div>
             </div>
-
-            {lines[0]?.remarks && (
-              <div className="mb-5 rounded-[14px] border border-amber/20 bg-amber-light px-4 py-3.5">
-                <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.7px] text-amber">General Remarks from {lines[0]?.preparedBy || "GM"}</div>
-                <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink">{lines[0].remarks}</div>
-              </div>
-            )}
 
             {/* Individual breakdown */}
             <div className="mb-2 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">

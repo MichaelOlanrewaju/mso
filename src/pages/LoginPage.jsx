@@ -35,14 +35,11 @@ export default function LoginPage() {
     if (!SCRIPT_URL) { setError("Script URL not configured."); return }
     setSubmitting(true)
     try {
-      // POST, not GET — a login previously went out as ?password=... in the
-      // URL, which lands in browser history, network/proxy logs, and Apps
-      // Script's own execution logs. Sending it in the body avoids that.
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        redirect: "follow",
-        body: JSON.stringify({ action: "login", username: u, password: p }),
-      })
+      const url = new URL(SCRIPT_URL)
+      url.searchParams.set("action", "login")
+      url.searchParams.set("username", u)
+      url.searchParams.set("password", p)
+      const res = await fetch(url.toString(), { method: "GET", redirect: "follow" })
       const raw = await res.text()
       let data
       try { data = JSON.parse(raw) } catch { throw new Error("Bad response from server.") }
@@ -101,14 +98,14 @@ export default function LoginPage() {
           )}
 
           {/* Email / Username */}
-          <form onSubmit={handleSubmit} autoComplete="on">
           <div style={{ marginBottom:13 }}>
             <div style={{ fontSize:11.5, fontWeight:700, color:"#334155", letterSpacing:"0.6px", textTransform:"uppercase", marginBottom:7 }}>Email Address</div>
             <div style={{ position:"relative" }}>
               <i className="bi bi-envelope" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, color: username ? "#179DD0" : "#94A3B8", pointerEvents:"none" }} />
               <input type="email" value={username}
                 onChange={e => { setUsername(e.target.value); clearErrors() }}
-                autoComplete="username" autoCapitalize="off" spellCheck={false}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                autoComplete="email" autoCapitalize="off" spellCheck={false}
                 placeholder="your@email.com"
                 style={{ width:"100%", height:50, borderRadius:12, padding:"0 46px", fontSize:15, fontWeight:500, color:"#0F172A", background: error ? "#FFF5F5" : "#F8FAFC", border: `1.5px solid ${error ? "#FCA5A5" : "#E2E8F0"}`, outline:"none", transition:"border-color 0.18s, box-shadow 0.18s, background 0.18s", WebkitAppearance:"none" }}
                 onFocus={e => { e.target.style.background="#fff"; e.target.style.borderColor="#179DD0"; e.target.style.boxShadow="0 0 0 4px rgba(23,157,208,0.12)" }}
@@ -130,6 +127,7 @@ export default function LoginPage() {
               <i className="bi bi-lock" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, color: password ? "#179DD0" : "#94A3B8", pointerEvents:"none" }} />
               <input type={showPass ? "text" : "password"} value={password}
                 onChange={e => { setPassword(e.target.value); clearErrors() }}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()}
                 autoComplete="current-password"
                 placeholder="Your password"
                 style={{ width:"100%", height:50, borderRadius:12, padding:"0 46px", fontSize:15, fontWeight:500, color:"#0F172A", background: error ? "#FFF5F5" : "#F8FAFC", border: `1.5px solid ${error ? "#FCA5A5" : "#E2E8F0"}`, outline:"none", WebkitAppearance:"none" }}
@@ -144,7 +142,7 @@ export default function LoginPage() {
           </div>
 
           {/* Submit */}
-          <button type="submit" disabled={submitting}
+          <button type="button" onClick={handleSubmit} disabled={submitting}
             style={{ width:"100%", height:52, marginTop:16, border:"none", borderRadius:13, fontSize:15.5, fontWeight:800, color:"#fff", background:"#179DD0", display:"flex", alignItems:"center", justifyContent:"center", gap:12, boxShadow:"0 2px 6px rgba(0,0,0,0.08), 0 8px 28px rgba(23,157,208,0.38)", cursor:submitting?"not-allowed":"pointer", opacity:submitting?0.6:1, position:"relative", overflow:"hidden", transition:"background 0.18s, transform 0.2s, box-shadow 0.2s" }}>
             <span style={{ position:"absolute", inset:0, background:"linear-gradient(150deg,rgba(255,255,255,0.14) 0%,transparent 52%)", pointerEvents:"none" }} />
             {submitting
@@ -157,7 +155,6 @@ export default function LoginPage() {
                 </>
             }
           </button>
-          </form>
 
           {/* Success */}
           {success && (

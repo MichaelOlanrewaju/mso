@@ -101,14 +101,21 @@ export default function ProfilePage() {
     if (!newPass || newPass.length < 6) { setPassFeedback({ type: "error", text: "New password must be at least 6 characters." }); return }
     if (newPass !== confirmPass) { setPassFeedback({ type: "error", text: "Passwords don't match." }); return }
 
-    // The server verifies currentPassword itself now (see updateProfile
-    // in the backend) — no need for a separate login round-trip, and no
-    // need to ever put a password in a URL/query string.
+    // Verify current password by attempting a login check
     setSavingPass(true); setPassFeedback(null)
     try {
+      // Use the resetPassword-style direct update — verify by re-checking login first
+      const checkUrl = new URL(SCRIPT_URL)
+      checkUrl.searchParams.set("action", "login")
+      checkUrl.searchParams.set("username", auth.username)
+      checkUrl.searchParams.set("password", currentPass)
+      const checkRes = await fetch(checkUrl.toString(), { method: "GET", redirect: "follow" })
+      const checkD = await checkRes.json()
+      if (!checkD.ok) { setPassFeedback({ type: "error", text: "Current password is incorrect." }); setSavingPass(false); return }
+
       const res = await fetch(SCRIPT_URL, {
         method: "POST", headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "updateProfile", username: auth.username, currentPassword: currentPass, password: newPass }),
+        body: JSON.stringify({ action: "updateProfile", username: auth.username, password: newPass }),
       })
       const d = await res.json()
       if (d.ok) {

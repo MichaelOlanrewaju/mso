@@ -14,7 +14,7 @@
 // successful Netlify deploy — which has caused real confusion this
 // project ("I deployed the fix but you're still describing old behavior").
 // Bump this (v3 → v4 → v5...) every single time you hand over a new zip.
-const CACHE_NAME = 'mso-v20'
+const CACHE_NAME = 'mso-v28'
 const OFFLINE_URL = '/offline.html'
 
 const APP_SHELL = [

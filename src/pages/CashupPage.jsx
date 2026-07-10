@@ -398,7 +398,7 @@ function CashupInner() {
                   />
                 </label>
                 {lpgVariance !== null && lpgVariance !== 0 && (
-                  <div className="col-span-2 flex items-center gap-2 rounded-[9px] border border-red/25 bg-red-light px-3.5 py-2.5 text-[11.5px] font-semibold text-red">
+                  <div className="col-span-2 flex items-center gap-2 rounded-[9px] border border-amber/25 bg-amber-light px-3.5 py-2.5 text-[11.5px] font-semibold text-amber">
                     <i className="bi bi-exclamation-triangle-fill" />
                     Remitted {lpgVariance > 0 ? "exceeds" : "is short of"} sales by {naira(Math.abs(lpgVariance))}
                   </div>

@@ -32,10 +32,10 @@ export default function PnLPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await getAPI("getPnL", { dateFrom, dateTo, username: auth.username })
+    const res = await getAPI("getPnL", { dateFrom, dateTo })
     if (res.ok) setData(res)
     setLoading(false)
-  }, [dateFrom, dateTo, auth.username])
+  }, [dateFrom, dateTo])
 
   useEffect(() => { load() }, [load])
 

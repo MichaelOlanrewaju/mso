@@ -51,10 +51,10 @@ export default function ActivityLogPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await getAPI("getActivityLog", { date: dateFilter, actionFilter: actionFilterSel, username: auth.username })
+    const res = await getAPI("getActivityLog", { date: dateFilter, actionFilter: actionFilterSel })
     if (res.ok) { setEntries(res.entries || []); setActions(res.actions || []) }
     setLoading(false)
-  }, [dateFilter, actionFilterSel, auth.username])
+  }, [dateFilter, actionFilterSel])
 
   useEffect(() => { load() }, [load])
 

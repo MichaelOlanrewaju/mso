@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useCallback, useEffect } from "react"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
@@ -20,8 +20,6 @@ import QuickActionsCard from "../components/dashboard/QuickActionsCard"
 import PayrollApprovalCard from "../components/dashboard/PayrollApprovalCard"
 import { NotificationPrompt } from "../components/pwa/PWABanners"
 import { useAuth } from "../hooks/useAuth"
-import { usePWA, useLiveNotifications } from "../hooks/usePWA"
-import { useEditRequests, useCashupApprovals } from "../hooks/useApprovals"
 import { useDashboardData } from "../hooks/useDashboardData"
 import { useShortages } from "../hooks/useShortages"
 import { usePendingPayroll } from "../hooks/usePayroll"
@@ -37,15 +35,52 @@ function delay(step) {
   return { animationDelay: `${Math.min(step * 60, 360)}ms` }
 }
 
+function useCashupApprovals(username) {
+  const [pending, setPending] = useState([])
+
+  const load = useCallback(() => {
+    if (!SCRIPT_URL) return
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getPendingCashups")
+    url.searchParams.set("station", STATION_KEY)
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok && d.pending) setPending(d.pending)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const decide = useCallback(
+    (date, decision) => {
+      const url = new URL(SCRIPT_URL)
+      url.searchParams.set("action", decision === "approve" ? "approveCashup" : "rejectCashup")
+      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("date", date)
+      url.searchParams.set("username", username || "")
+      return fetch(url.toString(), { method: "GET", redirect: "follow" })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) load()
+          return d
+        })
+    },
+    [username, load]
+  )
+
+  return { pending, refresh: load, decide }
+}
+
 function DashboardInner() {
   const auth = useAuth({ requireAuth: true })
   const { status, data, loading, refresh } = useDashboardData(auth.username)
   const { shortages, reviewShortage } = useShortages({ all: false })
-  const { pending: pendingPayroll, approve: pendingPayrollApprove } = usePendingPayroll(auth.username)
+  const { pending: pendingPayroll, approve: pendingPayrollApprove } = usePendingPayroll()
   const { pending: pendingCashups, decide: decideCashup } = useCashupApprovals(auth.username)
-  const { requests: editRequests, review: reviewEdit } = useEditRequests(auth.username)
-  const { notifPermission } = usePWA()
-  useLiveNotifications({ enabled: notifPermission === "granted", username: auth.username })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showNotifPrompt, setShowNotifPrompt] = useState(
     typeof Notification !== 'undefined' && Notification.permission === 'default'
@@ -61,18 +96,6 @@ function DashboardInner() {
   const handleReviewShortage = (rowIndex, decision) =>
     reviewShortage({ rowIndex, decision, username: auth.username }).then(d => {
       if (d.ok) toast.showToast("Updated", "Shortage marked as reviewed", "ok")
-      else toast.showToast("Could not process", d.error || "Try again", "err")
-    })
-
-  const handleApproveEdit = rowIndex =>
-    reviewEdit(rowIndex, "approve").then(d => {
-      if (d.ok) toast.showToast("Approved", "Supervisor can now edit that record", "ok")
-      else toast.showToast("Could not process", d.error || "Try again", "err")
-    })
-
-  const handleRejectEdit = rowIndex =>
-    reviewEdit(rowIndex, "reject").then(d => {
-      if (d.ok) toast.showToast("Rejected", "Edit request rejected", "ok")
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
@@ -153,9 +176,6 @@ function DashboardInner() {
             />
             <AlertsCard
               tankLevels={data?.tankLevels}
-              editRequests={editRequests}
-              onApproveEdit={handleApproveEdit}
-              onRejectEdit={handleRejectEdit}
               shortages={shortages}
               onReviewShortage={handleReviewShortage}
               pendingPayroll={pendingPayroll}

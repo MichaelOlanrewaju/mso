@@ -38,7 +38,7 @@ function Field({ label, hint, children }) {
 export default function AddStaffPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  const { staff, saving, saveStaffMember, inviteStaff } = useStaff(auth.username)
+  const { staff, saving, saveStaffMember, inviteStaff } = useStaff()
   usePageTitle("Add Staff — MSO Limpid")
 
   const [username, setUsername]       = useState("")

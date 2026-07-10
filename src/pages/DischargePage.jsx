@@ -29,16 +29,16 @@ function get(action, extra = {}) {
   return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
 }
 
-function useDischarge(username) {
+function useDischarge(role) {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await get("getDischarge", { username: username || "" })
+    const res = await get("getDischarge", { role: role || "" })
     if (res.ok) setRecords(res.discharge || [])
     setLoading(false)
-  }, [username])
+  }, [role])
 
   useEffect(() => { load() }, [load])
   return { records, loading, refresh: load }
@@ -98,7 +98,7 @@ export default function DischargePage() {
   const navigate = useNavigate()
   usePageTitle("Discharge — MSO Limpid")
 
-  const { records, loading, refresh } = useDischarge(auth.username)
+  const { records, loading, refresh } = useDischarge(auth.role)
   const [tab, setTab] = useState("records")
   const [saving, setSaving] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
