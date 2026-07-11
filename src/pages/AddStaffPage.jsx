@@ -15,7 +15,7 @@ const ROLES = [
 
 const ROLE_LABELS = { owner: "Owner", gm: "GM", supervisor: "Supervisor", cashier: "Cashier", attendant: "Attendant" }
 
-const AVATAR_COLORS = ["#179DD0","#06091A","#16A34A","#D97706","#DC2626","#7C3AED"]
+const AVATAR_COLORS = ["#179DD0","#06091A","#16A34A","#179DD0","#DC2626","#7C3AED"]
 function avatarBg(name) {
   return AVATAR_COLORS[(name || " ").charCodeAt(0) % AVATAR_COLORS.length]
 }
@@ -38,7 +38,7 @@ function Field({ label, hint, children }) {
 export default function AddStaffPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  const { staff, saving, saveStaffMember, inviteStaff } = useStaff()
+  const { staff, saving, saveStaffMember, inviteStaff } = useStaff(auth.username)
   usePageTitle("Add Staff — MSO Limpid")
 
   const [username, setUsername]       = useState("")

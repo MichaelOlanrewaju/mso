@@ -8,7 +8,7 @@ function pctClass(pct) {
 }
 function idColor(pct) {
   if (pct > 40) return "#1188B5"
-  if (pct > 15) return "#D97706"
+  if (pct > 15) return "#179DD0"
   return "#DC2626"
 }
 
@@ -32,7 +32,7 @@ function TankRow({ tank }) {
       <div className="h-2.5 flex-1 overflow-hidden rounded-full border border-border bg-surface">
         <div
           className={`h-full rounded-full transition-[width] duration-700 ${
-            barPct === 0 ? "" : overCapacity ? "bg-red" : isAgo ? "bg-gradient-to-r from-[#B45309] to-[#F59E0B]" : "bg-gradient-to-r from-cyan-dark to-cyan"
+            barPct === 0 ? "" : overCapacity ? "bg-red" : isAgo ? "bg-gradient-to-r from-[#1188B5] to-[#179DD0]" : "bg-gradient-to-r from-cyan-dark to-cyan"
           }`}
           style={{ width: `${barPct}%`, background: barPct === 0 ? "#E8EDF5" : undefined }}
         />

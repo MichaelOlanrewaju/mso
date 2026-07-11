@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useState } from "react"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import SectionLabel from "../components/dashboard/SectionLabel"
+import { TestNotificationButton } from "../components/pwa/PWABanners"
 import TodayStatusPills from "../components/dashboard/TodayStatusPills"
 import PeriodTotalsCard from "../components/dashboard/PeriodTotalsCard"
-import KpiCard from "../components/dashboard/KpiCard"
 import DipSummaryCard from "../components/dashboard/DipSummaryCard"
 import AgoCard from "../components/dashboard/AgoCard"
 import PaymentBreakdown from "../components/dashboard/PaymentBreakdown"
@@ -17,11 +17,13 @@ import TransactionsCard from "../components/dashboard/TransactionsCard"
 import AlertsCard from "../components/dashboard/AlertsCard"
 import QuickActionsCard from "../components/dashboard/QuickActionsCard"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
+import { usePWA, useLiveNotifications } from "../hooks/usePWA"
+import { useEditRequests, useCashupApprovals } from "../hooks/useApprovals"
 import { useDashboardData } from "../hooks/useDashboardData"
 import { useShortages } from "../hooks/useShortages"
 import { usePendingPayroll } from "../hooks/usePayroll"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira, initials, roleLabel } from "../utils/format"
+import { initials, roleLabel } from "../utils/format"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -30,99 +32,15 @@ function delay(step) {
   return { animationDelay: `${Math.min(step * 60, 360)}ms` }
 }
 
-function useEditRequests(username) {
-  const [requests, setRequests] = useState([])
-
-  const load = useCallback(() => {
-    if (!SCRIPT_URL) return
-    const url = new URL(SCRIPT_URL)
-    url.searchParams.set("action", "getEditRequests")
-    url.searchParams.set("station", STATION_KEY)
-    fetch(url.toString(), { method: "GET", redirect: "follow" })
-      .then(r => r.json())
-      .then(d => {
-        if (d.ok && d.requests) setRequests(d.requests)
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const review = useCallback(
-    (rowIndex, decision) => {
-      // approveEditRequest only routes via doGet's switch — doPost has
-      // no case for it. The approve/reject value is sent as "decision"
-      // (not "action") since "action" is already consumed by the
-      // ?action=approveEditRequest routing param itself.
-      const url = new URL(SCRIPT_URL)
-      url.searchParams.set("action", "approveEditRequest")
-      url.searchParams.set("station", STATION_KEY)
-      url.searchParams.set("rowIndex", rowIndex)
-      url.searchParams.set("decision", decision)
-      url.searchParams.set("username", username || "")
-
-      return fetch(url.toString(), { method: "GET", redirect: "follow" })
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok) load()
-          return d
-        })
-    },
-    [username, load]
-  )
-
-  return { requests, refresh: load, review }
-}
-
-function useCashupApprovals(username) {
-  const [pending, setPending] = useState([])
-
-  const load = useCallback(() => {
-    if (!SCRIPT_URL) return
-    const url = new URL(SCRIPT_URL)
-    url.searchParams.set("action", "getPendingCashups")
-    url.searchParams.set("station", STATION_KEY)
-    fetch(url.toString(), { method: "GET", redirect: "follow" })
-      .then(r => r.json())
-      .then(d => {
-        if (d.ok && d.pending) setPending(d.pending)
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const decide = useCallback(
-    (date, decision) => {
-      const url = new URL(SCRIPT_URL)
-      url.searchParams.set("action", decision === "approve" ? "approveCashup" : "rejectCashup")
-      url.searchParams.set("station", STATION_KEY)
-      url.searchParams.set("date", date)
-      url.searchParams.set("username", username || "")
-      return fetch(url.toString(), { method: "GET", redirect: "follow" })
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok) load()
-          return d
-        })
-    },
-    [username, load]
-  )
-
-  return { pending, refresh: load, decide }
-}
-
 function GMInner() {
   const auth = useAuth({ requireAuth: true, stationFilter: "mso" })
+  const { notifPermission, requestNotifications } = usePWA()
+  useLiveNotifications({ enabled: notifPermission === "granted", username: auth.username })
   const { status, data, loading, refresh } = useDashboardData(auth.username)
   const { requests: editRequests, review } = useEditRequests(auth.username)
   const { pending: pendingCashups, decide: decideCashup } = useCashupApprovals(auth.username)
   const { shortages, reviewShortage } = useShortages({ all: false })
-  const { pending: pendingPayroll } = usePendingPayroll()
+  const { pending: pendingPayroll } = usePendingPayroll(auth.username)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const toast = useToast()
 
@@ -132,9 +50,6 @@ function GMInner() {
     return <div className="min-h-screen bg-pagebg" />
   }
 
-  const mpCharge = Number(data?.posMPCharge || Math.round((data?.posMP || 0) * 0.0025))
-  const zmCharge = Number(data?.posZMCharge || Math.round((data?.posZM || 0) * 0.003))
-  const totalCharge = mpCharge + zmCharge
 
   const handleApprove = rowIndex =>
     review(rowIndex, "approve").then(d => {
@@ -192,25 +107,17 @@ function GMInner() {
         />
 
         <div className="flex-1 p-3.5 pb-[100px] md:p-[22px] md:pb-[22px]">
+          {notifPermission === "granted" && (
+            <div className="enter mb-3 flex justify-end" style={delay(0)}>
+              <TestNotificationButton />
+            </div>
+          )}
+
           <div className="enter" style={delay(0)}>
             <SectionLabel>Today's Status</SectionLabel>
           </div>
           <div className="enter mb-5" style={delay(0)}>
             <TodayStatusPills todayStatus={data?.todayStatus} loading={status === "loading"} />
-          </div>
-
-          <div className="enter mb-5 mt-3" style={delay(1)}>
-            <KpiCard
-              variant="red"
-              icon="bi-percent"
-              iconBg="#FEF2F2"
-              iconColor="#DC2626"
-              label="POS Charges"
-              value={totalCharge > 0 ? naira(totalCharge) : "—"}
-              foot="MP + ZM deducted"
-              loading={status === "loading"}
-              delay={300}
-            />
           </div>
 
           <div className="enter" style={delay(2)}>
@@ -219,6 +126,20 @@ function GMInner() {
           <div className="enter mb-3" style={delay(2)}>
             <PeriodTotalsCard />
           </div>
+
+          {notifPermission === "default" && (
+            <div className="enter mb-3 flex items-center gap-3 rounded-card border border-cyan/20 bg-cyan-light px-4 py-3.5" style={delay(3)}>
+              <i className="bi bi-bell-fill text-[18px] text-cyan-dark" />
+              <div className="flex-1">
+                <div className="text-[12.5px] font-bold text-ink">Get notified for pending approvals</div>
+                <div className="text-[11px] text-ink-4">While this dashboard is open, you'll get an alert the moment something needs your review.</div>
+              </div>
+              <button type="button" onClick={requestNotifications}
+                className="flex-shrink-0 rounded-[9px] bg-cyan-dark px-3.5 py-2 text-[12px] font-bold text-white">
+                Enable
+              </button>
+            </div>
+          )}
 
           <div className="enter" style={delay(3)}>
             <SectionLabel>Needs Your Attention</SectionLabel>

@@ -4,7 +4,7 @@ const TOP_BAR = {
   hero: "from-deepnavy to-cyan",
   cyan: "from-deepnavy to-cyan",
   green: "from-[#059669] to-[#34D399]",
-  amber: "from-[#B45309] to-[#F59E0B]",
+  amber: "from-[#1188B5] to-[#179DD0]",
   red: "from-[#991B1B] to-[#F87171]",
 }
 

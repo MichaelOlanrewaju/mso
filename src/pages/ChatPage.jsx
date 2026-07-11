@@ -26,7 +26,7 @@ function timeLabel(iso) {
   return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })
 }
 
-const AVATAR_COLORS = ["#179DD0","#130656","#16A34A","#D97706","#DC2626","#7C3AED"]
+const AVATAR_COLORS = ["#179DD0","#130656","#16A34A","#179DD0","#DC2626","#7C3AED"]
 function avatarColor(name) { return AVATAR_COLORS[(name||" ").charCodeAt(0) % AVATAR_COLORS.length] }
 function initials(name) { return (name||"?").trim().split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase() }
 
@@ -524,7 +524,7 @@ function ChatInner() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
   const { status: convStatus, conversations, refresh } = useConversations({ username: auth.username })
-  const { staff } = useStaff()
+  const { staff } = useStaff(auth.username)
   const [activeConv, setActiveConv] = useState(null)
   usePageTitle("Chat — MSO Limpid")
 

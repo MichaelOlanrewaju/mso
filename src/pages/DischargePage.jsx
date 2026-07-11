@@ -5,6 +5,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { naira } from "../utils/format"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -29,16 +30,16 @@ function get(action, extra = {}) {
   return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
 }
 
-function useDischarge(role) {
+function useDischarge(username) {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await get("getDischarge", { role: role || "" })
+    const res = await get("getDischarge", { username: username || "", token: getToken() })
     if (res.ok) setRecords(res.discharge || [])
     setLoading(false)
-  }, [role])
+  }, [username])
 
   useEffect(() => { load() }, [load])
   return { records, loading, refresh: load }
@@ -98,7 +99,7 @@ export default function DischargePage() {
   const navigate = useNavigate()
   usePageTitle("Discharge — MSO Limpid")
 
-  const { records, loading, refresh } = useDischarge(auth.role)
+  const { records, loading, refresh } = useDischarge(auth.username)
   const [tab, setTab] = useState("records")
   const [saving, setSaving] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -189,7 +190,7 @@ export default function DischargePage() {
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "saveDischarge")
     url.searchParams.set("station", STATION_KEY)
-    Object.entries({ ...form, username: auth.username, role: auth.role }).forEach(([k, v]) => url.searchParams.set(k, v))
+    Object.entries({ ...form, username: auth.username, token: getToken() }).forEach(([k, v]) => url.searchParams.set(k, v))
     const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
     setSaving(false)
     if (res.ok) {
@@ -248,7 +249,7 @@ export default function DischargePage() {
     url.searchParams.set("rowIndex", pricingRow.rowIndex)
     url.searchParams.set("pricePerLitre", priceInput)
     url.searchParams.set("username", auth.username)
-    url.searchParams.set("role", auth.role)
+    url.searchParams.set("token", getToken())
     const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
     setSaving(false)
     if (res.ok) {

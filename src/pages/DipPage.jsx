@@ -240,8 +240,8 @@ function DipInner() {
                   Loading readings for {date}…
                 </div>
               ) : isLocked ? (
-                <div className="flex flex-col items-center gap-3 rounded-[14px] border border-amber/25 bg-amber-light px-5 py-8 text-center">
-                  <i className="bi bi-lock-fill text-2xl text-amber" />
+                <div className="flex flex-col items-center gap-3 rounded-[14px] border border-red/25 bg-red-light px-5 py-8 text-center">
+                  <i className="bi bi-lock-fill text-2xl text-red" />
                   <div>
                     <div className="text-[14px] font-bold text-ink">
                       {mode === "open" ? "Opening" : "Closing"} Stock already submitted
@@ -260,7 +260,7 @@ function DipInner() {
                       type="button"
                       onClick={handleRequestEdit}
                       disabled={requestingEdit}
-                      className="flex items-center gap-2 rounded-[11px] bg-amber px-5 py-2.5 text-[13px] font-bold text-white shadow-lift disabled:opacity-60"
+                      className="flex items-center gap-2 rounded-[11px] bg-red px-5 py-2.5 text-[13px] font-bold text-white shadow-lift disabled:opacity-60"
                     >
                       {requestingEdit ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-pencil-square" />}
                       Request Edit

@@ -68,13 +68,13 @@ export default function TransactionsCard({ status, transactions }) {
                   <tr
                     key={i}
                     className={`border-b border-surface last:border-none hover:bg-[#FAFBFE] ${
-                      t.handover ? "bg-[#FFFBEB]" : ""
+                      t.handover ? "bg-[#EAF6FC]" : ""
                     }`}
                   >
                     <td className="mono px-3.5 py-2.5 text-[11.5px] text-ink-4">
                       {t.time || "—"}
                       {t.handover && (
-                        <span className="ml-1.5 inline-flex items-center rounded-full border border-[#FDE68A] bg-amber-light px-1.5 py-px text-[8.5px] font-bold text-amber">
+                        <span className="ml-1.5 inline-flex items-center rounded-full border border-[#BEE6F5] bg-amber-light px-1.5 py-px text-[8.5px] font-bold text-amber">
                           Handover
                         </span>
                       )}
@@ -88,7 +88,7 @@ export default function TransactionsCard({ status, transactions }) {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-px text-[10.5px] font-bold ${
                           (t.product || "").toUpperCase() === "AGO"
-                            ? "border border-[#FDE68A] bg-amber-light text-amber"
+                            ? "border border-[#BEE6F5] bg-amber-light text-amber"
                             : "border border-cyan/20 bg-cyan-light text-cyan-dark"
                         }`}
                       >

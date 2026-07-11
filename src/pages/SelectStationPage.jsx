@@ -29,7 +29,7 @@ function StationCard({ name, addr, accent, badgeLabel, pumpsLine, fuelLine, stat
   const badgeCls = isCyan ? "bg-cyan/10 border-cyan/[0.28] text-cyan" : "bg-amber/10 border-amber/[0.28] text-amber"
   const arrowCls = isCyan ? "bg-cyan/10 text-cyan group-hover:bg-cyan/20" : "bg-amber/10 text-amber group-hover:bg-amber/20"
   const statCls = isCyan ? "text-cyan" : "text-amber"
-  const nameCls = isCyan ? "text-white" : "text-[#FDE68A]"
+  const nameCls = isCyan ? "text-white" : "text-[#BEE6F5]"
 
   return (
     <button

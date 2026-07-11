@@ -21,9 +21,9 @@ export default function KpiGrid({ status, data }) {
   )
 
   if (opening) {
-    totalValue = <span style={{ color: "#FBBF24" }}>Pending</span>
+    totalValue = <span style={{ color: "#3BB8E8" }}>Pending</span>
     totalFoot = (
-      <span style={{ color: "#FBBF24" }}>⏳ Opening dip recorded — awaiting closing</span>
+      <span style={{ color: "#3BB8E8" }}>⏳ Opening dip recorded — awaiting closing</span>
     )
   } else if (noData) {
     totalValue = <span className="text-white/50">—</span>
@@ -86,7 +86,7 @@ export default function KpiGrid({ status, data }) {
     pendingFoot: "no expenses yet",
   })
 
-  const pendingStyle = { color: "#F59E0B" }
+  const pendingStyle = { color: "#179DD0" }
   const mutedStyle = { opacity: 0.5 }
 
   return (
@@ -119,8 +119,8 @@ export default function KpiGrid({ status, data }) {
       <KpiCard
         variant="amber"
         icon="bi-droplet-fill"
-        iconBg="#FFFBEB"
-        iconColor="#D97706"
+        iconBg="#EAF6FC"
+        iconColor="#179DD0"
         label="AGO Sold"
         value={<span style={ago.pending ? pendingStyle : ago.muted ? mutedStyle : undefined}>{ago.value}</span>}
         foot={ago.foot}

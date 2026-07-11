@@ -20,9 +20,9 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
       <div className="mb-4 flex items-center gap-3">
         <div
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px]"
-          style={{ background: isAgo ? "#FFFBEB" : isLpg ? "#F5F3FF" : "#EAF6FC" }}
+          style={{ background: isAgo ? "#EAF6FC" : isLpg ? "#F5F3FF" : "#EAF6FC" }}
         >
-          <i className={`bi ${isLpg ? "bi-fire" : "bi-speedometer2"} text-xl`} style={{ color: isAgo ? "#D97706" : isLpg ? "#7C3AED" : "#179DD0" }} />
+          <i className={`bi ${isLpg ? "bi-fire" : "bi-speedometer2"} text-xl`} style={{ color: isAgo ? "#179DD0" : isLpg ? "#7C3AED" : "#179DD0" }} />
         </div>
         <div>
           <div className="text-[16px] font-extrabold text-ink">Pump {pump.pumpId || pump.id} — {pump.product}</div>

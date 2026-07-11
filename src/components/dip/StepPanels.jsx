@@ -1,6 +1,6 @@
 import React from "react"
 
-const DOT_COLOR = { PMS: "#179DD0", AGO: "#D97706", LPG: "#7C3AED" }
+const DOT_COLOR = { PMS: "#179DD0", AGO: "#179DD0", LPG: "#7C3AED" }
 
 export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
   const unit = cfg.unit || "L"
@@ -21,7 +21,7 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
       <div className="mb-4 flex items-center gap-3">
         <div
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px]"
-          style={{ background: cfg.product === "AGO" ? "#FFFBEB" : cfg.product === "LPG" ? "#F5F3FF" : "#EAF6FC" }}
+          style={{ background: cfg.product === "AGO" ? "#EAF6FC" : cfg.product === "LPG" ? "#F5F3FF" : "#EAF6FC" }}
         >
           <i className={`bi ${cfg.product === "LPG" ? "bi-fire" : "bi-water"} text-xl`} style={{ color: DOT_COLOR[cfg.product] }} />
         </div>

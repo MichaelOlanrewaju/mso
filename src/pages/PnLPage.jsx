@@ -4,6 +4,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -32,10 +33,10 @@ export default function PnLPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await getAPI("getPnL", { dateFrom, dateTo })
+    const res = await getAPI("getPnL", { dateFrom, dateTo, username: auth.username, token: getToken() })
     if (res.ok) setData(res)
     setLoading(false)
-  }, [dateFrom, dateTo])
+  }, [dateFrom, dateTo, auth.username])
 
   useEffect(() => { load() }, [load])
 

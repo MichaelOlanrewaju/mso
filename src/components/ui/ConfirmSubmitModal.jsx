@@ -27,7 +27,7 @@ export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnin
           {rows.map((r, i) => (
             <div key={i} className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5">
               <span className="text-[12.5px] text-ink-3">{r.label}</span>
-              <span className={`mono text-right text-[13px] font-bold ${r.warn ? "text-amber" : "text-ink"}`}>{r.value}</span>
+              <span className={`mono text-right text-[13px] font-bold ${r.warn ? "text-red" : "text-ink"}`}>{r.value}</span>
             </div>
           ))}
         </div>
@@ -35,7 +35,7 @@ export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnin
         {warnings && warnings.length > 0 && (
           <div className="mb-3.5 space-y-1.5">
             {warnings.map((w, i) => (
-              <div key={i} className="flex items-start gap-2 rounded-[10px] border border-amber/25 bg-amber-light px-3 py-2 text-[12px] font-medium text-amber">
+              <div key={i} className="flex items-start gap-2 rounded-[10px] border border-red/25 bg-red-light px-3 py-2 text-[12px] font-medium text-red">
                 <i className="bi bi-exclamation-triangle-fill mt-0.5 flex-shrink-0" />
                 <span>{w}</span>
               </div>

@@ -29,7 +29,7 @@ export default function AgoCard({ status, ago, agoPrice }) {
           <div className="text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">AGO Performance</div>
           <div className="mt-0.5 text-[10.5px] text-ink-4">TK4 · Diesel · P1·N1</div>
         </div>
-        <span className="inline-flex h-fit items-center rounded-full border border-[#FDE68A] bg-amber-light px-2.5 py-[3px] text-[10.5px] font-bold text-amber">
+        <span className="inline-flex h-fit items-center rounded-full border border-[#BEE6F5] bg-amber-light px-2.5 py-[3px] text-[10.5px] font-bold text-amber">
           {loading || !hasData ? "—" : `${pct}%`}
         </span>
       </div>
@@ -53,9 +53,9 @@ export default function AgoCard({ status, ago, agoPrice }) {
           <DataBox
             label="Difference"
             value={loading || !hasData ? "—" : `${numberNG(ago.diff)}L`}
-            bg="#FFFBEB"
-            border="#FDE68A"
-            color="#D97706"
+            bg="#EAF6FC"
+            border="#BEE6F5"
+            color="#179DD0"
           />
           <DataBox
             label="Margin"
@@ -66,7 +66,7 @@ export default function AgoCard({ status, ago, agoPrice }) {
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-1 rounded-[10px] border border-[#FDE68A] bg-amber-light px-3.5 py-[11px]">
+        <div className="flex flex-wrap items-center justify-between gap-1 rounded-[10px] border border-[#BEE6F5] bg-amber-light px-3.5 py-[11px]">
           <span className="text-xs font-medium text-ink-2">
             {loading || !hasData ? `— L × ₦${price.toLocaleString("en-NG")}` : `${numberNG(ago.diff)}L × ₦${price.toLocaleString("en-NG")}`}
           </span>

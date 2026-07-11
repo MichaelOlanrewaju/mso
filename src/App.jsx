@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom"
 import { OfflineBanner } from "./components/pwa/PWABanners"
 import { useAuth } from "./hooks/useAuth"
 import { usePriceWatch } from "./hooks/usePriceWatch"
+import { usePushNotifications } from "./hooks/usePushNotifications"
 import PriceChangeAlert from "./components/layout/PriceChangeAlert"
 
 const LandingPage            = lazy(() => import("./pages/LandingPage"))
@@ -45,6 +46,18 @@ function RouteLoading() {
 
 export default function App() {
   const auth = useAuth()
+
+  // Initialize OneSignal web push once, app-wide, and keep the push
+  // identity in sync with whoever is logged in. Doing it here (rather
+  // than per-dashboard) means every role is covered uniformly and the
+  // subscription is correctly attached/cleared across login and logout.
+  // Passing null when logged out triggers clearPushUser inside the hook.
+  usePushNotifications(
+    !auth.loading && auth.user
+      ? { username: auth.username, role: auth.role, station: auth.station }
+      : null
+  )
+
   // Only supervisors need the live cutover alert — they're the ones who
   // close pumps. GM/Owner already see price changes reflected wherever
   // they look; cashiers don't touch pump metres.

@@ -54,6 +54,14 @@ function readSession() {
       return null
     }
 
+    // NOTE: earlier this force-cleared any session without a token, to
+    // push everyone through a one-time re-login. That's no longer needed —
+    // the backend now accepts a verified username as a fallback when a
+    // token is missing/stale (hybrid auth), so a tokenless session keeps
+    // working and simply gains a token on the user's next natural login.
+    // Force-clearing here is what made legitimate users hit "session
+    // expired" unexpectedly, so we let the session stand.
+
     // Roll the expiry forward on every read, keeping active users signed in
     record.savedAt = Date.now()
     try {
@@ -129,6 +137,16 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
   )
 
   const logout = useCallback(() => {
+    // Revoke the server-side session token too (fire-and-forget — local
+    // logout must never be blocked by a slow/failed network call).
+    try {
+      const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
+      const raw = window.localStorage.getItem(SESSION_KEY)
+      const token = raw ? (JSON.parse(raw)?.user?.token || "") : ""
+      if (SCRIPT_URL && token) {
+        fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "logout", token }) }).catch(() => {})
+      }
+    } catch { /* never block logout */ }
     clearSession()
     setUser(null)
     navigate("/", { replace: true })

@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom"
 const ACTIONS = [
   { icon: "bi-pencil-square",          iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Record Sales",       href: "/sales-mso",    roles: ["supervisor","cashier"] },
   { icon: "bi-calculator",             iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Cash Up",            href: "/cashup-mso",   roles: ["supervisor","cashier"] },
-  { icon: "bi-truck",                  iconBg: "#FEF9EC", iconColor: "#D97706", label: "Discharge",          href: "/discharge-mso",roles: ["owner","gm","supervisor"] },
+  { icon: "bi-truck",                  iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Discharge",          href: "/discharge-mso",roles: ["owner","gm","supervisor"] },
   { icon: "bi-clock",                  iconBg: "#F5F3FF", iconColor: "#7C3AED", label: "Shifts",             href: "/shifts-mso",   roles: ["supervisor","cashier"] },
   { icon: "bi-person-fill-exclamation",iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Debtors",            href: "/debtors-mso",  roles: ["owner","gm","supervisor"] },
-  { icon: "bi-box-arrow-in-down",      iconBg: "#FEF9EC", iconColor: "#D97706", label: "Orders",             href: "/orders-mso",   roles: ["owner","gm"] },
+  { icon: "bi-box-arrow-in-down",      iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Orders",             href: "/orders-mso",   roles: ["owner","gm"] },
   { icon: "bi-wallet2",                iconBg: "#EEF0FB", iconColor: "#130656", label: "Payroll",            href: "/payroll-mso",  roles: ["owner","gm"] },
   { icon: "bi-bar-chart-line-fill",    iconBg: "#EDE9FE", iconColor: "#6D28D9", label: "P&L Report",        href: "/pnl-mso",      roles: ["owner","gm"] },
   { icon: "bi-graph-up-arrow",         iconBg: "#EAF6FC", iconColor: "#0891B2", label: "Variance",           href: "/variance-mso", roles: ["owner","gm"] },

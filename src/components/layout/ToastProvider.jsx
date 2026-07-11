@@ -6,7 +6,7 @@ const ICONS = {
   ok: { icon: "bi-check-circle-fill", bg: "#F0FDF4", color: "#16A34A" },
   err: { icon: "bi-x-circle-fill", bg: "#FEF2F2", color: "#DC2626" },
   info: { icon: "bi-info-circle-fill", bg: "#EAF6FC", color: "#179DD0" },
-  warn: { icon: "bi-exclamation-triangle-fill", bg: "#FFFBEB", color: "#B45309" },
+  warn: { icon: "bi-exclamation-triangle-fill", bg: "#EAF6FC", color: "#1188B5" },
 }
 
 export function ToastProvider({ children }) {

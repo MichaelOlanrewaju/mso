@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { usePWA } from "../../hooks/usePWA"
+import { usePWA, sendTestNotification, useLiveNotifications } from "../../hooks/usePWA"
+import { usePushNotifications } from "../../hooks/usePushNotifications"
 
 /* ── Offline toast ──────────────────────────────────────── */
 export function OfflineBanner() {
@@ -62,8 +63,94 @@ export function InstallStrip() {
   )
 }
 
-/* ── Notification permission prompt ─────────────────────── */
-export function NotificationPrompt({ onDismiss }) {
+/* ── Test notification button ───────────────────────────── */
+// Drop this anywhere (Dashboard, Settings, etc.) so someone can confirm
+// THEIR device/browser is actually receiving notifications right now,
+// instead of waiting around for a real pending cash-up/edit/payroll to
+// show up and hoping it fires.
+export function TestNotificationButton() {
+  const [state, setState] = useState("idle") // idle | sending | sent | blocked | unsupported
+
+  const handleClick = async () => {
+    setState("sending")
+    const result = await sendTestNotification()
+    if (result.ok) setState("sent")
+    else if (result.reason === "unsupported") setState("unsupported")
+    else setState("blocked")
+    setTimeout(() => setState("idle"), 4000)
+  }
+
+  if (state === "unsupported") {
+    return <div className="text-[11.5px]" style={{ color: "rgba(255,255,255,.35)" }}>Notifications aren't supported in this browser.</div>
+  }
+
+  return (
+    <button type="button" onClick={handleClick} disabled={state === "sending"}
+      className="flex items-center gap-1.5 rounded-[9px] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60"
+      style={{
+        background: state === "sent" ? "rgba(34,197,94,.14)" : state === "blocked" ? "rgba(239,68,68,.14)" : "rgba(23,157,208,.10)",
+        color: state === "sent" ? "#22C55E" : state === "blocked" ? "#EF4444" : "#3BB8E8",
+        border: "none", cursor: "pointer",
+      }}>
+      <i className={`bi ${state === "sent" ? "bi-check-circle-fill" : state === "blocked" ? "bi-bell-slash-fill" : "bi-bell-fill"} text-[12px]`} />
+      {state === "sending" ? "Sending…"
+        : state === "sent" ? "Sent — check now"
+        : state === "blocked" ? "Blocked — check browser settings"
+        : "Send test notification"}
+    </button>
+  )
+}
+/* ── All-in-one notifications block ──────────────────────
+   Drop <StaffNotifications username={...} /> into any dashboard to get:
+   the live-notification poller running (approvals reach owner/GM, price
+   changes reach everyone), a one-time "Allow notifications" prompt, and
+   the "Send test notification" button once granted. One component so all
+   four dashboards stay in sync. */
+export function StaffNotifications({ username, role, station = "mso" }) {
+  // Existing in-app notification system — unchanged. Fires alerts while
+  // the app is OPEN (approvals, price changes). Kept as-is.
+  const { notifPermission } = usePWA()
+  useLiveNotifications({ enabled: notifPermission === "granted", username, station })
+
+  // OneSignal web push — the NEW layer. Delivers even when the app is
+  // CLOSED (Android always; iOS when installed to Home Screen, 16.4+).
+  // Initializes after mount and ties the subscription to this user.
+  const push = usePushNotifications(
+    username ? { username, role, station } : null
+  )
+
+  const [showPrompt, setShowPrompt] = useState(
+    typeof Notification !== "undefined" && Notification.permission === "default"
+  )
+
+  // When the user accepts our prompt, route it through OneSignal so the
+  // subscription is registered with their servers (not just a bare
+  // browser permission). Falls back gracefully if OneSignal isn't ready.
+  const handleEnable = async () => {
+    setShowPrompt(false)
+    if (push.ready) {
+      await push.enable()
+    }
+  }
+
+  return (
+    <>
+      {notifPermission === "granted" && (
+        <div className="mb-3 flex justify-end">
+          <TestNotificationButton />
+        </div>
+      )}
+      {showPrompt && (
+        <NotificationPrompt
+          onDismiss={() => setShowPrompt(false)}
+          onEnable={handleEnable}
+        />
+      )}
+    </>
+  )
+}
+
+export function NotificationPrompt({ onDismiss, onEnable }) {
   const { notifPermission, requestNotifications } = usePWA()
   const [asking, setAsking] = useState(false)
 
@@ -71,7 +158,11 @@ export function NotificationPrompt({ onDismiss }) {
 
   const handleAllow = async () => {
     setAsking(true)
-    await requestNotifications()
+    // Prefer the OneSignal-aware path (registers a real push subscription).
+    // Fall back to the existing browser-permission request if no handler
+    // was supplied, so this component still works anywhere it's used alone.
+    if (onEnable) await onEnable()
+    else await requestNotifications()
     setAsking(false)
     onDismiss?.()
   }

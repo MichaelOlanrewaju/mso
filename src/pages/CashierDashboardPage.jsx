@@ -7,12 +7,13 @@ import { useDashboardData } from "../hooks/useDashboardData"
 import { useCashupData } from "../hooks/useCashupData"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, initials } from "../utils/format"
+import { StaffNotifications } from "../components/pwa/PWABanners"
 
 const HERO_STYLES = {
   pending: { bg: "linear-gradient(135deg, #06091A, #0D1226)", label: "Pending Cashup", sub: "Waiting for supervisor to submit dip readings" },
   balanced: { bg: "linear-gradient(135deg, #15803D, #22C55E)", label: "Balanced ✓", sub: "Within ₦500 tolerance" },
   short: { bg: "linear-gradient(135deg, #991B1B, #DC2626)", label: "SHORT", sub: "Collection is less than expected" },
-  over: { bg: "linear-gradient(135deg, #B45309, #D97706)", label: "OVER", sub: "Collection exceeds expected" },
+  over: { bg: "linear-gradient(135deg, #1188B5, #179DD0)", label: "OVER", sub: "Collection exceeds expected" },
 }
 
 const QUICK_ACTIONS = [
@@ -83,6 +84,7 @@ function CashierInner() {
       </div>
 
       <div className="mx-auto max-w-[540px] px-4 py-4">
+        <StaffNotifications username={auth.username} role={auth.role} station="mso" />
         <div className="relative mb-4 overflow-hidden rounded-[18px] p-5" style={{ background: hero.bg }}>
           <div className="relative z-[1] mb-2 text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">Today's Reconciliation</div>
           <div className="relative z-[1] mb-1 text-[22px] font-black tracking-tight text-white">{gt > 0 ? hero.label : "Awaiting Data"}</div>
@@ -224,14 +226,14 @@ function CashierInner() {
             <div
               className="flex items-center justify-between rounded-[10px] px-3.5 py-2.5"
               style={{
-                background: lpgVariance === null ? "#F8FAFC" : Math.abs(lpgVariance) <= 100 ? "#F0FDF4" : lpgVariance < 0 ? "#FEF2F2" : "#FFFBEB",
-                border: `1px solid ${lpgVariance === null ? "#E8EDF5" : Math.abs(lpgVariance) <= 100 ? "#BBF7D0" : lpgVariance < 0 ? "#FECACA" : "#FDE68A"}`,
+                background: lpgVariance === null ? "#F8FAFC" : Math.abs(lpgVariance) <= 100 ? "#F0FDF4" : lpgVariance < 0 ? "#FEF2F2" : "#EAF6FC",
+                border: `1px solid ${lpgVariance === null ? "#E8EDF5" : Math.abs(lpgVariance) <= 100 ? "#BBF7D0" : lpgVariance < 0 ? "#FECACA" : "#BEE6F5"}`,
               }}
             >
               <span className="text-[12px] font-semibold text-ink-3">LPG Variance</span>
               <span
                 className="mono text-[14px] font-extrabold"
-                style={{ color: lpgVariance === null ? "#94A3B8" : Math.abs(lpgVariance) <= 100 ? "#16A34A" : lpgVariance < 0 ? "#DC2626" : "#D97706" }}
+                style={{ color: lpgVariance === null ? "#94A3B8" : Math.abs(lpgVariance) <= 100 ? "#16A34A" : lpgVariance < 0 ? "#DC2626" : "#179DD0" }}
               >
                 {lpgVariance === null ? "₦—" : `${lpgVariance >= 0 ? "+" : ""}${naira(Math.abs(lpgVariance))}`}
               </span>

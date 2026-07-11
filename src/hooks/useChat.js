@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
-const POLL_MS = 4000
+const POLL_MS = 10000
 
 export function dmConversationId(a, b) {
   const pair = [a, b].map(s => s.toLowerCase()).sort()
@@ -26,6 +27,7 @@ export function useConversations({ username }) {
     url.searchParams.set("action", "getConversations")
     url.searchParams.set("station", STATION_KEY)
     url.searchParams.set("username", username)
+    url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
       .then(d => {
@@ -61,7 +63,8 @@ export function useChat({ username, name, conversationId }) {
     url.searchParams.set("action", "getChatMessages")
     url.searchParams.set("station", STATION_KEY)
     url.searchParams.set("conversationId", conversationId)
-    url.searchParams.set("username", username) // for deleted-for-me filtering
+    url.searchParams.set("username", username)
+    url.searchParams.set("token", getToken()) // for deleted-for-me filtering
     if (after) url.searchParams.set("after", after)
     return fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
@@ -94,15 +97,29 @@ export function useChat({ username, name, conversationId }) {
     const tick = () => {
       const isInitial = isInitialRef.current
       if (isInitial) isInitialRef.current = false
-      fetchMessages(isInitial ? "" : lastTsRef.current, isInitial).finally(() => {
+      // Don't spend a request while the tab/app isn't visible — a
+      // backgrounded chat window polling every 10s is pure waste. We
+      // still reschedule so polling resumes the moment they come back,
+      // and the visibilitychange handler below fires an immediate catch-up
+      // fetch on return so they're never left staring at stale messages.
+      const skip = typeof document !== "undefined" && document.visibilityState === "hidden" && !isInitial
+      const work = skip ? Promise.resolve() : fetchMessages(isInitial ? "" : lastTsRef.current, isInitial)
+      work.finally(() => {
         if (!cancelled && isMounted.current) {
           pollTimer.current = setTimeout(tick, POLL_MS)
         }
       })
     }
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && !cancelled && isMounted.current) {
+        fetchMessages(lastTsRef.current, false)
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
     const kickoff = setTimeout(tick, 0)
     return () => {
       cancelled = true
+      document.removeEventListener("visibilitychange", onVisible)
       clearTimeout(kickoff)
       if (pollTimer.current) clearTimeout(pollTimer.current)
     }
@@ -126,7 +143,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveChatMessage", station: STATION_KEY, conversationId, username, name, text: trimmed, imageFileId }),
+        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: STATION_KEY, conversationId, username, name, text: trimmed, imageFileId }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -152,7 +169,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "editChatMessage", station: STATION_KEY, messageId, text: newText, username }),
+        body: JSON.stringify({ action: "editChatMessage", token: getToken(), station: STATION_KEY, messageId, text: newText, username }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -172,7 +189,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "deleteChatMessage", station: STATION_KEY, messageId, username }),
+        body: JSON.stringify({ action: "deleteChatMessage", token: getToken(), station: STATION_KEY, messageId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
@@ -185,7 +202,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "hideConversation", station: STATION_KEY, conversationId, username }),
+        body: JSON.stringify({ action: "hideConversation", token: getToken(), station: STATION_KEY, conversationId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }

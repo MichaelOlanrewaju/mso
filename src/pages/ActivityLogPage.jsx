@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -24,7 +25,7 @@ function actionStyle(action) {
   if (a.includes("APPROV") || a.includes("PRICED")) return { icon: "bi-check-circle", color: "#16A34A" }
   if (a.includes("REJECT") || a.includes("FAIL")) return { icon: "bi-x-circle", color: "#DC2626" }
   if (a.includes("EDIT_REQUEST")) return { icon: "bi-pencil-square", color: "#7C3AED" }
-  if (a.includes("SHORTAGE")) return { icon: "bi-exclamation-triangle", color: "#D97706" }
+  if (a.includes("SHORTAGE")) return { icon: "bi-exclamation-triangle", color: "#179DD0" }
   if (a.includes("SAVE") || a.includes("UPDATE")) return { icon: "bi-cloud-check", color: "#179DD0" }
   return { icon: "bi-info-circle", color: "#64748B" }
 }
@@ -51,10 +52,10 @@ export default function ActivityLogPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await getAPI("getActivityLog", { date: dateFilter, actionFilter: actionFilterSel })
+    const res = await getAPI("getActivityLog", { date: dateFilter, actionFilter: actionFilterSel, username: auth.username, token: getToken() })
     if (res.ok) { setEntries(res.entries || []); setActions(res.actions || []) }
     setLoading(false)
-  }, [dateFilter, actionFilterSel])
+  }, [dateFilter, actionFilterSel, auth.username])
 
   useEffect(() => { load() }, [load])
 

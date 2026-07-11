@@ -8,7 +8,17 @@ export default {
         navy: { DEFAULT: "#06091A", 2: "#0D1226", 3: "#141935" },
         deepnavy: { DEFAULT: "#130656", light: "#EEF0FF", 2: "#1a0875" },
         green: { DEFAULT: "#16A34A", light: "#F0FDF4" },
-        amber: { DEFAULT: "#D97706", light: "#FFFBEB" },
+        amber: {
+          DEFAULT: "#179DD0", light: "#EAF6FC",
+          // Full numbered scale mapped to brand blue too, so any Tailwind
+          // `amber-600`/`amber-800`/etc. class (which would otherwise fall
+          // through to Tailwind's DEFAULT orange amber — e.g. rgb(217 119 6))
+          // renders in brand blue instead. Darker steps use the darker blue
+          // so gradients/contrast still read sensibly.
+          50: "#EAF6FC", 100: "#EAF6FC", 200: "#BEE6F5", 300: "#7FCDEA",
+          400: "#3FB4E0", 500: "#179DD0", 600: "#179DD0", 700: "#1188B5",
+          800: "#0E7196", 900: "#0B5A78", 950: "#083F54",
+        },
         red: { DEFAULT: "#DC2626", light: "#FEF2F2" },
         ink: { DEFAULT: "#0F172A", 2: "#334155", 3: "#64748B", 4: "#94A3B8" },
         border: "#E8EDF5",

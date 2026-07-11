@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -79,6 +80,7 @@ export function useShortages({ all = false } = {}) {
       url.searchParams.set("rowIndex", rowIndex)
       url.searchParams.set("decision", decision)
       url.searchParams.set("username", username || "")
+      url.searchParams.set("token", getToken())
       try {
         const res = await fetch(url.toString(), { method: "GET", redirect: "follow" })
         const d = await res.json()

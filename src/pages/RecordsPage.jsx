@@ -322,7 +322,7 @@ function RecordsInner() {
                       <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-white/50">Variance</div>
                       <div
                         className="mono mt-1 text-[19px] font-extrabold"
-                        style={{ color: !hasAnyPumpData ? "rgba(255,255,255,.4)" : Math.abs(reconciliationVariance) < 1 ? "#4ADE80" : reconciliationVariance < 0 ? "#F87171" : "#FBBF24" }}
+                        style={{ color: !hasAnyPumpData ? "rgba(255,255,255,.4)" : Math.abs(reconciliationVariance) < 1 ? "#4ADE80" : reconciliationVariance < 0 ? "#F87171" : "#3BB8E8" }}
                       >
                         {hasAnyPumpData ? naira(reconciliationVariance) : "—"}
                       </div>

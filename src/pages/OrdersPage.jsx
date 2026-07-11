@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -52,7 +53,7 @@ export default function OrdersPage() {
   }
 
   const handleStatus = async (rowIndex, status) => {
-    const res = await getAPI("updateOrderStatus", { rowIndex, status, username: auth.username })
+    const res = await getAPI("updateOrderStatus", { rowIndex, status, username: auth.username, token: getToken() })
     if (res.ok) load()
   }
 

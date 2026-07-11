@@ -46,6 +46,7 @@ export function useDashboardData(username) {
       url.searchParams.set("action", "getDashboard")
       url.searchParams.set("station", STATION_KEY)
       url.searchParams.set("username", username || "owner")
+      if (skipCache) url.searchParams.set("fresh", "1")
 
       fetch(url.toString(), { method: "GET", redirect: "follow" })
         .then(res => res.json())

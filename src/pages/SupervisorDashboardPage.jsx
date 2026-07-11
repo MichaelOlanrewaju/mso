@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth"
 import { useDashboardData } from "../hooks/useDashboardData"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { initials } from "../utils/format"
+import { StaffNotifications } from "../components/pwa/PWABanners"
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-NG")
@@ -127,6 +128,7 @@ export default function SupervisorDashboardPage() {
       </div>
 
       <div className="mx-auto max-w-[640px] px-4 py-4">
+        <StaffNotifications username={auth.username} role={auth.role} station="mso" />
         <button
           type="button"
           onClick={() => (hasClose ? null : navigate("/dip-mso"))}
@@ -281,8 +283,8 @@ export default function SupervisorDashboardPage() {
         <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
           <MenuRow icon="bi-water" iconBg="#EEF0FF" iconColor="#130656" title="Dip Entry" sub="Enter opening & closing readings" onClick={() => navigate("/dip-mso")} />
           <MenuRow icon="bi-speedometer2" iconBg="#F5F3FF" iconColor="#7C3AED" title="Pump Metres" sub="Today's pump sales data" onClick={() => navigate("/sales-mso")} />
-          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="#D97706" title="Daily Records" sub="View & manage historical data" onClick={() => navigate("/records-mso")} />
-          <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="#D97706" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate("/discharge-mso")} />
+          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="#179DD0" title="Daily Records" sub="View & manage historical data" onClick={() => navigate("/records-mso")} />
+          <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="#179DD0" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate("/discharge-mso")} />
           <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate("/expenses-mso")} />
           <MenuRow icon="bi-tag" iconBg="#EEF0FF" iconColor="#130656" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate("/price-mso")} />
           <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate("/summary-mso")} />

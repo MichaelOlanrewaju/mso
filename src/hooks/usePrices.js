@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -53,7 +54,7 @@ export function usePrices() {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "savePrice", station: STATION_KEY, product, price, note, username }),
+          body: JSON.stringify({ action: "savePrice", station: STATION_KEY, token: getToken(), product, price, note, username }),
         })
         const d = await res.json()
         if (d.ok) load()

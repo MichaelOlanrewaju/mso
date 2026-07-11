@@ -4,6 +4,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
@@ -52,7 +53,7 @@ export default function DebtorsPage() {
 
   const handleSettle = async (rowIndex, name) => {
     if (!window.confirm(`Mark debt from ${name} as settled?`)) return
-    const res = await getAPI("settleDebtor", { rowIndex, username: auth.username })
+    const res = await getAPI("settleDebtor", { rowIndex, username: auth.username, token: getToken() })
     if (res.ok) { load() } else alert(res.error || "Failed.")
   }
 

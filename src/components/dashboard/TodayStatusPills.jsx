@@ -1,7 +1,7 @@
 import React from "react"
 
 function Pill({ icon, label, value, tone }) {
-  const toneColor = tone === "done" ? "#16A34A" : tone === "warn" ? "#D97706" : "#94A3B8"
+  const toneColor = tone === "done" ? "#16A34A" : tone === "warn" ? "#179DD0" : "#94A3B8"
   return (
     <div className="flex flex-1 flex-col items-center gap-1 rounded-card border border-border bg-white px-3 py-3.5 text-center shadow-card">
       <span className="text-[20px] leading-none">{icon}</span>

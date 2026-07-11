@@ -13,7 +13,7 @@ const RECON_STYLES = {
   pending: { grad: "linear-gradient(135deg,#130656 0%,#1a0875 100%)", accent: "#94A3B8", icon: "bi-hourglass-split", label: "Enter amounts to reconcile" },
   balanced: { grad: "linear-gradient(135deg,#0f7a3d 0%,#16A34A 100%)", accent: "#BBF7D0", icon: "bi-check-circle-fill", label: "Balanced" },
   short: { grad: "linear-gradient(135deg,#7f1d1d 0%,#DC2626 100%)", accent: "#FECACA", icon: "bi-exclamation-triangle-fill", label: "Short" },
-  over: { grad: "linear-gradient(135deg,#92400e 0%,#D97706 100%)", accent: "#FDE68A", icon: "bi-arrow-up-circle-fill", label: "Over" },
+  over: { grad: "linear-gradient(135deg,#0E7196 0%,#179DD0 100%)", accent: "#BEE6F5", icon: "bi-arrow-up-circle-fill", label: "Over" },
 }
 
 // A compact, single-row money input — label + input on one line, optional
@@ -398,7 +398,7 @@ function CashupInner() {
                   />
                 </label>
                 {lpgVariance !== null && lpgVariance !== 0 && (
-                  <div className="col-span-2 flex items-center gap-2 rounded-[9px] border border-amber/25 bg-amber-light px-3.5 py-2.5 text-[11.5px] font-semibold text-amber">
+                  <div className="col-span-2 flex items-center gap-2 rounded-[9px] border border-red/25 bg-red-light px-3.5 py-2.5 text-[11.5px] font-semibold text-red">
                     <i className="bi bi-exclamation-triangle-fill" />
                     Remitted {lpgVariance > 0 ? "exceeds" : "is short of"} sales by {naira(Math.abs(lpgVariance))}
                   </div>

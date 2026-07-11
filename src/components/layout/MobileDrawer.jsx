@@ -6,10 +6,10 @@ import { useNavigate } from "react-router-dom"
 // should be a floor-operations task like Record Sales, Tank Dip, Cash Up,
 // or Expenses entry. Those belong to supervisor/cashier only.
 const LINKS = [
-  { href: "/discharge-mso",icon: "bi-truck",                  color: "#D97706", text: "Discharge" },
+  { href: "/discharge-mso",icon: "bi-truck",                  color: "#179DD0", text: "Discharge" },
   { href: "/shortage-mso", icon: "bi-exclamation-triangle",   color: "#F87171", text: "Shortage" },
   { href: "/debtors-mso",  icon: "bi-person-fill-exclamation",color: "#DC2626", text: "Debtors" },
-  { href: "/orders-mso",   icon: "bi-box-arrow-in-down",      color: "#D97706", text: "Orders" },
+  { href: "/orders-mso",   icon: "bi-box-arrow-in-down",      color: "#179DD0", text: "Orders" },
   { href: "/variance-mso", icon: "bi-graph-up-arrow",         color: "#0891B2", text: "Variance" },
   { href: "/pnl-mso",      icon: "bi-bar-chart-line-fill",    color: "#06091A", text: "P&L" },
   { href: "/summary-mso",  icon: "bi-printer",                color: "#06091A", text: "Summary" },

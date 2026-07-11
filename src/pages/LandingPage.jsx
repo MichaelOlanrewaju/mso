@@ -28,6 +28,13 @@ const SLIDES = [
   },
 ]
 
+const FEATURES = [
+  { icon: "bi-fuel-pump", label: "Live sales" },
+  { icon: "bi-droplet-half", label: "Tank tracking" },
+  { icon: "bi-cash-stack", label: "Cash recon" },
+  { icon: "bi-people", label: "Payroll" },
+]
+
 const DURATION = 5200
 
 export default function LandingPage() {
@@ -123,7 +130,7 @@ export default function LandingPage() {
             style={{
               position: "absolute", inset: 0, width: "100%", height: "100%",
               objectFit: "cover", objectPosition: "center",
-              filter: "brightness(.74) saturate(.95)",
+              filter: "brightness(.72) saturate(.95)",
               transform: i === current ? "scale(1)" : "scale(1.07)",
               transition: i === current ? "transform 7s ease-out" : "none",
               willChange: "transform",
@@ -132,14 +139,17 @@ export default function LandingPage() {
         </div>
       ))}
 
-      {/* ── Overlays — let photo breathe ── */}
+      {/* ── Overlays — let photo breathe, stronger left edge on desktop
+          so text always sits on a readable base regardless of photo ── */}
       <div className="pointer-events-none absolute inset-0" style={{ zIndex: 1,
         background: "linear-gradient(to bottom, rgba(6,9,26,.75) 0%, rgba(6,9,26,.10) 32%, rgba(6,9,26,.04) 52%, rgba(6,9,26,.58) 72%, rgba(6,9,26,.96) 100%)" }} />
+      <div className="pointer-events-none absolute inset-0 hidden lg:block" style={{ zIndex: 1,
+        background: "linear-gradient(to right, rgba(6,9,26,.88) 0%, rgba(6,9,26,.45) 38%, transparent 62%)" }} />
       <div className="pointer-events-none absolute inset-0" style={{ zIndex: 1,
         background: "radial-gradient(ellipse 55% 55% at 6% 92%, rgba(23,157,208,.08) 0%, transparent 62%)" }} />
 
       {/* ── Progress bars ── */}
-      <div className="absolute left-0 right-0 z-[30] flex gap-[5px] px-[18px] pt-[10px]"
+      <div className="absolute left-0 right-0 z-[30] mx-auto flex max-w-[1200px] gap-[5px] px-[18px] pt-[10px] lg:px-10"
         style={{ top: "env(safe-area-inset-top)" }}>
         {SLIDES.map((_, i) => (
           <div key={i} className="relative flex-1 overflow-hidden rounded-full"
@@ -154,7 +164,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── Top bar ── */}
-      <header className="absolute left-0 right-0 z-[20] flex items-center justify-between px-5"
+      <header className="absolute left-0 right-0 z-[20] mx-auto flex max-w-[1200px] items-center justify-between px-5 lg:px-10"
         style={{ top: "env(safe-area-inset-top)", paddingTop: 24 }}>
         {/* Logo */}
         <div className="flex items-center gap-[11px]">
@@ -169,16 +179,18 @@ export default function LandingPage() {
 
         {/* Sign In button */}
         <button type="button" onClick={() => navigate("/login")} aria-label="Sign in to your account"
-          className="flex items-center gap-[7px] rounded-full px-4 py-2 text-[13px] font-bold"
+          className="flex items-center gap-[7px] rounded-full px-4 py-2 text-[13px] font-bold transition-colors hover:bg-white/15"
           style={{ color: "rgba(255,255,255,.88)", background: "rgba(255,255,255,.09)", border: ".5px solid rgba(255,255,255,.18)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)" }}>
           Sign In <i className="bi bi-arrow-right" />
         </button>
       </header>
 
-      {/* ── Slide content — hero text ── */}
-      <div className="absolute inset-0 z-[5] flex flex-col justify-end px-6"
-        style={{ paddingBottom: "calc(272px + env(safe-area-inset-bottom))" }}>
-        <div key={current} style={{ animation: "scIn .65s .08s cubic-bezier(.22,1,.36,1) both" }}>
+      {/* ── Slide content — hero text.
+          Mobile: bottom-anchored above the action panel (story style).
+          Desktop: vertically centered left column, room for a real
+          headline scale and the feature chips row. ── */}
+      <div className="absolute inset-0 z-[5] mx-auto flex max-w-[1200px] flex-col justify-end px-6 pb-[calc(272px+env(safe-area-inset-bottom))] lg:justify-center lg:px-10 lg:pb-0">
+        <div key={current} className="lg:max-w-[620px]" style={{ animation: "scIn .65s .08s cubic-bezier(.22,1,.36,1) both" }}>
           {/* Counter row — styled like a mechanical forecourt pump meter */}
           <div className="mb-[13px] flex items-center gap-[10px]">
             <div className="flex items-center gap-[7px] rounded-[7px] px-[10px] py-[5px]"
@@ -201,8 +213,9 @@ export default function LandingPage() {
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "rgba(110,225,255,.92)" }}>{slide.tag}</span>
           </div>
 
-          {/* Headline */}
-          <h1 style={{ fontWeight: 800, color: "#fff", lineHeight: .96, letterSpacing: "-.045em", marginBottom: 14, textShadow: "0 2px 4px rgba(0,0,0,.6), 0 8px 32px rgba(0,0,0,.45)", fontSize: "clamp(38px,10.5vw,60px)" }}>
+          {/* Headline — scales up properly on desktop instead of capping
+              at the mobile size */}
+          <h1 style={{ fontWeight: 800, color: "#fff", lineHeight: .96, letterSpacing: "-.045em", marginBottom: 16, textShadow: "0 2px 4px rgba(0,0,0,.6), 0 8px 32px rgba(0,0,0,.45)", fontSize: "clamp(38px, 7.2vw, 88px)" }}>
             {slide.h1.map((line, i) => (
               <React.Fragment key={i}>
                 {i === slide.accent ? <span style={{ color: "#6DE0FF" }}>{line}</span> : line}
@@ -211,15 +224,56 @@ export default function LandingPage() {
             ))}
           </h1>
 
-          {/* Sub */}
-          <p style={{ fontSize: 14.5, fontWeight: 400, color: "rgba(255,255,255,.46)", lineHeight: 1.76, maxWidth: 295 }}>
+          {/* Sub — wider measure on desktop so it reads as a sentence,
+              not a sliver */}
+          <p className="max-w-[295px] lg:max-w-[440px]" style={{ fontSize: "clamp(14.5px, 1.1vw, 16.5px)", fontWeight: 400, color: "rgba(255,255,255,.52)", lineHeight: 1.72 }}>
             {slide.p}
           </p>
+
+          {/* Feature chips — desktop only; on mobile the bottom sheet
+              already carries this weight */}
+          <div className="mt-7 hidden flex-wrap gap-2.5 lg:flex">
+            {FEATURES.map(f => (
+              <div key={f.label} className="flex items-center gap-2 rounded-full px-[14px] py-[7px]"
+                style={{ background: "rgba(255,255,255,.06)", border: ".5px solid rgba(255,255,255,.12)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+                <i className={`bi ${f.icon} text-[13px]`} style={{ color: "#6DE0FF" }} />
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,.72)" }}>{f.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop CTA — inline with the hero, since the mobile bottom
+              sheet is hidden at lg and up */}
+          <div className="mt-9 hidden items-center gap-5 lg:flex">
+            <button type="button" onClick={() => navigate("/login")} aria-label="Sign in to your account"
+              className="group relative flex items-center gap-3 overflow-hidden rounded-[15px] px-7 text-[15px] font-extrabold text-white transition-transform hover:scale-[1.02]"
+              style={{ height: 54, background: "#179DD0", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
+              <span className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 55%)" }} />
+              <i className="bi bi-box-arrow-in-right" />
+              Sign In to Continue
+              <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-[14px] transition-transform group-hover:translate-x-0.5"
+                style={{ background: "rgba(255,255,255,.20)" }}>
+                <i className="bi bi-arrow-right" />
+              </div>
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-[5px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
+                <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#22C55E", boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
+                MSO Limpid
+              </span>
+              <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
+              <span className="inline-flex items-center gap-[5px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
+                <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#179DD0", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
+                M&amp;M Oil &amp; Gas
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Action panel — bottom sheet ── */}
-      <div className="absolute bottom-0 left-0 right-0 z-[10] px-5"
+      {/* ── Action panel — bottom sheet (mobile/tablet only; desktop CTA
+          lives inline with the hero above) ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-[10] px-5 lg:hidden"
         style={{ paddingBottom: "calc(22px + env(safe-area-inset-bottom))", background: "linear-gradient(to top, rgba(6,9,26,1) 0%, rgba(6,9,26,.97) 52%, rgba(6,9,26,.70) 80%, transparent 100%)" }}>
 
         {/* Dot indicators */}
@@ -257,12 +311,24 @@ export default function LandingPage() {
           </span>
           <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
           <span className="inline-flex items-center gap-[5px] text-[11.5px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
-            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#F59E0B", boxShadow: "0 0 6px rgba(245,158,11,.7)" }} />
+            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#179DD0", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
             M&amp;M Oil &amp; Gas
           </span>
           <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
           <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,.28)" }}>Both stations live</span>
         </div>
+      </div>
+
+      {/* ── Desktop slide dots — bottom center, since the mobile sheet is
+          hidden at lg and up ── */}
+      <div className="absolute bottom-8 left-0 right-0 z-[10] hidden items-center justify-center gap-[6px] lg:flex">
+        {SLIDES.map((_, i) => (
+          <button key={i} type="button" onClick={() => goTo(i)}
+            aria-label={`Go to slide ${i + 1} of ${SLIDES.length}`}
+            aria-current={i === current ? "true" : undefined}
+            className="rounded-full transition-all duration-300"
+            style={{ height: 3, width: i === current ? 28 : 18, background: i === current ? "rgba(255,255,255,.84)" : "rgba(255,255,255,.18)" }} />
+        ))}
       </div>
 
       <style>{`
@@ -273,6 +339,9 @@ export default function LandingPage() {
         @keyframes livePulse {
           0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); }
           55%      { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+        }
+        @media (min-width: 1024px) {
+          .landing-kenburns { filter: brightness(.62) saturate(.95) !important; }
         }
         @media (prefers-reduced-motion: reduce) {
           .landing-kenburns { transition: none !important; transform: none !important; }
