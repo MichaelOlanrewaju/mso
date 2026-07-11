@@ -5,16 +5,49 @@
    - API calls (Apps Script) → Network First with cache fallback
    - Images → Cache First with long TTL
    - Fonts → Cache First
+   - Push notifications → OneSignal (imported below)
 ═══════════════════════════════════════════════════════════ */
 
-// ⚠️ BUMP THIS ON EVERY DEPLOY ⚠️
-// The cache-cleanup logic below only runs when this string actually
-// changes. If you deploy new code without bumping this, browsers can
-// keep serving the OLD cached JS bundle indefinitely — even after a
-// successful Netlify deploy — which has caused real confusion this
-// project ("I deployed the fix but you're still describing old behavior").
-// Bump this (v3 → v4 → v5...) every single time you hand over a new zip.
-const CACHE_NAME = 'mso-v28'
+/* ── OneSignal push SDK ───────────────────────────────────
+   This app already ships its own service worker (for offline caching),
+   and two service workers can't control the same scope. OneSignal's
+   documented solution for that exact situation is to importScripts()
+   their SDK worker INTO the existing worker, rather than letting
+   OneSignal register a second, competing one. So there is still only
+   ONE service worker at scope "/", and it does both jobs: our caching
+   below, and OneSignal's push handling via this import.
+
+   Because this pulls OneSignal's own 'push'/'notificationclick' handlers
+   in, we DELETE our old custom `push` handler further down — keeping it
+   would double-handle the same push event and show duplicate
+   notifications. importScripts must be at the very top, before any other
+   listeners are registered. */
+try {
+  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js')
+} catch (e) {
+  /* Never let a CDN hiccup break the whole service worker (which would
+     also kill offline caching). If the import fails, push simply won't
+     work until the next successful load — caching still works. */
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+
+// CACHE_NAME is injected automatically at build time by the sw-version
+// plugin in vite.config.js. Every production build replaces the
+// "__SW_BUILD_ID__" token below with a unique hash, so the cache name
+// changes on EVERY deploy — no one has to remember to bump it. The
+// activate handler deletes every cache whose name !== CACHE_NAME, so a
+// new build always purges the old JS bundle instead of serving it
+// forever. If the token is still present (i.e. the file is served raw,
+// un-built), we fall back to a timestamp so dev never gets stuck either.
+const BUILD_ID = '__SW_BUILD_ID__'
+// A STABLE fallback — never Date.now(). If this weren't stable, an un-built
+// sw.js would compute a different CACHE_NAME on every evaluation, the
+// browser would treat the worker as "new" forever, and controllerchange
+// would reload the page in an infinite loop (splash screen never clears).
+const CACHE_NAME = BUILD_ID.indexOf('SW_BUILD_ID') !== -1
+  ? 'mso-dev-static'
+  : 'mso-' + BUILD_ID
 const OFFLINE_URL = '/offline.html'
 
 const APP_SHELL = [
@@ -116,44 +149,13 @@ async function networkFirst(request) {
   }
 }
 
-/* ── Push Notifications ───────────────────────────────── */
-self.addEventListener('push', event => {
-  let data = { title: 'MSO Console', body: 'You have a new notification.', url: '/' }
-  try { data = { ...data, ...event.data.json() } } catch {}
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-72.png',
-      vibrate: [100, 50, 100],
-      data: { url: data.url },
-      actions: [
-        { action: 'open', title: 'Open' },
-        { action: 'dismiss', title: 'Dismiss' },
-      ],
-      tag: 'mso-notification',
-      renotify: true,
-    })
-  )
-})
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close()
-  if (event.action === 'dismiss') return
-  const url = (event.notification.data && event.notification.data.url) || '/'
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(url)
-          return client.focus()
-        }
-      }
-      if (clients.openWindow) return clients.openWindow(url)
-    })
-  )
-})
+/* ── Push Notifications ─────────────────────────────────
+   Push and notification-click are now handled by the OneSignal SDK
+   worker imported at the top of this file (importScripts). The previous
+   custom `push` and `notificationclick` handlers were removed here on
+   purpose — running them alongside OneSignal's would double-handle the
+   same event and show duplicate notifications. All push display/click
+   behaviour is configured in the OneSignal dashboard + init options. */
 
 /* ── Background sync ──────────────────────────────────── */
 self.addEventListener('sync', event => {

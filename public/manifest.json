@@ -3,6 +3,7 @@
     "short_name": "MSO Console",
     "description": "Real-time operations platform for MSO Limpid Co. Ltd and M&M Oil & Gas Ltd",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
     "background_color": "#06091A",
