@@ -21,7 +21,7 @@ export default function PayrollApprovalCard({ pendingPayroll = [], onApprove, on
   }
 
   return (
-    <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
+    <div className="overflow-hidden rounded-panel border border-border bg-white shadow-card transition-all duration-300 hover:-translate-y-[2px] hover:shadow-lift">
       <div className="flex items-center justify-between border-b border-surface px-[18px] py-3.5">
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-light">
@@ -74,7 +74,7 @@ export default function PayrollApprovalCard({ pendingPayroll = [], onApprove, on
                 <button type="button"
                   disabled={isProcessing}
                   onClick={() => handle(p.month, "reject")}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-red/20 bg-red-light py-2.5 text-[12.5px] font-bold text-red disabled:opacity-50">
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-red/20 bg-red-light py-2.5 text-[12.5px] font-bold text-red disabled:opacity-50">
                   {isProcessing
                     ? <span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-red/30 border-t-red" />
                     : <i className="bi bi-x-lg text-[11px]" />
@@ -84,7 +84,7 @@ export default function PayrollApprovalCard({ pendingPayroll = [], onApprove, on
                 <button type="button"
                   disabled={isProcessing}
                   onClick={() => handle(p.month, "approve")}
-                  className="flex flex-[2] items-center justify-center gap-1.5 rounded-[9px] bg-green py-2.5 text-[12.5px] font-bold text-white shadow-lift disabled:opacity-50">
+                  className="flex flex-[2] items-center justify-center gap-1.5 rounded-[10px] bg-green py-2.5 text-[12.5px] font-bold text-white shadow-lift disabled:opacity-50">
                   {isProcessing
                     ? <span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
                     : <i className="bi bi-check2 text-[13px]" />

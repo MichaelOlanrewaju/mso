@@ -54,7 +54,7 @@ export default function ShiftsPage() {
     else setFeedback({ ok: false, text: res.error || "Save failed." })
   }
 
-  const inputCls = "w-full rounded-[10px] border border-border bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan"
+  const inputCls = "w-full rounded-[10px] border border-border bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
 
   return (
     <div className="min-h-screen bg-pagebg pb-16">
@@ -62,7 +62,7 @@ export default function ShiftsPage() {
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2">
             <i className="bi bi-arrow-left" />
           </button>
           <div className="flex-1">
@@ -82,7 +82,7 @@ export default function ShiftsPage() {
 
       <div className="mx-auto max-w-[640px] px-4 py-4">
         {feedback && (
-          <div className={`mb-4 flex items-center gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>
+          <div className={`mb-4 flex items-center gap-2 rounded-[10px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>
             <i className={`bi ${feedback.ok ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"}`} />
             <span className="flex-1">{feedback.text}</span>
             <button type="button" onClick={() => setFeedback(null)}><i className="bi bi-x-lg text-[11px] opacity-40" /></button>

@@ -162,7 +162,12 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
     username: user ? user.u : "",
     station: user ? user.station : null,
     canPickStation: user ? Boolean(user.pick) : false,
-    isOwner: user ? (user.role === "owner" || user.u === "owner") : false,
+    // isOwner accepts BOTH 'ceo' and legacy 'owner' during/after the
+    // rename, so a CEO-role account has full top-level access whether the
+    // Staff sheet says 'ceo' or still says 'owner'. isCeo is an alias for
+    // the same thing, for readability in newer code.
+    isOwner: user ? (user.role === "ceo" || user.role === "owner" || user.u === "owner") : false,
+    isCeo: user ? (user.role === "ceo" || user.role === "owner" || user.u === "owner") : false,
     isGM: user ? user.role === "gm" : false,
   }
 }

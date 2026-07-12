@@ -49,7 +49,7 @@ export default function KpiCard({
 
       <div className="relative z-[2] flex items-start justify-between gap-3">
         <div
-          className="mb-3.5 flex h-9 w-9 items-center justify-center rounded-[9px] text-[17px]"
+          className="mb-3.5 flex h-9 w-9 items-center justify-center rounded-[10px] text-[17px]"
           style={{ background: iconBg }}
         >
           <i className={`bi ${icon}`} style={{ color: iconColor }} />

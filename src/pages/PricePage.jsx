@@ -62,7 +62,7 @@ export default function PricePage() {
         <button
           type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2"
         >
           <i className="bi bi-arrow-left" />
         </button>
@@ -96,7 +96,7 @@ export default function PricePage() {
                       key={p}
                       type="button"
                       onClick={() => setProduct(p)}
-                      className={`flex-1 rounded-[9px] border px-3 py-2 text-[12.5px] font-bold ${
+                      className={`flex-1 rounded-[10px] border px-3 py-2 text-[12.5px] font-bold ${
                         product === p ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-4"
                       }`}
                     >
@@ -115,7 +115,7 @@ export default function PricePage() {
                     value={price}
                     onChange={e => setPrice(e.target.value)}
                     placeholder={product === "PMS" ? String(prices.pms) : product === "AGO" ? String(prices.ago) : String(prices.lpg)}
-                    className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[14px] font-bold text-ink outline-none focus:border-cyan"
+                    className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[14px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
                   />
                 </label>
 
@@ -126,13 +126,13 @@ export default function PricePage() {
                     value={note}
                     onChange={e => setNote(e.target.value)}
                     placeholder="e.g. Depot price adjustment"
-                    className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none focus:border-cyan"
+                    className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
                   />
                 </label>
 
                 {feedback && (
                   <div
-                    className={`mb-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold ${
+                    className={`mb-3 rounded-[10px] px-3 py-2 text-[12px] font-semibold ${
                       feedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"
                     }`}
                   >

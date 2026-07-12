@@ -119,7 +119,7 @@ export default function DischargePage() {
 
   const isSupervisor = auth.role === "supervisor" || auth.role === "cashier"
   const isGM         = auth.role === "gm"
-  const isGMOrOwner  = auth.isGM || auth.isOwner || auth.role === "owner"
+  const isGMOrOwner  = auth.isGM || auth.isOwner || auth.role === "ceo" || auth.role === "owner"
 
   const resetForm = () => setForm({
     date: new Date().toISOString().split("T")[0],
@@ -232,7 +232,7 @@ export default function DischargePage() {
     dischargeWarnings.push("Actual Received is more than Ordered — please double-check these figures.")
   }
   if (Number(form.shortage) > 0) {
-    dischargeWarnings.push(`Shortage of ${Number(form.shortage).toLocaleString("en-NG")}L recorded — this will be flagged for GM/Owner review.`)
+    dischargeWarnings.push(`Shortage of ${Number(form.shortage).toLocaleString("en-NG")}L recorded — this will be flagged for GM/CEO review.`)
   }
 
   const handleAddPrice = async () => {
@@ -271,7 +271,7 @@ export default function DischargePage() {
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2 transition hover:bg-border/40">
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2 transition hover:bg-border/40">
             <i className="bi bi-arrow-left" />
           </button>
           <div className="flex-1">
@@ -301,7 +301,7 @@ export default function DischargePage() {
       <div className="mx-auto max-w-[640px] px-4 py-4">
         {/* Feedback */}
         {feedback && (
-          <div className={`mb-4 flex items-start gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>
+          <div className={`mb-4 flex items-start gap-2 rounded-[10px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>
             <i className={`bi mt-0.5 ${feedback.ok ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"}`} />
             <div className="flex-1">{feedback.text}</div>
             <button type="button" onClick={() => setFeedback(null)}><i className="bi bi-x-lg text-[11px] opacity-40" /></button>
@@ -606,7 +606,7 @@ export default function DischargePage() {
                         className="mono w-full rounded-[10px] border-2 border-cyan bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
                     </label>
                     {pricingRow?.rowIndex === r.rowIndex && priceInput && (
-                      <div className="mb-3 space-y-1.5 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
+                      <div className="mb-3 space-y-1.5 rounded-[10px] bg-surface px-3 py-2 text-[12px] text-ink-4">
                         <div>{Number(r[COL.ACTUAL]).toLocaleString("en-NG")}L × {naira(Number(priceInput))} = <strong className="text-navy">{naira(Number(r[COL.ACTUAL]) * Number(priceInput))}</strong> total amount</div>
                         {Number(r[COL.SHORTAGE]) > 0 && (
                           <div>{Number(r[COL.SHORTAGE]).toLocaleString("en-NG")}L shortage × {naira(Number(priceInput))} = <strong className="text-red">{naira(Number(r[COL.SHORTAGE]) * Number(priceInput))}</strong> shortage cost</div>
@@ -614,7 +614,7 @@ export default function DischargePage() {
                       </div>
                     )}
                     <button type="button" onClick={handleAddPrice} disabled={saving || pricingRow?.rowIndex !== r.rowIndex || !priceInput}
-                      className="flex w-full items-center justify-center gap-2 rounded-[11px] bg-green py-3 text-[13px] font-bold text-white shadow-lift disabled:opacity-40">
+                      className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-green py-3 text-[13px] font-bold text-white shadow-lift disabled:opacity-40">
                       {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <><i className="bi bi-check2" /> Confirm Price</>}
                     </button>
                   </div>

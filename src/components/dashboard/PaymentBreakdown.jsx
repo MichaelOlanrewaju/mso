@@ -8,7 +8,7 @@ export default function PaymentBreakdown({ status, payments }) {
   const total = hasData ? payments.reduce((s, p) => s + p.amount, 0) : 0
 
   return (
-    <div className="h-full overflow-hidden rounded-card border border-border bg-white shadow-card">
+    <div className="h-full overflow-hidden rounded-panel border border-border bg-white shadow-card transition-all duration-300 hover:-translate-y-[2px] hover:shadow-lift">
       <div className="border-b border-surface px-[18px] py-3.5">
         <div className="text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">Payment Breakdown</div>
         <div className="mt-0.5 text-[10.5px] text-ink-4">POS · Bank Transfer · Cash</div>

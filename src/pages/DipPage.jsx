@@ -260,7 +260,7 @@ function DipInner() {
                       type="button"
                       onClick={handleRequestEdit}
                       disabled={requestingEdit}
-                      className="flex items-center gap-2 rounded-[11px] bg-red px-5 py-2.5 text-[13px] font-bold text-white shadow-lift disabled:opacity-60"
+                      className="flex items-center gap-2 rounded-[10px] bg-red px-5 py-2.5 text-[13px] font-bold text-white shadow-lift disabled:opacity-60"
                     >
                       {requestingEdit ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-pencil-square" />}
                       Request Edit
@@ -290,15 +290,32 @@ function DipInner() {
           </div>
 
           <div
-            className="mt-3 flex items-center justify-between rounded-[14px] px-4 py-3 text-white shadow-card"
+            className="mt-3 overflow-hidden rounded-[16px] px-4 py-4 text-white shadow-card"
             style={{ background: "linear-gradient(135deg, #130656 0%, #179DD0 140%)" }}
           >
-            <div className="flex items-center gap-2 text-[12.5px] font-medium text-white/85">
-              <span className="h-2 w-2 rounded-full bg-green" style={{ boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
-              Live price
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.8px] text-white/85">
+                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-green" style={{ boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
+                Live Price
+              </div>
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.5px] text-white/45">per litre</span>
             </div>
-            <div className="font-mono text-[13px] font-bold text-white">
-              PMS ₦{prices.pms.toLocaleString("en-NG")} · AGO ₦{prices.ago.toLocaleString("en-NG")} · LPG ₦{prices.lpg.toLocaleString("en-NG")}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "PMS", value: prices.pms },
+                { label: "AGO", value: prices.ago },
+                { label: "LPG", value: prices.lpg },
+              ].map(p => (
+                <div key={p.label} className="flex flex-col items-center justify-center rounded-[12px] bg-white/10 px-1.5 py-2.5">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-white/55">{p.label}</div>
+                  <div className="mt-1 flex items-baseline gap-0.5">
+                    <span className="text-[10px] font-semibold text-white/60">₦</span>
+                    <span className="font-mono text-[15px] font-extrabold leading-none tracking-tight text-white">
+                      {Number(p.value || 0).toLocaleString("en-NG")}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

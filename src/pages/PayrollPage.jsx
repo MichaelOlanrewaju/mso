@@ -31,7 +31,7 @@ function monthLabel(m) {
     .toLocaleDateString("en-NG", { month: "long", year: "numeric" })
 }
 
-const ROLE_LABELS = { owner:"Owner", gm:"General Manager", supervisor:"Supervisor", cashier:"Cashier", attendant:"Attendant" }
+const ROLE_LABELS = { ceo:"CEO", owner:"CEO", gm:"General Manager", supervisor:"Supervisor", cashier:"Cashier", attendant:"Attendant" }
 const PALETTE = ["#179DD0","#16A34A","#179DD0","#DC2626","#7C3AED","#0891B2","#059669"]
 const avatarBg = n => PALETTE[(n||" ").charCodeAt(0) % PALETTE.length]
 const ini = n => {
@@ -203,7 +203,7 @@ function GMView({ auth, navigate }) {
     }))
     const res = await savePayrollRun({ month, username: auth.username, lines: payLines, remarks })
     if (res.ok) {
-      setFeedback({ ok: true, text: `${monthLabel(month)} payroll submitted for owner approval.` })
+      setFeedback({ ok: true, text: `${monthLabel(month)} payroll submitted for CEO approval.` })
       seededKey.current = "" // reset so it reloads as a record
     } else {
       setFeedback({ ok: false, text: res.error || "Save failed — try again." })
@@ -248,7 +248,7 @@ function GMView({ auth, navigate }) {
         <div className="px-4 pb-0 pt-[max(var(--sat),52px)]">
           <div className="flex items-center gap-3 pb-3">
             <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/60">
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-white/10 bg-white/5 text-white/60">
               <i className="bi bi-arrow-left" />
             </button>
             <div className="flex-1">
@@ -256,7 +256,7 @@ function GMView({ auth, navigate }) {
               <div className="text-[10px] text-white/40">MSO Limpid Co. Ltd</div>
             </div>
             <button type="button" onClick={() => navigate("/add-staff-mso")}
-              className="flex h-9 items-center gap-1.5 rounded-[9px] border border-white/10 bg-white/10 px-3 text-[11.5px] font-bold text-white">
+              className="flex h-9 items-center gap-1.5 rounded-[10px] border border-white/10 bg-white/10 px-3 text-[11.5px] font-bold text-white">
               <i className="bi bi-person-plus" /> Staff
             </button>
           </div>
@@ -320,7 +320,7 @@ function GMView({ auth, navigate }) {
                       <div>
                         <div className="text-[14px] font-extrabold text-amber">Submitted — Awaiting Approval</div>
                         <div className="text-[11.5px] text-amber/80">
-                          {monthLabel(month)} payroll is with the owner. You cannot make changes until they respond.
+                          {monthLabel(month)} payroll is with the CEO. You cannot make changes until they respond.
                         </div>
                       </div>
                     </div>
@@ -346,7 +346,7 @@ function GMView({ auth, navigate }) {
                         </div>
                       </div>
                       <button type="button" onClick={() => window.print()}
-                        className="flex h-9 items-center gap-1.5 rounded-[9px] border border-green/30 bg-white px-3 text-[11.5px] font-bold text-green print:hidden">
+                        className="flex h-9 items-center gap-1.5 rounded-[10px] border border-green/30 bg-white px-3 text-[11.5px] font-bold text-green print:hidden">
                         <i className="bi bi-printer" /> Print
                       </button>
                     </div>
@@ -456,7 +456,7 @@ function GMView({ auth, navigate }) {
                       <textarea
                         rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
                         placeholder="e.g. Two staff on annual leave got a holiday bonus this month. One deduction is a salary advance repayment."
-                        className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none focus:border-cyan focus:bg-white"
+                        className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
                       />
                       <div className="mt-2 text-[11px] text-ink-4">Anything the owner should know before approving — bonuses, unusual deductions, anything worth flagging.</div>
                     </div>
@@ -468,7 +468,7 @@ function GMView({ auth, navigate }) {
                         ? <><span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> Saving…</>
                         : isRejected
                           ? <><i className="bi bi-arrow-clockwise" /> Revise &amp; Resubmit</>
-                          : <><i className="bi bi-send-fill text-[13px]" /> Submit for Owner Approval</>
+                          : <><i className="bi bi-send-fill text-[13px]" /> Submit for CEO Approval</>
                       }
                     </button>
                   </>
@@ -529,7 +529,7 @@ function GMView({ auth, navigate }) {
       <ConfirmSubmitModal
         open={confirmOpen}
         title="Confirm Payroll Submission"
-        subtitle={`${monthLabel(month)} — once submitted, this locks until the owner approves or rejects it`}
+        subtitle={`${monthLabel(month)} — once submitted, this locks until the CEO approves or rejects it`}
         rows={reviewRows}
         warnings={reviewWarnings}
         confirming={saving}
@@ -569,7 +569,7 @@ function EditableRow({ name, line, net, isLast, onChange }) {
                 <input type="number" inputMode="decimal" min="0" step="1"
                   value={line[f]}
                   onChange={e => onChange(f, e.target.value)}
-                  className={`mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none ${fc}`} />
+                  className={`mono w-full rounded-[10px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none ${fc}`} />
               </label>
             ))}
           </div>
@@ -646,7 +646,7 @@ function OwnerView({ auth, navigate }) {
         <div className="px-4 pb-4 pt-[max(var(--sat),52px)]">
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/60">
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-white/10 bg-white/5 text-white/60">
               <i className="bi bi-arrow-left" />
             </button>
             <div className="flex-1">
@@ -819,7 +819,7 @@ function OwnerView({ auth, navigate }) {
                   </div>
                 </div>
                 <button type="button" onClick={() => window.print()}
-                  className="flex h-9 items-center gap-1.5 rounded-[9px] border border-green/30 bg-white px-3 text-[11.5px] font-bold text-green print:hidden">
+                  className="flex h-9 items-center gap-1.5 rounded-[10px] border border-green/30 bg-white px-3 text-[11.5px] font-bold text-green print:hidden">
                   <i className="bi bi-printer" /> Print
                 </button>
               </div>
@@ -853,7 +853,7 @@ export default function PayrollPage() {
   usePageTitle("Payroll — MSO Limpid")
 
   const isGM    = auth.isGM
-  const isOwner = auth.isOwner || auth.role === "owner" || auth.username === "owner"
+  const isOwner = auth.isOwner || auth.role === "ceo" || auth.role === "owner" || auth.username === "owner"
 
   if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
   if (isGM)    return <GMView auth={auth} navigate={navigate} />
@@ -865,7 +865,7 @@ export default function PayrollPage() {
       <div className="text-[14px] font-bold text-ink">Payroll is restricted</div>
       <div className="text-[12.5px] text-ink-4">Only the GM and Owner can access payroll.</div>
       <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-        className="mt-2 rounded-[9px] border border-border bg-white px-4 py-2 text-[12.5px] font-bold text-ink-2">
+        className="mt-2 rounded-[10px] border border-border bg-white px-4 py-2 text-[12.5px] font-bold text-ink-2">
         Back to Dashboard
       </button>
     </div>

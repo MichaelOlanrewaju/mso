@@ -21,6 +21,7 @@ const SECTIONS = [
       { href: "/variance-mso", icon: "bi-graph-up-arrow",       text: "Stock Variance" },
       { href: "/pnl-mso",      icon: "bi-bar-chart-line-fill",  text: "P&L Report" },
       { href: "/price-mso",    icon: "bi-tag",                  text: "Pump Prices" },
+      { href: "/lubricant-mso", icon: "bi-droplet-fill",        text: "Oil" },
       { href: "/activity-mso", icon: "bi-journal-check",        text: "Activity Log" },
     ],
   },
@@ -58,9 +59,12 @@ function NavLinkItem({ href, icon, text }) {
   const active = loc.pathname === href
   return (
     <Link to={href}
-      className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-semibold transition-colors ${
-        active ? "bg-cyan-light text-navy" : "text-ink-2 hover:bg-surface"}`}>
-      <i className={`bi ${icon} text-[15px] ${active ? "text-cyan-dark" : "text-ink-4"}`} />
+      aria-current={active ? "page" : undefined}
+      className={`relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+        active ? "bg-cyan-light text-navy" : "text-ink-2 hover:bg-surface hover:text-ink"}`}>
+      {/* Brand accent bar marks the current page at a glance */}
+      {active && <span aria-hidden="true" className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-cyan" />}
+      <i className={`bi ${icon} text-[15px] transition-colors ${active ? "text-cyan-dark" : "text-ink-4"}`} />
       {text}
     </Link>
   )
@@ -82,7 +86,7 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
         {/* Logo + user */}
         <div className="mb-5 px-2">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-navy">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy">
               <span className="text-[11px] font-extrabold text-white">MSO</span>
             </div>
             <div className="min-w-0">
@@ -120,7 +124,7 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
         {/* Logout */}
         <div className="mt-auto border-t border-surface pt-4">
           <button type="button" onClick={onLogout}
-            className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-semibold text-red hover:bg-red-light">
+            className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-semibold text-red transition-colors hover:bg-red-light">
             <i className="bi bi-box-arrow-right text-[15px]" />
             Sign out
           </button>

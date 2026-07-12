@@ -193,7 +193,7 @@ export default function LandingPage() {
         <div key={current} className="lg:max-w-[620px]" style={{ animation: "scIn .65s .08s cubic-bezier(.22,1,.36,1) both" }}>
           {/* Counter row — styled like a mechanical forecourt pump meter */}
           <div className="mb-[13px] flex items-center gap-[10px]">
-            <div className="flex items-center gap-[7px] rounded-[7px] px-[10px] py-[5px]"
+            <div className="flex items-center gap-[7px] rounded-[8px] px-[10px] py-[5px]"
               style={{ background: "rgba(0,0,0,.38)", border: "1px solid rgba(255,255,255,.10)", boxShadow: "inset 0 1px 3px rgba(0,0,0,.5)" }}>
               <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full"
                 style={{ background: "#F5B84A", boxShadow: "0 0 6px rgba(245,184,74,.9)" }} />
@@ -246,7 +246,7 @@ export default function LandingPage() {
               sheet is hidden at lg and up */}
           <div className="mt-9 hidden items-center gap-5 lg:flex">
             <button type="button" onClick={() => navigate("/login")} aria-label="Sign in to your account"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-[15px] px-7 text-[15px] font-extrabold text-white transition-transform hover:scale-[1.02]"
+              className="group relative flex items-center gap-3 overflow-hidden rounded-[14px] px-7 text-[15px] font-extrabold text-white transition-transform hover:scale-[1.02]"
               style={{ height: 54, background: "#179DD0", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
               <span className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 55%)" }} />
               <i className="bi bi-box-arrow-in-right" />
@@ -292,7 +292,7 @@ export default function LandingPage() {
 
         {/* CTA */}
         <button type="button" onClick={() => navigate("/login")} aria-label="Sign in to your account"
-          className="relative mb-3 flex w-full items-center justify-center gap-3 overflow-hidden rounded-[15px] text-[15px] font-extrabold text-white"
+          className="relative mb-3 flex w-full items-center justify-center gap-3 overflow-hidden rounded-[14px] text-[15px] font-extrabold text-white"
           style={{ height: 54, background: "#179DD0", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
           <span className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 55%)" }} />
           <i className="bi bi-box-arrow-in-right" />

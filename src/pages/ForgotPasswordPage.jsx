@@ -66,12 +66,12 @@ export default function ForgotPasswordPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoFocus
-                className="w-full rounded-[10px] border border-border px-3.5 py-3 text-[14px] text-ink outline-none focus:border-cyan"
+                className="w-full rounded-[10px] border border-border px-3.5 py-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
               />
             </label>
 
             {error && (
-              <div className="mb-3 rounded-[9px] bg-red-light px-3 py-2 text-[12px] font-semibold text-red">{error}</div>
+              <div className="mb-3 rounded-[10px] bg-red-light px-3 py-2 text-[12px] font-semibold text-red">{error}</div>
             )}
 
             <button

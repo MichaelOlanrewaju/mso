@@ -5,8 +5,10 @@ import BottomNav from "../components/layout/BottomNav"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import SectionLabel from "../components/dashboard/SectionLabel"
+import DayHero from "../components/dashboard/DayHero"
+import MorningReadingsCard from "../components/dashboard/MorningReadingsCard"
+import OilCard from "../components/dashboard/OilCard"
 import { TestNotificationButton } from "../components/pwa/PWABanners"
-import TodayStatusPills from "../components/dashboard/TodayStatusPills"
 import PeriodTotalsCard from "../components/dashboard/PeriodTotalsCard"
 import DipSummaryCard from "../components/dashboard/DipSummaryCard"
 import AgoCard from "../components/dashboard/AgoCard"
@@ -81,6 +83,14 @@ function GMInner() {
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
+  /* Do we have any real morning readings to show? Drives both the card and its
+     section heading, so they appear and disappear together rather than leaving
+     an orphaned label above empty space. */
+  const hasMorningReadings =
+    status === "loading" ||
+    (data?.tankLevels || []).some(t => (t.vol || 0) > 0) ||
+    Object.keys(data?.pumpMetres || {}).length > 0
+
   return (
     <div className="flex min-h-screen">
       <SafeAreaDebug />
@@ -106,100 +116,124 @@ function GMInner() {
           title="GM Dashboard"
         />
 
-        <div className="flex-1 p-3.5 pb-[100px] md:p-[22px] md:pb-[22px]">
-          {notifPermission === "granted" && (
-            <div className="enter mb-3 flex justify-end" style={delay(0)}>
-              <TestNotificationButton />
-            </div>
-          )}
-
-          <div className="enter" style={delay(0)}>
-            <SectionLabel>Today's Status</SectionLabel>
-          </div>
-          <div className="enter mb-5" style={delay(0)}>
-            <TodayStatusPills todayStatus={data?.todayStatus} loading={status === "loading"} />
-          </div>
-
-          <div className="enter" style={delay(2)}>
-            <SectionLabel>Totals</SectionLabel>
-          </div>
-          <div className="enter mb-3" style={delay(2)}>
-            <PeriodTotalsCard />
-          </div>
-
-          {notifPermission === "default" && (
-            <div className="enter mb-3 flex items-center gap-3 rounded-card border border-cyan/20 bg-cyan-light px-4 py-3.5" style={delay(3)}>
-              <i className="bi bi-bell-fill text-[18px] text-cyan-dark" />
-              <div className="flex-1">
-                <div className="text-[12.5px] font-bold text-ink">Get notified for pending approvals</div>
-                <div className="text-[11px] text-ink-4">While this dashboard is open, you'll get an alert the moment something needs your review.</div>
+        <div className="flex-1 p-3.5 pb-[100px] md:p-6 md:pb-6">
+          <div className="mx-auto w-full max-w-[1400px]">
+            {notifPermission === "granted" && (
+              <div className="enter mb-3 flex justify-end" style={delay(0)}>
+                <TestNotificationButton />
               </div>
-              <button type="button" onClick={requestNotifications}
-                className="flex-shrink-0 rounded-[9px] bg-cyan-dark px-3.5 py-2 text-[12px] font-bold text-white">
-                Enable
-              </button>
-            </div>
-          )}
+            )}
 
-          <div className="enter" style={delay(3)}>
-            <SectionLabel>Needs Your Attention</SectionLabel>
-          </div>
-          <div className="enter mb-3 grid grid-cols-1 gap-3 lg:grid-cols-12" style={delay(3)}>
-            <div className="flex flex-col gap-3 lg:col-span-12">
-              <AlertsCard
-                tankLevels={data?.tankLevels}
-                editRequests={editRequests}
-                onApproveEdit={handleApprove}
-                onRejectEdit={handleReject}
-                shortages={shortages}
-                onReviewShortage={handleReviewShortage}
-                pendingPayroll={pendingPayroll}
-                payrollReadOnly
-                pendingCashups={pendingCashups}
-                onApproveCashup={handleApproveCashup}
-                onRejectCashup={handleRejectCashup}
-              />
-              <QuickActionsCard role={auth.role} />
+            {/* Same hierarchy as the owner dashboard: the number first, the
+                day's close-out beside it, then anything needing a decision.
+                The GM's job is running the day, so what changes here is what
+                they can ACT on — payroll stays read-only (owner approves it),
+                and every other approval is theirs. */}
+            <div className="enter mb-5" style={delay(1)}>
+              <DayHero status={status} data={data} />
             </div>
-          </div>
 
-          <div className="enter" style={delay(4)}>
-            <SectionLabel>Tank Performance</SectionLabel>
-          </div>
-          <div className="enter mb-3 grid grid-cols-1 gap-3 lg:grid-cols-12" style={delay(4)}>
-            <div className="lg:col-span-5">
-              <DipSummaryCard status={status} tanks={data?.tanks?.pms} pmsPrice={data?.pmsPrice} />
-            </div>
-            <div className="lg:col-span-3">
-              <AgoCard status={status} ago={data?.tanks?.ago} agoPrice={data?.agoPrice} />
-            </div>
-            <div className="lg:col-span-4">
-              <PaymentBreakdown status={status} payments={data?.payments} />
-            </div>
-          </div>
+            {notifPermission === "default" && (
+              <div className="enter mb-5 flex items-center gap-3 rounded-panel border border-cyan/20 bg-cyan-light px-4 py-3.5" style={delay(2)}>
+                <i className="bi bi-bell-fill text-[18px] text-cyan-dark" />
+                <div className="flex-1">
+                  <div className="text-[12.5px] font-bold text-ink">Get notified for pending approvals</div>
+                  <div className="text-[11px] text-ink-4">While this dashboard is open, you'll get an alert the moment something needs your review.</div>
+                </div>
+                <button type="button" onClick={requestNotifications}
+                  className="flex-shrink-0 rounded-[10px] px-3.5 py-2 text-[12px] font-bold text-white transition-all hover:brightness-110 active:scale-95"
+                  style={{ background: "linear-gradient(135deg,#130656,#179DD0)" }}>
+                  Enable
+                </button>
+              </div>
+            )}
 
-          <div className="enter" style={delay(5)}>
-            <SectionLabel>Fuel Stock &amp; Sales Trend</SectionLabel>
-          </div>
-          <div className="enter mb-3 grid grid-cols-1 gap-3 lg:grid-cols-12" style={delay(6)}>
-            <div className="lg:col-span-4">
-              <TankLevelsCard status={status} tankLevels={data?.tankLevels} />
-            </div>
-            <div className="lg:col-span-8">
-              <SalesTrendCard
-                status={status}
-                weekly={data?.weekly}
-                pmsRevenue={data?.pmsRevenue}
-                agoRevenue={data?.agoRevenue}
-              />
-            </div>
-          </div>
+            {/* Hidden entirely until the morning readings exist. DayHero already
+                covers the "waiting on the opening dip" state; saying it again on a
+                stacked card underneath was just the same sentence twice. */}
+            {hasMorningReadings && (
+              <div className="enter mb-5" style={delay(2)}>
+                <SectionLabel>This morning</SectionLabel>
+                <MorningReadingsCard
+                  status={status}
+                  tankLevels={data?.tankLevels}
+                  pumpMetres={data?.pumpMetres}
+                  submittedBy={data?.submittedBy}
+                />
+              </div>
+            )}
 
-          <div className="enter" style={delay(7)}>
-            <SectionLabel>Recent Transactions</SectionLabel>
-          </div>
-          <div className="enter" style={delay(8)}>
-            <TransactionsCard status={status} transactions={data?.recentTransactions} />
+            <div className="enter mb-5" style={delay(3)}>
+              <SectionLabel>Needs your attention</SectionLabel>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                <div className="lg:col-span-8">
+                  <AlertsCard
+                    tankLevels={data?.tankLevels}
+                    editRequests={editRequests}
+                    onApproveEdit={handleApprove}
+                    onRejectEdit={handleReject}
+                    shortages={shortages}
+                    onReviewShortage={handleReviewShortage}
+                    pendingPayroll={pendingPayroll}
+                    payrollReadOnly
+                    pendingCashups={pendingCashups}
+                    onApproveCashup={handleApproveCashup}
+                    onRejectCashup={handleRejectCashup}
+                  />
+                </div>
+                <div className="lg:col-span-4">
+                  <QuickActionsCard role={auth.role} />
+                </div>
+              </div>
+            </div>
+
+
+            <div className="enter mb-5" style={delay(3)}>
+              <SectionLabel>Tanks &amp; payments</SectionLabel>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                <div className="lg:col-span-5">
+                  <DipSummaryCard status={status} tanks={data?.tanks?.pms} pmsPrice={data?.pmsPrice} />
+                </div>
+                <div className="lg:col-span-3">
+                  <AgoCard status={status} ago={data?.tanks?.ago} agoPrice={data?.agoPrice} />
+                </div>
+                <div className="lg:col-span-4">
+                  <PaymentBreakdown status={status} payments={data?.payments} />
+                </div>
+              </div>
+            </div>
+
+            <div className="enter mb-5" style={delay(4)}>
+              <SectionLabel>Stock &amp; sales trend</SectionLabel>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                <div className="lg:col-span-4">
+                  <TankLevelsCard status={status} tankLevels={data?.tankLevels} />
+                </div>
+                <div className="lg:col-span-8">
+                  <SalesTrendCard
+                    status={status}
+                    weekly={data?.weekly}
+                    pmsRevenue={data?.pmsRevenue}
+                    agoRevenue={data?.agoRevenue}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="enter mb-5" style={delay(5)}>
+              <SectionLabel>Oil</SectionLabel>
+              <OilCard />
+            </div>
+
+            <div className="enter mb-5" style={delay(5)}>
+              <SectionLabel>Period totals</SectionLabel>
+              <PeriodTotalsCard />
+            </div>
+
+            <div className="enter" style={delay(6)}>
+              <SectionLabel>Recent transactions</SectionLabel>
+              <TransactionsCard status={status} transactions={data?.recentTransactions} />
+            </div>
           </div>
         </div>
       </div>

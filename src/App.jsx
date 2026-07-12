@@ -20,6 +20,7 @@ const SummaryPage            = lazy(() => import("./pages/SummaryPage"))
 const DipPage                = lazy(() => import("./pages/DipPage"))
 const SalesPage              = lazy(() => import("./pages/SalesPage"))
 const PricePage              = lazy(() => import("./pages/PricePage"))
+const LubricantPage = lazy(() => import("./pages/LubricantPage"))
 const ShortagePage           = lazy(() => import("./pages/ShortagePage"))
 const ActivityLogPage        = lazy(() => import("./pages/ActivityLogPage"))
 const PayrollPage            = lazy(() => import("./pages/PayrollPage"))
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="/dip-mso" element={<DipPage />} />
           <Route path="/sales-mso" element={<SalesPage />} />
           <Route path="/price-mso" element={<PricePage />} />
+          <Route path="/lubricant-mso" element={<LubricantPage />} />
           <Route path="/shortage-mso"  element={<ShortagePage />} />
           <Route path="/activity-mso"  element={<ActivityLogPage />} />
           <Route path="/discharge-mso" element={<DischargePage />} />

@@ -6,7 +6,7 @@ export default function ModeToggle({ mode, onChange, hasOpening, hasClosing }) {
       <button
         type="button"
         onClick={() => onChange("open")}
-        className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-2.5 text-[12.5px] font-bold transition-all"
+        className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-[12.5px] font-bold transition-all"
         style={
           mode === "open"
             ? { background: "linear-gradient(135deg, #130656, #1a0875)", color: "#fff" }
@@ -20,7 +20,7 @@ export default function ModeToggle({ mode, onChange, hasOpening, hasClosing }) {
       <button
         type="button"
         onClick={() => onChange("close")}
-        className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-2.5 text-[12.5px] font-bold transition-all"
+        className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-[12.5px] font-bold transition-all"
         style={
           mode === "close"
             ? { background: "linear-gradient(135deg, #130656, #179DD0)", color: "#fff" }

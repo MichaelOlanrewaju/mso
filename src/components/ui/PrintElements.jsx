@@ -6,21 +6,111 @@ import React from "react"
 // document gets the same consistent treatment instead of each page
 // reinventing its own.
 
+/* The printed letterhead.
+   Logo hard left, document title and date hard right, brand rule underneath.
+
+   LOGO NOTE: /images/msolimpid.png is a WHITE logo on transparency — it was
+   built for the dark navy sidebar and is invisible on white paper. That's why
+   the previous version of this file forced `filter: invert(1) brightness(0)`
+   onto it, which crushed a colour logo into a black silhouette on every
+   printout. The real fix is a colour asset, so this points at LOGO_SRC below.
+   Drop the colour logo in at that path and it prints properly; if the file is
+   missing, the header degrades to a clean typographic lockup rather than
+   showing a broken-image icon. */
+const LOGO_SRC = "/images/msostation.jpg"
+
 export function PrintHeader({ title, subtitle }) {
+  const [logoOk, setLogoOk] = React.useState(true)
+
   return (
-    <div className="print-header" style={{ alignItems: "center", justifyContent: "space-between", borderBottom: "2px solid #130656", paddingBottom: 12, marginBottom: 18 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <img src="/images/msolimpid.png" alt="MSO Limpid" style={{ height: 40, width: "auto", filter: "invert(1) brightness(0)" }} />
+    /* width:100% is what makes the alignment work at all. The element is
+       display:flex with space-between (see the print rules in global.css), but
+       a flex container shrinks to fit its content by default — with no width,
+       both halves sat squashed together in the middle of the page instead of
+       pushing out to the margins. */
+    <div
+      className="print-header"
+      style={{
+        width: "100%",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 24,
+        borderBottom: "2.5px solid #130656",
+        paddingBottom: 14,
+        marginBottom: 20,
+      }}
+    >
+      {/* ── Left: logo + company ─────────────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+        {logoOk && (
+          <img
+            src={LOGO_SRC}
+            alt=""
+            onError={() => setLogoOk(false)}
+            style={{
+              height: 52,
+              width: "auto",
+              display: "block",
+              /* Browsers strip background colours and images when printing as
+                 an ink-saving default — this is the usual reason a colour logo
+                 comes out grey or missing. */
+              printColorAdjust: "exact",
+              WebkitPrintColorAdjust: "exact",
+            }}
+          />
+        )}
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#130656" }}>MSO Limpid Co. Ltd</div>
-          <div style={{ fontSize: 10, color: "#64748B" }}>Digital Operations Console</div>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: "#130656",
+              lineHeight: 1.15,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            MSO Limpid Co. Ltd
+          </div>
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              color: "#179DD0",
+              letterSpacing: "1.2px",
+              textTransform: "uppercase",
+              marginTop: 3,
+            }}
+          >
+            Digital Operations Console
+          </div>
         </div>
       </div>
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 10, color: "#64748B" }}>{subtitle}</div>}
-        <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 2 }}>
-          Printed {new Date().toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
+
+      {/* ── Right: document title + date ─────────────────────── */}
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 800,
+            color: "#0F172A",
+            lineHeight: 1.15,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {title}
+        </div>
+        {subtitle && (
+          <div style={{ fontSize: 11, color: "#334155", marginTop: 4, fontWeight: 600 }}>
+            {subtitle}
+          </div>
+        )}
+        <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 5 }}>
+          Printed{" "}
+          {new Date().toLocaleDateString("en-NG", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
         </div>
       </div>
     </div>

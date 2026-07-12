@@ -23,7 +23,7 @@ export default function AgoCard({ status, ago, agoPrice }) {
   const revenue = hasData ? ago.diff * price : 0
 
   return (
-    <div className="h-full overflow-hidden rounded-card border border-border bg-white shadow-card">
+    <div className="h-full overflow-hidden rounded-panel border border-border bg-white shadow-card transition-all duration-300 hover:-translate-y-[2px] hover:shadow-lift">
       <div className="flex items-start justify-between gap-2.5 border-b border-surface px-[18px] py-3.5">
         <div>
           <div className="text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">AGO Performance</div>

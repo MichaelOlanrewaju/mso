@@ -4,6 +4,12 @@ import { getToken } from "../utils/session"
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
 const POLL_MS = 10000
+/* Inbox refresh — slower than the message poll on purpose. Unread counts
+   and presence dots can lag a few seconds; an open thread cannot. */
+const INBOX_POLL_MS = 20000
+/* Heartbeat cadence. The backend's presence window is 2 min, so beating
+   every 45s survives one dropped beat without flickering offline. */
+const HEARTBEAT_MS = 45000
 
 export function dmConversationId(a, b) {
   const pair = [a, b].map(s => s.toLowerCase()).sort()
@@ -14,6 +20,9 @@ export function dmConversationId(a, b) {
 export function useConversations({ username }) {
   const [status, setStatus] = useState("loading")
   const [conversations, setConversations] = useState([])
+  // Colleagues seen within the backend's presence window. Empty array
+  // until the backend patch is deployed — the UI just shows no dots.
+  const [onlineUsernames, setOnlineUsernames] = useState([])
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -32,14 +41,67 @@ export function useConversations({ username }) {
       .then(r => r.json())
       .then(d => {
         if (!isMounted.current) return
-        if (d.ok) { setConversations(d.conversations || []); setStatus("ready") }
+        if (d.ok) {
+          setConversations(d.conversations || [])
+          setOnlineUsernames(d.onlineUsernames || [])
+          setStatus("ready")
+        }
         else setStatus("error")
       })
       .catch(() => { if (isMounted.current) setStatus("error") })
   }, [username])
 
   useEffect(() => { load() }, [load])
-  return { status, conversations, refresh: load }
+
+  // The inbox refreshes on its own so unread badges and presence dots
+  // don't sit stale while someone stares at the list. Skipped while the
+  // tab is hidden, same rule the message poll already follows.
+  useEffect(() => {
+    if (!username) return
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return
+      load()
+    }, INBOX_POLL_MS)
+    return () => clearInterval(id)
+  }, [username, load])
+
+  return { status, conversations, onlineUsernames, refresh: load }
+}
+
+/* ── useChatPresence ─────────────────────────────────────────
+   Heartbeat while the chat screen is open and visible. This is what
+   makes anyone else's "online" dot true — presence is a claim about
+   the app being open, not about a websocket, because there isn't one.
+   Silently no-ops if the backend hasn't been patched yet.
+──────────────────────────────────────────────────────────────── */
+export function useChatPresence({ username, active = true }) {
+  useEffect(() => {
+    if (!SCRIPT_URL || !username || !active) return
+
+    let cancelled = false
+    const beat = () => {
+      if (cancelled) return
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return
+      const url = new URL(SCRIPT_URL)
+      url.searchParams.set("action", "chatHeartbeat")
+      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("username", username)
+      url.searchParams.set("token", getToken())
+      fetch(url.toString(), { method: "GET", redirect: "follow" }).catch(() => {})
+    }
+
+    beat()
+    const id = setInterval(beat, HEARTBEAT_MS)
+    // Beat immediately on return so someone who unlocks their phone
+    // doesn't spend up to 45s looking offline to everyone else.
+    const onVisible = () => { if (document.visibilityState === "visible") beat() }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [username, active])
 }
 
 /* ── useChat ─────────────────────────────────────────────── */
@@ -126,6 +188,30 @@ export function useChat({ username, name, conversationId }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, fetchMessages])
 
+  /* Move this user's read cursor to now. Fired when the thread opens and
+     whenever new messages land while they're looking at it — so a chat
+     they're actively reading never accumulates a phantom unread badge.
+     Fire-and-forget: a failed cursor write costs a stale badge, which is
+     not worth blocking or surfacing an error over. */
+  const markRead = useCallback(() => {
+    if (!SCRIPT_URL || !conversationId || !username) return
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "markConversationRead")
+    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("conversationId", conversationId)
+    url.searchParams.set("username", username)
+    url.searchParams.set("token", getToken())
+    fetch(url.toString(), { method: "GET", redirect: "follow" }).catch(() => {})
+  }, [conversationId, username])
+
+  /* Mark read on open, and again each time the message list grows while
+     this thread is on screen. */
+  useEffect(() => {
+    if (status !== "ready") return
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return
+    markRead()
+  }, [status, messages.length, markRead])
+
   const sendMessage = useCallback(async ({ text = "", imageFileId = "" } = {}) => {
     const trimmed = text.trim()
     if (!trimmed && !imageFileId) return { ok: false }
@@ -208,5 +294,5 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [conversationId, username])
 
-  return { status, messages, sending, sendMessage, editMessage, deleteMessage, hideConversation }
+  return { status, messages, sending, sendMessage, editMessage, deleteMessage, hideConversation, markRead }
 }

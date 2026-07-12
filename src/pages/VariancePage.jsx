@@ -47,7 +47,7 @@ export default function VariancePage() {
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-3">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2">
             <i className="bi bi-arrow-left" />
           </button>
           <div className="flex-1">

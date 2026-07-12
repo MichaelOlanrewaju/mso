@@ -17,7 +17,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
   }
 
   return (
-    <div className="h-full overflow-hidden rounded-card border border-border bg-white shadow-card">
+    <div className="h-full overflow-hidden rounded-panel border border-border bg-white shadow-card transition-all duration-300 hover:-translate-y-[2px] hover:shadow-lift">
       <div className="border-b border-surface px-[18px] py-3.5">
         <div className="text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">7-Day Sales Trend</div>
         <div className="mt-0.5 text-[10.5px] text-ink-4">PMS vs AGO · litres dispensed</div>
@@ -60,7 +60,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
         </div>
 
         <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-[11px] border border-cyan/20 bg-cyan-light p-3">
+          <div className="rounded-[10px] border border-cyan/20 bg-cyan-light p-3">
             <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.8px] text-cyan-dark">
               PMS Revenue
             </div>
@@ -69,7 +69,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
             </div>
             <div className="text-[10.5px] text-ink-4">—</div>
           </div>
-          <div className="rounded-[11px] border border-[#BEE6F5] bg-amber-light p-3">
+          <div className="rounded-[10px] border border-[#BEE6F5] bg-amber-light p-3">
             <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.8px] text-amber">
               AGO Revenue
             </div>

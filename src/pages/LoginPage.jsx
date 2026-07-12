@@ -98,7 +98,7 @@ export default function LoginPage() {
             <div className="flex flex-col gap-5">
               {BRAND_POINTS.map(pt => (
                 <div key={pt.title} className="flex items-start gap-3.5">
-                  <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[11px]"
+                  <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[10px]"
                     style={{ background: "rgba(23,157,208,.12)", border: ".5px solid rgba(23,157,208,.25)" }}>
                     <i className={`bi ${pt.icon} text-[16px]`} style={{ color: "#6DE0FF" }} />
                   </div>
@@ -165,7 +165,7 @@ export default function LoginPage() {
 
             {/* Error */}
             {error && (
-              <div role="alert" style={{ display:"flex", alignItems:"flex-start", gap:9, padding:"11px 13px", borderRadius:11, fontSize:13, fontWeight:500, lineHeight:1.45, marginBottom:16, background:"#FEF2F2", border:"1px solid #FECACA", color:"#B91C1C" }}>
+              <div role="alert" style={{ display:"flex", alignItems:"flex-start", gap:9, padding:"11px 13px", borderRadius:12, fontSize:13, fontWeight:500, lineHeight:1.45, marginBottom:16, background:"#FEF2F2", border:"1px solid #FECACA", color:"#B91C1C" }}>
                 <i className="bi bi-exclamation-circle-fill" style={{ fontSize:14, marginTop:1, flexShrink:0 }} />
                 {error}
               </div>
@@ -193,7 +193,7 @@ export default function LoginPage() {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
                 <label htmlFor="login-password" style={{ fontSize:11.5, fontWeight:700, color:"#334155", letterSpacing:"0.6px", textTransform:"uppercase" }}>Password</label>
                 <button type="button" onClick={() => navigate("/forgot-password")}
-                  style={{ fontSize:12, fontWeight:500, color:"#179DD0", background:"none", border:"none", cursor:"pointer" }}>
+                  style={{ fontSize:12, fontWeight:600, color:"#179DD0", background:"none", border:"none", cursor:"pointer", padding:"6px 4px", margin:"-6px -4px", borderRadius:6 }}>
                   Forgot?
                 </button>
               </div>
@@ -207,9 +207,9 @@ export default function LoginPage() {
                   onFocus={e => { e.target.style.background="#fff"; e.target.style.borderColor="#179DD0"; e.target.style.boxShadow="0 0 0 4px rgba(23,157,208,0.12)" }}
                   onBlur={e => { e.target.style.background="#F8FAFC"; e.target.style.borderColor=error?"#FCA5A5":"#E2E8F0"; e.target.style.boxShadow="none" }}
                 />
-                <button type="button" onClick={() => setShowPass(s => !s)} tabIndex={-1}
+                <button type="button" onClick={() => setShowPass(s => !s)}
                   aria-label={showPass ? "Hide password" : "Show password"}
-                  style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", fontSize:17, color:"#94A3B8", cursor:"pointer", padding:3, lineHeight:1 }}>
+                  style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", fontSize:17, color:"#94A3B8", cursor:"pointer", padding:"10px 11px", lineHeight:1, borderRadius:8 }}>
                   <i className={`bi ${showPass ? "bi-eye-slash" : "bi-eye"}`} />
                 </button>
               </div>
@@ -217,7 +217,7 @@ export default function LoginPage() {
 
             {/* Submit */}
             <button type="submit" disabled={submitting}
-              style={{ width:"100%", height:52, marginTop:16, border:"none", borderRadius:13, fontSize:15.5, fontWeight:800, color:"#fff", background:"#179DD0", display:"flex", alignItems:"center", justifyContent:"center", gap:12, boxShadow:"0 2px 6px rgba(0,0,0,0.08), 0 8px 28px rgba(23,157,208,0.38)", cursor:submitting?"not-allowed":"pointer", opacity:submitting?0.6:1, position:"relative", overflow:"hidden", transition:"background 0.18s, transform 0.2s, box-shadow 0.2s" }}>
+              style={{ width:"100%", height:52, marginTop:16, border:"none", borderRadius:12, fontSize:15.5, fontWeight:800, color:"#fff", background:"#179DD0", display:"flex", alignItems:"center", justifyContent:"center", gap:12, boxShadow:"0 2px 6px rgba(0,0,0,0.08), 0 8px 28px rgba(23,157,208,0.38)", cursor:submitting?"not-allowed":"pointer", opacity:submitting?0.6:1, position:"relative", overflow:"hidden", transition:"background 0.18s, transform 0.2s, box-shadow 0.2s" }}>
               <span style={{ position:"absolute", inset:0, background:"linear-gradient(150deg,rgba(255,255,255,0.14) 0%,transparent 52%)", pointerEvents:"none" }} />
               {submitting
                 ? <span style={{ width:21, height:21, border:"2.5px solid rgba(255,255,255,0.25)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.65s linear infinite", display:"inline-block" }} />
@@ -233,7 +233,7 @@ export default function LoginPage() {
 
             {/* Success */}
             {success && (
-              <div role="status" style={{ display:"flex", alignItems:"center", gap:8, padding:"11px 13px", borderRadius:11, marginTop:12, background:"#F0FDF4", border:"1px solid #BBF7D0", fontSize:13, fontWeight:600, color:"#059669" }}>
+              <div role="status" style={{ display:"flex", alignItems:"center", gap:8, padding:"11px 13px", borderRadius:12, marginTop:12, background:"#F0FDF4", border:"1px solid #BBF7D0", fontSize:13, fontWeight:600, color:"#059669" }}>
                 <i className="bi bi-check-circle-fill" style={{ fontSize:16 }} />
                 {success}
               </div>

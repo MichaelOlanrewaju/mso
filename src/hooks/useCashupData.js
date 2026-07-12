@@ -31,7 +31,13 @@ export function useCashupData(username, name, initialDate) {
   const [emtlCount, setEmtlCount] = useState("")
   const [expenses, setExpenses] = useState([{ desc: "", amt: "" }])
   // Lubricant/oil — itemized product sales, same pattern as expenses
-  const [lubricantItems, setLubricantItems] = useState([{ product: "", qty: "", unitPrice: "" }])
+  /* No unitPrice here on purpose. The price is not the cashier's to hold —
+     it comes from the LubricantProducts catalogue, is displayed read-only in
+     the UI, and is stamped server-side by saveLubricant when the sale saves. */
+  const [lubricantItems, setLubricantItems] = useState([{ product: "", qty: "" }])
+  /* Catalogue prices, keyed by product, so lubricantTotal can be computed for
+     the on-screen reconciliation without ever trusting a client-held price. */
+  const [lubPrices, setLubPrices] = useState({})
   // LPG kg/price are no longer entered here — Sales page now owns them
   // (real pump-metered figures), same as PMS/AGO. Cash-up only handles
   // how much was actually remitted, for reconciliation.
@@ -114,8 +120,12 @@ export function useCashupData(username, name, initialDate) {
     })
   }, [])
 
+  /* The page owns the catalogue fetch (useLubricantProducts); it hands the
+     prices down here so the running total stays correct. */
+  const setLubricantPrices = useCallback(map => setLubPrices(map || {}), [])
+
   const addLubricant = useCallback(() => {
-    setLubricantItems(prev => [...prev, { product: "", qty: "", unitPrice: "" }])
+    setLubricantItems(prev => [...prev, { product: "", qty: "" }])
   }, [])
 
   const updateLubricant = useCallback((i, field, value) => {
@@ -125,7 +135,7 @@ export function useCashupData(username, name, initialDate) {
   const removeLubricant = useCallback(i => {
     setLubricantItems(prev => {
       const next = prev.filter((_, idx) => idx !== i)
-      return next.length ? next : [{ product: "", qty: "", unitPrice: "" }]
+      return next.length ? next : [{ product: "", qty: "" }]
     })
   }, [])
 
@@ -164,7 +174,14 @@ export function useCashupData(username, name, initialDate) {
   const cashToBank = Math.max(0, cash - totalExpenses)
   const variance = expected.hasData ? collected - expected.grandTotal : null
 
-  const lubricantTotal = lubricantItems.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0)
+  /* Priced from the catalogue, not from the row. This figure feeds the day's
+     cash reconciliation, so it has to match what the server will actually
+     record — anything else and the cashier balances against a number that
+     doesn't exist. */
+  const lubricantTotal = lubricantItems.reduce(
+    (s, it) => s + (Number(it.qty) || 0) * (Number(lubPrices[it.product]) || 0),
+    0
+  )
 
   // LPG kg/price/revenue now come from real Sales pump readings (via
   // `expected`, loaded from getDailyReport) instead of being typed here
@@ -271,7 +288,8 @@ export function useCashupData(username, name, initialDate) {
             fetch(SCRIPT_URL, {
               method: "POST",
               headers: { "Content-Type": "text/plain" },
-              body: JSON.stringify({ action: "saveLubricant", station: STATION_KEY, username, date, product: it.product, qty: Number(it.qty), unitPrice: Number(it.unitPrice) || 0 }),
+              // unitPrice is deliberately NOT sent. The server looks it up.
+              body: JSON.stringify({ action: "saveLubricant", station: STATION_KEY, username, date, product: it.product, qty: Number(it.qty) }),
               redirect: "follow",
             })
           )
@@ -293,7 +311,7 @@ export function useCashupData(username, name, initialDate) {
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,
     emtlCount, setEmtlCount, emtlAmount,
     expenses, addExpense, updateExpense, removeExpense,
-    lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal,
+    lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal, setLubricantPrices,
     mpCharge, zmCharge, trfMPCharge, mpNet, zmNet, trfMPNet, totalCharges, totalExpenses,
     grossTotal, collected, cashToBank, variance, reconStatus, cashSummary,
     lpgRemitted, setLpgRemitted, lpgSales, lpgVariance,

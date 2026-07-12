@@ -50,7 +50,7 @@ export function InstallStrip() {
         <div className="text-[11px]" style={{ color: "rgba(255,255,255,.35)", marginTop: 2 }}>Install for one-tap access · Works offline</div>
       </div>
       <button type="button" onClick={handleInstall} disabled={installing}
-        className="flex-shrink-0 rounded-[9px] px-3.5 py-2 text-[12px] font-extrabold text-white disabled:opacity-50"
+        className="flex-shrink-0 rounded-[10px] px-3.5 py-2 text-[12px] font-extrabold text-white disabled:opacity-50"
         style={{ background: "#179DD0", boxShadow: "0 2px 12px rgba(23,157,208,.40)", border: "none", cursor: "pointer" }}>
         {installing ? "…" : "Install"}
       </button>
@@ -86,7 +86,7 @@ export function TestNotificationButton() {
 
   return (
     <button type="button" onClick={handleClick} disabled={state === "sending"}
-      className="flex items-center gap-1.5 rounded-[9px] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60"
+      className="flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60"
       style={{
         background: state === "sent" ? "rgba(34,197,94,.14)" : state === "blocked" ? "rgba(239,68,68,.14)" : "rgba(23,157,208,.10)",
         color: state === "sent" ? "#22C55E" : state === "blocked" ? "#EF4444" : "#3BB8E8",

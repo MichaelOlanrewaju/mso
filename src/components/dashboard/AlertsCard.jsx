@@ -113,26 +113,77 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
     ...buildTankAlerts(tankLevels),
   ]
 
+  const count = alerts.length
+  const hasAlerts = count > 0
+
   return (
-    <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
-      <div className="flex items-center justify-between border-b border-surface px-[18px] py-3.5">
-        <div className="text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">Alerts</div>
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-px text-[10.5px] font-bold ${
-            alerts.length ? "border-[#FECACA] bg-red-light text-red" : "border-border bg-surface text-ink-4"
-          }`}
-        >
-          {alerts.length}
-        </span>
+    /* This card carries every decision the owner has to make — approvals,
+       shortages, low tanks. It used to be styled exactly like the reporting
+       cards around it, which buried it. Now it announces itself when there's
+       something to act on, and recedes to a quiet "all clear" when there
+       isn't — so a glance at the page tells you whether you're needed. */
+    <div
+      className={`overflow-hidden rounded-panel border bg-white transition-shadow duration-300 ${
+        hasAlerts ? "border-[#FECACA] shadow-urgent" : "border-border shadow-card"
+      }`}
+    >
+      <div
+        className="flex items-center justify-between px-[18px] py-4"
+        style={
+          hasAlerts
+            ? { background: "linear-gradient(135deg,#FEF2F2 0%,#FFF7ED 100%)" }
+            : undefined
+        }
+      >
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`flex h-8 w-8 items-center justify-center rounded-[10px] ${
+              hasAlerts ? "animate-pulse-ring" : ""
+            }`}
+            style={{
+              background: hasAlerts ? "#EF4444" : "#F0FDF4",
+              color: hasAlerts ? "#fff" : "#16A34A",
+            }}
+          >
+            <i className={`bi ${hasAlerts ? "bi-exclamation-lg" : "bi-check-lg"} text-[15px]`} />
+          </span>
+          <div>
+            <div className="text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">
+              {hasAlerts ? "Needs your attention" : "All clear"}
+            </div>
+            <div className="text-[10.5px] font-medium text-ink-4">
+              {hasAlerts
+                ? `${count} item${count === 1 ? "" : "s"} waiting on you`
+                : "Nothing waiting on you right now"}
+            </div>
+          </div>
+        </div>
+        {hasAlerts && (
+          <span
+            className="flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-[12px] font-extrabold tabular-nums text-white"
+            style={{ background: "#EF4444", boxShadow: "0 2px 8px rgba(239,68,68,.35)" }}
+          >
+            {count}
+          </span>
+        )}
       </div>
-      <div>
-        {alerts.length === 0 ? (
-          <div className="px-[18px] py-6 text-center text-[12px] text-ink-4">No active alerts</div>
+
+      <div className={hasAlerts ? "border-t border-[#FECACA]/60" : ""}>
+        {!hasAlerts ? (
+          <div className="px-[18px] pb-6 pt-2 text-center">
+            <p className="text-[12px] leading-relaxed text-ink-4">
+              Approvals, shortages and low-tank warnings appear here.
+            </p>
+          </div>
         ) : (
-          alerts.map(a => (
-            <div key={a.key} className="flex items-start gap-[11px] border-b border-surface px-[18px] py-3 last:border-none">
+          alerts.map((a, i) => (
+            <div
+              key={a.key}
+              className="enter flex items-start gap-3 border-b border-surface px-[18px] py-3.5 transition-colors last:border-none hover:bg-surface/60"
+              style={{ animationDelay: `${Math.min(i * 45, 270)}ms` }}
+            >
               <div
-                className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[9px] text-base"
+                className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-[10px] text-base"
                 style={{ background: a.iconBg }}
               >
                 <i className={`bi ${a.icon}`} style={{ color: a.iconColor }} />
@@ -141,15 +192,25 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
                 <div className="mb-0.5 text-[12.5px] font-bold text-ink">{a.title}</div>
                 <div className="text-[11.5px] leading-relaxed text-ink-2">{a.text}</div>
                 {a.actions && (
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2.5 flex flex-wrap gap-2">
                     {a.actions.map(act => (
                       <button
                         key={act.label}
                         type="button"
                         onClick={act.onClick}
-                        className={`rounded-[7px] px-3 py-1 text-[11px] font-bold ${
-                          act.tone === "green" ? "bg-green-light text-green" : "bg-red-light text-red"
+                        className={`rounded-[10px] px-3.5 py-1.5 text-[11px] font-bold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 ${
+                          act.tone === "green"
+                            ? "text-white hover:brightness-110 focus-visible:outline-green"
+                            : "border border-[#FECACA] bg-white text-red hover:bg-red-light focus-visible:outline-red"
                         }`}
+                        style={
+                          act.tone === "green"
+                            ? {
+                                background: "linear-gradient(135deg,#16A34A,#22C55E)",
+                                boxShadow: "0 2px 8px rgba(22,163,74,.28)",
+                              }
+                            : undefined
+                        }
                       >
                         {act.label}
                       </button>

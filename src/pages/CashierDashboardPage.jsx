@@ -74,10 +74,10 @@ function CashierInner() {
         </div>
         <div className="flex items-center gap-2">
           <div className="text-[11px] font-medium text-ink-3">{new Date().toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}</div>
-          <button type="button" onClick={refresh} className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
+          <button type="button" onClick={refresh} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-3">
             <i className={`bi bi-arrow-clockwise ${loading ? "animate-spin-fast" : ""}`} />
           </button>
-          <button type="button" onClick={auth.logout} className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-red">
+          <button type="button" onClick={auth.logout} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-red">
             <i className="bi bi-box-arrow-right" />
           </button>
         </div>
@@ -198,28 +198,28 @@ function CashierInner() {
                 <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">Total KG</div>
                 <input
                   type="number" placeholder="0.0" min="0" step="0.1" value={lpgKg} onChange={e => setLpgKg(e.target.value)}
-                  className="mono w-full rounded-[9px] border-[1.5px] border-border bg-surface px-2.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:border-cyan focus:bg-white"
+                  className="mono w-full rounded-[10px] border-[1.5px] border-border bg-surface px-2.5 py-2.5 text-[15px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
                 />
               </div>
               <div>
                 <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">Unit Price (₦/kg)</div>
                 <input
                   type="number" placeholder="1250" min="0" step="1" value={lpgPrice} onChange={e => setLpgPrice(e.target.value)}
-                  className="mono w-full rounded-[9px] border-[1.5px] border-border bg-surface px-2.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:border-cyan focus:bg-white"
+                  className="mono w-full rounded-[10px] border-[1.5px] border-border bg-surface px-2.5 py-2.5 text-[15px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
                 />
               </div>
               <div>
                 <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">Total Sales</div>
                 <input
                   type="number" placeholder="auto" readOnly value={lpgSales > 0 ? Math.round(lpgSales) : ""}
-                  className="mono w-full rounded-[9px] border-[1.5px] border-cyan/25 bg-cyan-light px-2.5 py-2.5 text-[15px] font-bold text-cyan-dark outline-none"
+                  className="mono w-full rounded-[10px] border-[1.5px] border-cyan/25 bg-cyan-light px-2.5 py-2.5 text-[15px] font-bold text-cyan-dark outline-none"
                 />
               </div>
               <div>
                 <div className="mb-1 text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">Amount Remitted</div>
                 <input
                   type="number" placeholder="0" min="0" step="1" value={lpgRemitted} onChange={e => setLpgRemitted(e.target.value)}
-                  className="mono w-full rounded-[9px] border-[1.5px] border-border bg-surface px-2.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:border-cyan focus:bg-white"
+                  className="mono w-full rounded-[10px] border-[1.5px] border-border bg-surface px-2.5 py-2.5 text-[15px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
                 />
               </div>
             </div>
@@ -249,7 +249,7 @@ function CashierInner() {
               key={qa.label}
               type="button"
               onClick={() => navigate(qa.to)}
-              className="flex flex-col items-center gap-2 rounded-[13px] border border-border bg-white p-3.5 text-center shadow-card"
+              className="flex flex-col items-center gap-2 rounded-[12px] border border-border bg-white p-3.5 text-center shadow-card"
             >
               <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[12px]" style={{ background: qa.bg }}>
                 <i className={`bi ${qa.icon}`} style={{ color: qa.color }} />
@@ -264,7 +264,7 @@ function CashierInner() {
         <button
           type="button"
           onClick={() => navigate("/cashup-mso")}
-          className="mx-auto flex h-[52px] w-full max-w-[540px] items-center justify-center gap-2 rounded-[13px] bg-green text-[15px] font-extrabold text-white shadow-[0_4px_18px_rgba(22,163,74,.3)]"
+          className="mx-auto flex h-[52px] w-full max-w-[540px] items-center justify-center gap-2 rounded-[12px] bg-green text-[15px] font-extrabold text-white shadow-[0_4px_18px_rgba(22,163,74,.3)]"
         >
           <i className="bi bi-shield-check" /> Submit Cash Reconciliation
         </button>

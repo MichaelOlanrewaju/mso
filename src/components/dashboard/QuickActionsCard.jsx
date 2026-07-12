@@ -4,15 +4,15 @@ import { useNavigate } from "react-router-dom"
 const ACTIONS = [
   { icon: "bi-pencil-square",          iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Record Sales",       href: "/sales-mso",    roles: ["supervisor","cashier"] },
   { icon: "bi-calculator",             iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Cash Up",            href: "/cashup-mso",   roles: ["supervisor","cashier"] },
-  { icon: "bi-truck",                  iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Discharge",          href: "/discharge-mso",roles: ["owner","gm","supervisor"] },
+  { icon: "bi-truck",                  iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Discharge",          href: "/discharge-mso",roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-clock",                  iconBg: "#F5F3FF", iconColor: "#7C3AED", label: "Shifts",             href: "/shifts-mso",   roles: ["supervisor","cashier"] },
-  { icon: "bi-person-fill-exclamation",iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Debtors",            href: "/debtors-mso",  roles: ["owner","gm","supervisor"] },
-  { icon: "bi-box-arrow-in-down",      iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Orders",             href: "/orders-mso",   roles: ["owner","gm"] },
-  { icon: "bi-wallet2",                iconBg: "#EEF0FB", iconColor: "#130656", label: "Payroll",            href: "/payroll-mso",  roles: ["owner","gm"] },
-  { icon: "bi-bar-chart-line-fill",    iconBg: "#EDE9FE", iconColor: "#6D28D9", label: "P&L Report",        href: "/pnl-mso",      roles: ["owner","gm"] },
-  { icon: "bi-graph-up-arrow",         iconBg: "#EAF6FC", iconColor: "#0891B2", label: "Variance",           href: "/variance-mso", roles: ["owner","gm"] },
-  { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "#130656", label: "Summary",            href: "/summary-mso",  roles: ["owner","gm","supervisor"] },
-  { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: "/shortage-mso", roles: ["owner","gm","supervisor","cashier"] },
+  { icon: "bi-person-fill-exclamation",iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Debtors",            href: "/debtors-mso",  roles: ["ceo","owner","gm","supervisor"] },
+  { icon: "bi-box-arrow-in-down",      iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Orders",             href: "/orders-mso",   roles: ["ceo","owner","gm"] },
+  { icon: "bi-wallet2",                iconBg: "#EEF0FB", iconColor: "#130656", label: "Payroll",            href: "/payroll-mso",  roles: ["ceo","owner","gm"] },
+  { icon: "bi-bar-chart-line-fill",    iconBg: "#EDE9FE", iconColor: "#6D28D9", label: "P&L Report",        href: "/pnl-mso",      roles: ["ceo","owner","gm"] },
+  { icon: "bi-graph-up-arrow",         iconBg: "#EAF6FC", iconColor: "#0891B2", label: "Variance",           href: "/variance-mso", roles: ["ceo","owner","gm"] },
+  { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "#130656", label: "Summary",            href: "/summary-mso",  roles: ["ceo","owner","gm","supervisor"] },
+  { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: "/shortage-mso", roles: ["ceo","owner","gm","supervisor","cashier"] },
 ]
 
 export default function QuickActionsCard({ role }) {
@@ -21,13 +21,14 @@ export default function QuickActionsCard({ role }) {
   if (!filtered.length) return null
 
   return (
-    <div className="rounded-card border border-border bg-white p-4 shadow-card">
-      <div className="mb-3 text-[13.5px] font-extrabold tracking-[-0.02em] text-ink">Quick Actions</div>
-      <div className="grid grid-cols-3 gap-2.5">
+    <div className="rounded-panel border border-border bg-white p-4 shadow-card">
+      <div className="mb-3.5 text-[13px] font-extrabold tracking-[-0.02em] text-ink">Quick actions</div>
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-3">
         {filtered.map(a => (
           <button key={a.href} type="button" onClick={() => navigate(a.href)}
-            className="flex flex-col items-center gap-2 rounded-[12px] border border-surface p-3 text-center transition-colors active:bg-surface">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px]"
+            aria-label={a.label}
+            className="group flex flex-col items-center gap-2 rounded-[14px] border border-surface p-3 text-center transition-all duration-200 hover:-translate-y-[2px] hover:border-cyan/30 hover:shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan active:scale-95">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[12px] transition-transform duration-200 group-hover:scale-110"
               style={{ background: a.iconBg }}>
               <i className={`bi ${a.icon} text-[17px]`} style={{ color: a.iconColor }} />
             </div>

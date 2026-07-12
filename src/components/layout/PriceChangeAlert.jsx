@@ -25,14 +25,14 @@ export default function PriceChangeAlert({ change, onDismissForNow }) {
             <button
               type="button"
               onClick={() => navigate("/sales-mso?cutover=" + product.toLowerCase())}
-              className="rounded-[9px] bg-amber px-3.5 py-2 text-[12px] font-bold text-white"
+              className="rounded-[10px] bg-amber px-3.5 py-2 text-[12px] font-bold text-white"
             >
               Close pumps now
             </button>
             <button
               type="button"
               onClick={onDismissForNow}
-              className="rounded-[9px] border border-amber/30 bg-white px-3.5 py-2 text-[12px] font-bold text-[#1188B5]"
+              className="rounded-[10px] border border-amber/30 bg-white px-3.5 py-2 text-[12px] font-bold text-[#1188B5]"
             >
               Remind me later
             </button>

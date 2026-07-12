@@ -225,7 +225,7 @@ export default function SupervisorDashboardPage() {
           </span>
         </div>
         <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <div className="overflow-x-auto">
+          <div className="scrollbar-thin-light overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-surface">
