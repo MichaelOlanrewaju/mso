@@ -87,7 +87,7 @@ export default function ShortagePage() {
         <button
           type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
         >
           <i className="bi bi-arrow-left" />
         </button>
@@ -99,7 +99,7 @@ export default function ShortagePage() {
           <button
             type="button"
             onClick={() => setShowForm(s => !s)}
-            className="flex h-9 items-center gap-1.5 rounded-[10px] bg-red px-3 text-[12px] font-bold text-white"
+            className="flex h-9 items-center gap-1.5 rounded-[9px] bg-red px-3 text-[12px] font-bold text-white"
           >
             <i className="bi bi-plus" /> Report
           </button>
@@ -118,7 +118,7 @@ export default function ShortagePage() {
                 value={date}
                 max={todayISO()}
                 onChange={e => setDate(e.target.value)}
-                className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none focus:border-cyan"
               />
             </label>
 
@@ -127,7 +127,7 @@ export default function ShortagePage() {
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none focus:border-cyan"
               >
                 {SHORTAGE_CATEGORIES.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -142,7 +142,7 @@ export default function ShortagePage() {
                   type="number" inputMode="decimal" min="0" step="0.1" value={litres}
                   onChange={e => setLitres(e.target.value)}
                   placeholder="Optional"
-                  className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                  className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13px] font-bold text-ink outline-none focus:border-cyan"
                 />
               </label>
               <label className="block">
@@ -151,7 +151,7 @@ export default function ShortagePage() {
                   type="number" inputMode="decimal" min="0" step="1" value={amount}
                   onChange={e => setAmount(e.target.value)}
                   placeholder="0"
-                  className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                  className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13px] font-bold text-ink outline-none focus:border-cyan"
                 />
               </label>
             </div>
@@ -163,13 +163,13 @@ export default function ShortagePage() {
                 onChange={e => setDescription(e.target.value)}
                 rows={3}
                 placeholder="Describe the shortage — what was expected, what was found, and any context"
-                className="w-full resize-none rounded-[10px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                className="w-full resize-none rounded-[9px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none focus:border-cyan"
               />
             </label>
 
             {feedback && (
               <div
-                className={`mb-3 rounded-[10px] px-3 py-2 text-[12px] font-semibold ${
+                className={`mb-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold ${
                   feedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"
                 }`}
               >
@@ -235,14 +235,14 @@ export default function ShortagePage() {
                     <button
                       type="button"
                       onClick={() => handleReview(s.rowIndex, "reviewed")}
-                      className="flex-1 rounded-[10px] border border-cyan/25 bg-cyan-light px-3 py-2 text-[11.5px] font-bold text-cyan-dark"
+                      className="flex-1 rounded-[9px] border border-cyan/25 bg-cyan-light px-3 py-2 text-[11.5px] font-bold text-cyan-dark"
                     >
                       Mark Reviewed
                     </button>
                     <button
                       type="button"
                       onClick={() => handleReview(s.rowIndex, "resolved")}
-                      className="flex-1 rounded-[10px] border border-green-light bg-green-light px-3 py-2 text-[11.5px] font-bold text-green"
+                      className="flex-1 rounded-[9px] border border-green-light bg-green-light px-3 py-2 text-[11.5px] font-bold text-green"
                     >
                       Mark Resolved
                     </button>

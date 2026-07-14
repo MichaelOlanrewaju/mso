@@ -74,7 +74,7 @@ export default function PayrollApprovalCard({ pendingPayroll = [], onApprove, on
                 <button type="button"
                   disabled={isProcessing}
                   onClick={() => handle(p.month, "reject")}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-red/20 bg-red-light py-2.5 text-[12.5px] font-bold text-red disabled:opacity-50">
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-red/20 bg-red-light py-2.5 text-[12.5px] font-bold text-red disabled:opacity-50">
                   {isProcessing
                     ? <span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-red/30 border-t-red" />
                     : <i className="bi bi-x-lg text-[11px]" />
@@ -84,7 +84,7 @@ export default function PayrollApprovalCard({ pendingPayroll = [], onApprove, on
                 <button type="button"
                   disabled={isProcessing}
                   onClick={() => handle(p.month, "approve")}
-                  className="flex flex-[2] items-center justify-center gap-1.5 rounded-[10px] bg-green py-2.5 text-[12.5px] font-bold text-white shadow-lift disabled:opacity-50">
+                  className="flex flex-[2] items-center justify-center gap-1.5 rounded-[9px] bg-green py-2.5 text-[12.5px] font-bold text-white shadow-lift disabled:opacity-50">
                   {isProcessing
                     ? <span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
                     : <i className="bi bi-check2 text-[13px]" />

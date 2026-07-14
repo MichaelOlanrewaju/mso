@@ -183,7 +183,7 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
               style={{ animationDelay: `${Math.min(i * 45, 270)}ms` }}
             >
               <div
-                className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-[10px] text-base"
+                className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-[11px] text-base"
                 style={{ background: a.iconBg }}
               >
                 <i className={`bi ${a.icon}`} style={{ color: a.iconColor }} />
@@ -198,7 +198,7 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
                         key={act.label}
                         type="button"
                         onClick={act.onClick}
-                        className={`rounded-[10px] px-3.5 py-1.5 text-[11px] font-bold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 ${
+                        className={`rounded-[9px] px-3.5 py-1.5 text-[11px] font-bold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 ${
                           act.tone === "green"
                             ? "text-white hover:brightness-110 focus-visible:outline-green"
                             : "border border-[#FECACA] bg-white text-red hover:bg-red-light focus-visible:outline-red"

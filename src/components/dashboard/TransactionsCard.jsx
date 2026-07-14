@@ -33,7 +33,7 @@ export default function TransactionsCard({ status, transactions }) {
         </Link>
       </div>
 
-      <div className="scrollbar-thin-light overflow-x-auto">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr>

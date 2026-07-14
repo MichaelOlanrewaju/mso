@@ -179,7 +179,7 @@ export default function ProfilePage() {
       >
         <button type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2">
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
           <i className="bi bi-arrow-left" />
         </button>
         <div className="flex-1">
@@ -234,22 +234,22 @@ export default function ProfilePage() {
                 <span className="mb-1 block text-[11px] font-semibold text-ink-3">Display Name</span>
                 <input type="text" value={name} onChange={e => setName(e.target.value)}
                   placeholder="Your full name"
-                  className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15" />
+                  className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan" />
               </label>
               <label className="mb-4 block">
                 <span className="mb-1 block text-[11px] font-semibold text-ink-3">Email address</span>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15" />
+                  className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan" />
                 <div className="mt-1 text-[10.5px] text-ink-4">Used for password reset emails.</div>
               </label>
               {infoFeedback && (
-                <div className={`mb-3 rounded-[10px] px-3 py-2 text-[12px] font-semibold ${infoFeedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"}`}>
+                <div className={`mb-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold ${infoFeedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"}`}>
                   {infoFeedback.text}
                 </div>
               )}
               <button type="button" onClick={saveInfo} disabled={savingInfo}
-                className="flex h-10 w-full items-center justify-center rounded-[10px] bg-navy text-[13px] font-bold text-white disabled:opacity-60">
+                className="flex h-10 w-full items-center justify-center rounded-[9px] bg-navy text-[13px] font-bold text-white disabled:opacity-60">
                 {savingInfo ? "Saving…" : "Save changes"}
               </button>
             </Section>
@@ -260,11 +260,11 @@ export default function ProfilePage() {
                 <input type={showPass ? "text" : "password"} value={currentPass}
                   onChange={e => setCurrentPass(e.target.value)}
                   placeholder="Your current password"
-                  className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15" />
+                  className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan" />
               </label>
               <label className="mb-3 block">
                 <span className="mb-1 block text-[11px] font-semibold text-ink-3">New password</span>
-                <div className="flex items-center rounded-[10px] border border-border focus-within:border-cyan">
+                <div className="flex items-center rounded-[9px] border border-border focus-within:border-cyan">
                   <input type={showPass ? "text" : "password"} value={newPass}
                     onChange={e => setNewPass(e.target.value)}
                     placeholder="At least 6 characters"
@@ -279,15 +279,15 @@ export default function ProfilePage() {
                 <input type={showPass ? "text" : "password"} value={confirmPass}
                   onChange={e => setConfirmPass(e.target.value)}
                   placeholder="Same password again"
-                  className="w-full rounded-[10px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15" />
+                  className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan" />
               </label>
               {passFeedback && (
-                <div className={`mb-3 rounded-[10px] px-3 py-2 text-[12px] font-semibold ${passFeedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"}`}>
+                <div className={`mb-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold ${passFeedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"}`}>
                   {passFeedback.text}
                 </div>
               )}
               <button type="button" onClick={savePassword} disabled={savingPass}
-                className="flex h-10 w-full items-center justify-center rounded-[10px] bg-navy text-[13px] font-bold text-white disabled:opacity-60">
+                className="flex h-10 w-full items-center justify-center rounded-[9px] bg-navy text-[13px] font-bold text-white disabled:opacity-60">
                 {savingPass ? "Saving…" : "Change password"}
               </button>
             </Section>

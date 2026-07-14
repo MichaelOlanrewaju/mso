@@ -77,6 +77,36 @@ export default function LubricantPage() {
 
   if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
 
+  /* A cashier sells oil but doesn't manage it — they see products, prices and
+     stock in the cash-up dropdown, which is everything they need. This page sets
+     prices and records deliveries, neither of which is theirs to do. The server
+     rejects them anyway (requireRole on every write); this just stops them
+     landing on a page full of buttons that would only fail. */
+  if (!canPrice) {
+    return (
+      <div className="flex min-h-screen">
+        <SafeAreaDebug />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="max-w-[300px] rounded-panel border border-border bg-white px-6 py-8 text-center shadow-card">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[14px] bg-surface">
+              <i className="bi bi-lock text-[19px] text-ink-4" />
+            </div>
+            <p className="text-[13px] font-bold text-ink">Not your page</p>
+            <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-4">
+              Oil prices and stock are managed by supervisors and the GM. You&rsquo;ll
+              see the products and their prices when you record a sale.
+            </p>
+            <button type="button"
+              onClick={() => window.history.back()}
+              className="mt-4 rounded-[10px] border border-border px-4 py-2 text-[12px] font-bold text-ink-3">
+              Go back
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const flash = (err, text) => setMsg({ err, text })
 
   const submitSell = () => {
@@ -344,14 +374,14 @@ export default function LubricantPage() {
                           {canPrice && (
                             <button type="button" onClick={() => { setEditing(p); setName(p.product); setSell(String(p.sellPrice)) }}
                               aria-label={`Change selling price of ${p.product}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-border text-ink-3 transition-colors hover:border-cyan hover:text-cyan-dark active:scale-90">
+                              className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-border text-ink-3 transition-colors hover:border-cyan hover:text-cyan-dark active:scale-90">
                               <i className="bi bi-tag text-[13px]" />
                             </button>
                           )}
                           {canCost && (
                             <button type="button" onClick={() => { setCosting(p); setCost(p.costPrice ? String(p.costPrice) : "") }}
                               aria-label={`Set cost price of ${p.product}`}
-                              className={`flex h-8 w-8 items-center justify-center rounded-[10px] border transition-colors active:scale-90 ${
+                              className={`flex h-8 w-8 items-center justify-center rounded-[9px] border transition-colors active:scale-90 ${
                                 p.costPrice ? "border-border text-ink-3 hover:border-amber hover:text-amber" : "border-amber/40 bg-amber-light text-amber"
                               }`}>
                               <i className="bi bi-receipt text-[13px]" />
@@ -364,7 +394,7 @@ export default function LubricantPage() {
                                   removeProduct(p.product).then(d => flash(!d.ok, d.ok ? `${p.product} removed.` : d.error))
                               }}
                               aria-label={`Remove ${p.product}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-border text-ink-4 transition-colors hover:border-red hover:bg-red-light hover:text-red active:scale-90">
+                              className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-border text-ink-4 transition-colors hover:border-red hover:bg-red-light hover:text-red active:scale-90">
                               <i className="bi bi-trash text-[13px]" />
                             </button>
                           )}
@@ -377,13 +407,13 @@ export default function LubricantPage() {
                       <div className="mt-3 flex gap-2 sm:hidden">
                         {canPrice && (
                           <button type="button" onClick={() => { setEditing(p); setName(p.product); setSell(String(p.sellPrice)) }}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-border py-2 text-[11px] font-bold text-ink-3 active:scale-95">
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-border py-2 text-[11px] font-bold text-ink-3 active:scale-95">
                             <i className="bi bi-tag text-[12px]" /> Price
                           </button>
                         )}
                         {canCost && (
                           <button type="button" onClick={() => { setCosting(p); setCost(p.costPrice ? String(p.costPrice) : "") }}
-                            className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border py-2 text-[11px] font-bold active:scale-95 ${
+                            className={`flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border py-2 text-[11px] font-bold active:scale-95 ${
                               p.costPrice ? "border-border text-ink-3" : "border-amber/40 bg-amber-light text-amber"
                             }`}>
                             <i className="bi bi-receipt text-[12px]" /> Cost
@@ -396,7 +426,7 @@ export default function LubricantPage() {
                                 removeProduct(p.product).then(d => flash(!d.ok, d.ok ? `${p.product} removed.` : d.error))
                             }}
                             aria-label={`Remove ${p.product}`}
-                            className="flex w-11 flex-shrink-0 items-center justify-center rounded-[10px] border border-border text-ink-4 active:scale-95">
+                            className="flex w-11 flex-shrink-0 items-center justify-center rounded-[9px] border border-border text-ink-4 active:scale-95">
                             <i className="bi bi-trash text-[12px]" />
                           </button>
                         )}
@@ -507,12 +537,12 @@ export default function LubricantPage() {
                       {lines.map((l, i) => (
                         <div key={i} className="mb-3 rounded-[12px] border border-border bg-surface/40 p-3 last:mb-0">
                           <div className="mb-2.5 flex items-center gap-2">
-                            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[8px] bg-white text-[10px] font-extrabold text-ink-4">
+                            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[7px] bg-white text-[10px] font-extrabold text-ink-4">
                               {i + 1}
                             </span>
                             <select
                               aria-label={`Product for line ${i + 1}`}
-                              className="min-w-0 flex-1 rounded-[10px] border-[1.5px] border-border bg-white px-3 py-2 text-[12.5px] font-medium text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                              className="min-w-0 flex-1 rounded-[9px] border-[1.5px] border-border bg-white px-3 py-2 text-[12.5px] font-medium text-ink outline-none focus:border-cyan"
                               value={l.product} onChange={e => setLine(i, "product", e.target.value)}
                             >
                               <option value="">Select product…</option>
@@ -531,21 +561,21 @@ export default function LubricantPage() {
                               <label className="mb-1 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-ink-4">Cartons</label>
                               <input type="number" min="0" inputMode="numeric" placeholder="20"
                                 aria-label={`Cartons for line ${i + 1}`}
-                                className="mono w-full rounded-[8px] border-[1.5px] border-border bg-white px-2 py-2 text-right text-[12.5px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                                className="mono w-full rounded-[8px] border-[1.5px] border-border bg-white px-2 py-2 text-right text-[12.5px] font-bold text-ink outline-none focus:border-cyan"
                                 value={l.cartons} onChange={e => setLine(i, "cartons", e.target.value)} />
                             </div>
                             <div>
                               <label className="mb-1 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-ink-4">Units/ctn</label>
                               <input type="number" min="0" inputMode="numeric" placeholder="4"
                                 aria-label={`Units per carton for line ${i + 1}`}
-                                className="mono w-full rounded-[8px] border-[1.5px] border-border bg-white px-2 py-2 text-right text-[12.5px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                                className="mono w-full rounded-[8px] border-[1.5px] border-border bg-white px-2 py-2 text-right text-[12.5px] font-bold text-ink outline-none focus:border-cyan"
                                 value={l.unitsPerCarton} onChange={e => setLine(i, "unitsPerCarton", e.target.value)} />
                             </div>
                             <div>
                               <label className="mb-1 block text-[9.5px] font-bold uppercase tracking-[0.5px] text-ink-4">₦/unit</label>
                               <input type="number" min="0" inputMode="numeric" placeholder="23700"
                                 aria-label={`Cost per unit for line ${i + 1}`}
-                                className="mono w-full rounded-[8px] border-[1.5px] border-border bg-white px-2 py-2 text-right text-[12.5px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+                                className="mono w-full rounded-[8px] border-[1.5px] border-border bg-white px-2 py-2 text-right text-[12.5px] font-bold text-ink outline-none focus:border-cyan"
                                 value={l.unitCost} onChange={e => setLine(i, "unitCost", e.target.value)} />
                             </div>
                           </div>
@@ -559,7 +589,7 @@ export default function LubricantPage() {
                       ))}
 
                       <button type="button" onClick={addLine}
-                        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-border py-2.5 text-[12px] font-bold text-ink-3 hover:border-cyan/40 hover:text-cyan-dark">
+                        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border py-2.5 text-[12px] font-bold text-ink-3 hover:border-cyan/40 hover:text-cyan-dark">
                         <i className="bi bi-plus-circle" /> Add another product
                       </button>
                     </div>
@@ -662,7 +692,7 @@ export default function LubricantPage() {
                             <button type="button"
                               onClick={() => setVoiding({ invoiceNo: d.invoiceNo, supplier: d.supplier, date: d.date, reason: "" })}
                               aria-label="Void this delivery"
-                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px] border border-border text-ink-4 hover:border-red hover:bg-red-light hover:text-red active:scale-90">
+                              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] border border-border text-ink-4 hover:border-red hover:bg-red-light hover:text-red active:scale-90">
                               <i className="bi bi-x-lg text-[12px]" />
                             </button>
                           )}

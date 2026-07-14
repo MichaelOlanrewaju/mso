@@ -52,7 +52,7 @@ export default function DipSummaryCard({ status, tanks, pmsPrice }) {
         </span>
       </div>
 
-      <div className="scrollbar-thin-light overflow-x-auto">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr>

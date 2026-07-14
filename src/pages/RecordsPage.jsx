@@ -238,7 +238,7 @@ function RecordsInner() {
               <button
                 type="button"
                 onClick={() => setExportOpen(o => !o)}
-                className="flex flex-shrink-0 items-center gap-1.5 rounded-[10px] border border-border bg-surface px-3 py-2 text-[11.5px] font-bold text-ink-2"
+                className="flex flex-shrink-0 items-center gap-1.5 rounded-[9px] border border-border bg-surface px-3 py-2 text-[11.5px] font-bold text-ink-2"
               >
                 <i className="bi bi-download" /> Export
               </button>
@@ -251,12 +251,12 @@ function RecordsInner() {
                   <label className="block">
                     <span className="mb-1 block text-[9.5px] font-bold uppercase tracking-[0.6px] text-ink-4">From</span>
                     <input type="date" value={exportFrom} max={exportTo} onChange={e => setExportFrom(e.target.value)}
-                      className="w-full rounded-[10px] border border-border bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 [color-scheme:light]" />
+                      className="w-full rounded-[9px] border border-border bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-cyan [color-scheme:light]" />
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-[9.5px] font-bold uppercase tracking-[0.6px] text-ink-4">To</span>
                     <input type="date" value={exportTo} min={exportFrom} max={todayISO()} onChange={e => setExportTo(e.target.value)}
-                      className="w-full rounded-[10px] border border-border bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 [color-scheme:light]" />
+                      className="w-full rounded-[9px] border border-border bg-surface px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-cyan [color-scheme:light]" />
                   </label>
                 </div>
                 <div className="mb-3 text-[11px] text-ink-4">Opens in Excel/Google Sheets — Date, Grand Total, PMS/AGO litres & revenue, Cash to Bank, Expenses, Status per day.</div>
@@ -365,7 +365,7 @@ function RecordsInner() {
 
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Tank Dip Readings</div>
                 <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-                  <div className="scrollbar-thin-light overflow-x-auto">
+                  <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
                         <tr>
@@ -387,7 +387,7 @@ function RecordsInner() {
 
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Pump Metre Readings</div>
                 <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-                  <div className="scrollbar-thin-light overflow-x-auto">
+                  <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
                         <tr>
@@ -409,7 +409,7 @@ function RecordsInner() {
 
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Revenue &amp; Margin by Product</div>
                 <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-                  <div className="scrollbar-thin-light overflow-x-auto">
+                  <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
                         <tr>

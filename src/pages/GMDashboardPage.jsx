@@ -141,7 +141,7 @@ function GMInner() {
                   <div className="text-[11px] text-ink-4">While this dashboard is open, you'll get an alert the moment something needs your review.</div>
                 </div>
                 <button type="button" onClick={requestNotifications}
-                  className="flex-shrink-0 rounded-[10px] px-3.5 py-2 text-[12px] font-bold text-white transition-all hover:brightness-110 active:scale-95"
+                  className="flex-shrink-0 rounded-[9px] px-3.5 py-2 text-[12px] font-bold text-white transition-all hover:brightness-110 active:scale-95"
                   style={{ background: "linear-gradient(135deg,#130656,#179DD0)" }}>
                   Enable
                 </button>

@@ -20,7 +20,7 @@ export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefres
           type="button"
           onClick={onToggleSidebar}
           aria-label="Toggle menu"
-          className={`flex h-[38px] w-[38px] flex-shrink-0 appearance-none items-center justify-center rounded-[10px] border border-border bg-surface text-xl text-navy transition-all duration-150 lg:hidden
+          className={`flex h-[38px] w-[38px] flex-shrink-0 appearance-none items-center justify-center rounded-[9px] border border-border bg-surface text-xl text-navy transition-all duration-150 lg:hidden
             ${sidebarOpen ? "border-cyan/30 bg-cyan-light text-cyan-dark" : "hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan-dark"}`}
         >
           <i className={`bi ${sidebarOpen ? "bi-x-lg" : "bi-list"}`} />
@@ -54,17 +54,14 @@ export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefres
         <button
           type="button"
           onClick={onRefresh}
-          disabled={loading}
           title="Refresh"
-          aria-label="Refresh data"
-          className="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] border border-border bg-surface text-[15px] text-ink-3 transition-all duration-150 hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan disabled:opacity-60 md:text-base"
+          className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-border bg-surface text-[15px] text-ink-3 transition-all duration-150 hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan md:h-[38px] md:w-[38px] md:text-base"
         >
           <i className={`bi bi-arrow-clockwise ${loading ? "animate-spin-fast" : ""}`} />
         </button>
         <button
           type="button"
-          aria-label="Notifications"
-          className="relative flex h-[38px] w-[38px] items-center justify-center rounded-[10px] border border-border bg-surface text-[15px] text-ink-3 transition-all duration-150 hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan md:text-base"
+          className="relative flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-border bg-surface text-[15px] text-ink-3 transition-all duration-150 hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan md:h-[38px] md:w-[38px] md:text-base"
         >
           <i className="bi bi-bell" />
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-[1.5px] border-white bg-red" />

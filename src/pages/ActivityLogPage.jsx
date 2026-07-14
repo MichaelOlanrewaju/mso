@@ -83,32 +83,32 @@ export default function ActivityLogPage() {
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2">
+            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
             <i className="bi bi-arrow-left" />
           </button>
           <div className="flex-1">
             <div className="text-[16px] font-extrabold text-ink">Activity Log</div>
             <div className="text-[10px] text-ink-4">Who did what, when — most recent first</div>
           </div>
-          <button type="button" onClick={load} className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2">
+          <button type="button" onClick={load} className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
             <i className={`bi bi-arrow-clockwise ${loading ? "animate-spin-fast" : ""}`} />
           </button>
         </div>
         <div className="flex gap-2 border-t border-border px-4 py-2.5">
           <input
             type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-            className="flex-1 rounded-[10px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 [color-scheme:light]"
+            className="flex-1 rounded-[9px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-cyan [color-scheme:light]"
           />
           <select
             value={actionFilterSel} onChange={e => setActionFilterSel(e.target.value)}
-            className="flex-1 rounded-[10px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+            className="flex-1 rounded-[9px] border border-border bg-surface px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-cyan"
           >
             <option value="">All actions</option>
             {actions.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
           {(dateFilter || actionFilterSel) && (
             <button type="button" onClick={() => { setDateFilter(""); setActionFilterSel("") }}
-              className="rounded-[10px] border border-border bg-white px-2.5 text-[11px] font-bold text-ink-3">
+              className="rounded-[9px] border border-border bg-white px-2.5 text-[11px] font-bold text-ink-3">
               Clear
             </button>
           )}

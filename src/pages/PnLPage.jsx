@@ -62,7 +62,7 @@ export default function PnLPage() {
         <div className="px-4 pb-5 pt-[max(var(--sat),52px)]">
           <div className="flex items-center gap-3 mb-4">
             <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-white/10 bg-white/5 text-white/70">
+              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/70">
               <i className="bi bi-arrow-left" />
             </button>
             <div>

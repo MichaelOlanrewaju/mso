@@ -35,7 +35,7 @@ function ExpensesInner() {
         <button
           type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
         >
           <i className="bi bi-arrow-left" />
         </button>
@@ -43,7 +43,7 @@ function ExpensesInner() {
           <div className="text-[16px] font-extrabold text-ink">Expenses</div>
           <div className="text-[10px] text-ink-4">{new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</div>
         </div>
-        <button type="button" onClick={refresh} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-3">
+        <button type="button" onClick={refresh} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
           <i className={`bi bi-arrow-clockwise ${status === "loading" ? "animate-spin-fast" : ""}`} />
         </button>
       </div>
@@ -51,7 +51,7 @@ function ExpensesInner() {
       <div className="mx-auto max-w-[600px] px-4 py-4">
         <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
           <div className="flex items-center gap-2.5 border-b border-surface bg-surface px-4 py-3">
-            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] bg-red-light">
+            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[9px] bg-red-light">
               <i className="bi bi-receipt-cutoff text-red" />
             </div>
             <div>
@@ -67,7 +67,7 @@ function ExpensesInner() {
                 value={desc}
                 onChange={e => setDesc(e.target.value)}
                 placeholder="e.g. Logistics to bank, fuel for generator"
-                className="w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13.5px] font-medium text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                className="w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13.5px] font-medium text-ink outline-none focus:border-cyan focus:bg-white"
               />
             </div>
             <div>
@@ -80,14 +80,14 @@ function ExpensesInner() {
                 placeholder="0"
                 min="0"
                 step="1"
-                className="mono w-full rounded-[10px] border-2 border-border bg-surface px-3.5 py-3 text-right text-[17px] font-extrabold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                className="mono w-full rounded-[10px] border-2 border-border bg-surface px-3.5 py-3 text-right text-[17px] font-extrabold text-ink outline-none focus:border-cyan focus:bg-white"
               />
             </div>
             <button
               type="button"
               onClick={handleAdd}
               disabled={saving}
-              className="mt-1 flex h-[46px] items-center justify-center gap-2 rounded-[10px] bg-cyan text-[14px] font-extrabold text-white disabled:opacity-60"
+              className="mt-1 flex h-[46px] items-center justify-center gap-2 rounded-[11px] bg-cyan text-[14px] font-extrabold text-white disabled:opacity-60"
             >
               {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-plus-circle" />}
               {saving ? "Saving…" : "Add Expense"}

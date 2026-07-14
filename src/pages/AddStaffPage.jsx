@@ -58,7 +58,7 @@ export default function AddStaffPage() {
         <div className="text-[14px] font-bold text-ink">Access restricted</div>
         <div className="text-[12.5px] text-ink-4">Only GM and Owner can add staff.</div>
         <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="mt-2 rounded-[10px] border border-border bg-white px-4 py-2 text-[12.5px] font-bold text-ink-2">
+          className="mt-2 rounded-[9px] border border-border bg-white px-4 py-2 text-[12.5px] font-bold text-ink-2">
           Back to Dashboard
         </button>
       </div>
@@ -97,7 +97,7 @@ export default function AddStaffPage() {
     }
   }
 
-  const inputCls = "w-full rounded-[10px] border border-border px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:ring-0"
+  const inputCls = "w-full rounded-[10px] border border-border px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan focus:ring-0"
 
   return (
     <div className="min-h-screen bg-pagebg pb-10">
@@ -106,7 +106,7 @@ export default function AddStaffPage() {
       <div className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]"
         style={{ paddingTop: "max(var(--sat), 52px)" }}>
         <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2">
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
           <i className="bi bi-arrow-left" />
         </button>
         <div className="flex-1">
@@ -192,7 +192,7 @@ export default function AddStaffPage() {
           )}
 
           <button type="submit" disabled={saving}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-navy text-[13.5px] font-bold text-white shadow-lift disabled:opacity-60">
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-[11px] bg-navy text-[13.5px] font-bold text-white shadow-lift disabled:opacity-60">
             {saving
               ? <><span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> Saving…</>
               : isExisting

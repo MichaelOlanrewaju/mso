@@ -31,7 +31,7 @@ function StatRow({ icon, label, value, sub, valueColor }) {
   return (
     <div className="flex items-center justify-between border-b border-surface px-4 py-3 last:border-b-0">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-surface text-[13px] text-ink-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-surface text-[13px] text-ink-3">
           <i className={`bi ${icon}`} />
         </div>
         <div>

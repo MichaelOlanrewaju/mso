@@ -53,7 +53,7 @@ export default function ChatHeader({ name, role, unseenCount = 0, onDashboard, c
               ? `Back to dashboard. ${unseenCount} unread message${unseenCount === 1 ? "" : "s"}`
               : "Back to dashboard"
           }
-          className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px] border border-white/20 bg-white/10 text-white backdrop-blur-md transition-transform duration-150 hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 active:scale-95"
+          className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[15px] border border-white/20 bg-white/10 text-white backdrop-blur-md transition-transform duration-150 hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 active:scale-95"
         >
           <i className="bi bi-grid text-[16px]" />
           {unseenCount > 0 && (

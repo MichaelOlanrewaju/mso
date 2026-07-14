@@ -28,7 +28,7 @@ function Empty({ query, tab }) {
 
   return (
     <div className="mx-auto mt-8 max-w-[290px] rounded-[22px] bg-white px-6 py-8 text-center shadow-card">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[14px] bg-cyan-light">
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[15px] bg-cyan-light">
         <i className={`bi ${copy.icon} text-[19px] text-cyan-dark`} aria-hidden="true" />
       </div>
       <p className="text-[14px] font-bold text-ink">{copy.title}</p>
@@ -82,7 +82,7 @@ export default function ConversationList({
             className="flex items-center gap-3.5 rounded-[20px] bg-white p-3 shadow-card"
             style={{ opacity: 1 - i * 0.18 }}
           >
-            <div className="h-[50px] w-[50px] flex-shrink-0 rounded-[16px] bg-surface" />
+            <div className="h-[50px] w-[50px] flex-shrink-0 rounded-[17px] bg-surface" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-1/3 rounded-full bg-surface" />
               <div className="h-2.5 w-2/3 rounded-full bg-surface" />

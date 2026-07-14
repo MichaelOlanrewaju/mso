@@ -225,7 +225,7 @@ export default function SupervisorDashboardPage() {
           </span>
         </div>
         <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <div className="scrollbar-thin-light overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-surface">
@@ -287,6 +287,11 @@ export default function SupervisorDashboardPage() {
           <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="#179DD0" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate("/discharge-mso")} />
           <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate("/expenses-mso")} />
           <MenuRow icon="bi-tag" iconBg="#EEF0FF" iconColor="#130656" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate("/price-mso")} />
+          {/* The supervisor is the one who sets oil selling prices and records
+              deliveries — the backend has always allowed it, but until now the
+              page lived only in the owner/GM sidebar, which supervisors never
+              see. This is their way in. */}
+          <MenuRow icon="bi-droplet-fill" iconBg="#FEF3C7" iconColor="#D97706" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate("/lubricant-mso")} />
           <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate("/summary-mso")} />
           <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate("/shortage-mso")} />
           <MenuRow icon="bi-box-arrow-right" iconBg="#FFF1F2" iconColor="#DC2626" title="Sign Out" sub="End your session" onClick={auth.logout} danger />

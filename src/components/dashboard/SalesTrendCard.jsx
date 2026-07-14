@@ -60,7 +60,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
         </div>
 
         <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-[10px] border border-cyan/20 bg-cyan-light p-3">
+          <div className="rounded-[11px] border border-cyan/20 bg-cyan-light p-3">
             <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.8px] text-cyan-dark">
               PMS Revenue
             </div>
@@ -69,7 +69,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
             </div>
             <div className="text-[10.5px] text-ink-4">—</div>
           </div>
-          <div className="rounded-[10px] border border-[#BEE6F5] bg-amber-light p-3">
+          <div className="rounded-[11px] border border-[#BEE6F5] bg-amber-light p-3">
             <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.8px] text-amber">
               AGO Revenue
             </div>

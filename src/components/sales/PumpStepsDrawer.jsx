@@ -35,7 +35,7 @@ export default function PumpStepsDrawer({ open, onClose, steps, current, mode, r
                 }`}
               >
                 <div
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[12px] font-extrabold"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] text-[12px] font-extrabold"
                   style={pump.product === "AGO" ? { background: "#EAF6FC", color: "#179DD0" } : { background: "#EAF6FC", color: "#1188B5" }}
                 >
                   {pump.pumpId || pump.id}

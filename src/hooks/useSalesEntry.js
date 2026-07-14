@@ -5,6 +5,10 @@ import { postWithProgress } from "../utils/postWithProgress"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* How often to re-check whether the GM has approved an edit request. The lock
+   status used to be fetched once, on page load — so an approval that landed
+   thirty seconds later never reached the supervisor's screen. */
+const LOCK_POLL_MS = 15000
 
 // Two different real pumps can share the same signage label (e.g. "P1" on
 // Tank 2/PMS and "P1" on Tank 4/AGO — both physically exist at the station).
@@ -166,6 +170,39 @@ export function useSalesEntry(username, name, selectedDate) {
     if (selectedDate) loadForDate(selectedDate)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate])
+
+  /* Lock-only refetch, so an approval unlocks the pump on its own rather than
+     leaving the supervisor stuck on "Waiting for approval" until they think to
+     change the date and change it back. */
+  const refreshLocks = useCallback(date => {
+    if (!SCRIPT_URL || !date) return
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getEditLockStatus")
+    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("date", date)
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => {
+        if (!isMounted.current || !d.ok) return
+        setPumpLocks(d.pumpLocks || {})
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!selectedDate) return
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return
+      refreshLocks(selectedDate)
+    }
+    const id = setInterval(tick, LOCK_POLL_MS)
+    const onVisible = () => { if (document.visibilityState === "visible") refreshLocks(selectedDate) }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [selectedDate, refreshLocks])
 
   const updateReading = useCallback((pid, field, value) => {
     setReadings(prev => ({ ...prev, [pid]: { ...prev[pid], [field]: value } }))

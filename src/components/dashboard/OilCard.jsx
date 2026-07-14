@@ -96,7 +96,7 @@ export default function OilCard() {
             const st = FLAG_STYLE[f.type] || FLAG_STYLE.low
             return (
               <div key={`${f.product}-${f.type}-${i}`} className="flex items-start gap-2.5 border-b border-surface px-[18px] py-2.5 last:border-none">
-                <span className="mt-px flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[8px]" style={{ background: st.bg }}>
+                <span className="mt-px flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[7px]" style={{ background: st.bg }}>
                   <i className={`bi ${st.icon} text-[10px]`} style={{ color: st.fg }} />
                 </span>
                 <div className="min-w-0 flex-1">

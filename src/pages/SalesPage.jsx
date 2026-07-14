@@ -286,7 +286,7 @@ function SalesInner() {
                       type="button"
                       onClick={handleRequestEdit}
                       disabled={requestingEdit}
-                      className="flex items-center gap-2 rounded-[10px] bg-red px-5 py-2.5 text-[13px] font-bold text-white shadow-lift disabled:opacity-60"
+                      className="flex items-center gap-2 rounded-[11px] bg-red px-5 py-2.5 text-[13px] font-bold text-white shadow-lift disabled:opacity-60"
                     >
                       {requestingEdit ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-pencil-square" />}
                       Request Edit

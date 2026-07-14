@@ -173,7 +173,7 @@ function SummaryInner() {
         <button
           type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
         >
           <i className="bi bi-arrow-left" />
         </button>
@@ -190,10 +190,10 @@ function SummaryInner() {
             />
           </label>
         </div>
-        <button type="button" onClick={() => window.print()} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-3">
+        <button type="button" onClick={() => window.print()} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
           <i className="bi bi-printer" />
         </button>
-        <button type="button" onClick={handleShare} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-3">
+        <button type="button" onClick={handleShare} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
           <i className="bi bi-share" />
         </button>
       </div>
@@ -292,7 +292,7 @@ function SummaryInner() {
 
             <div className="border-t border-surface px-5 py-4">
               <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Tank Dips</div>
-              <div className="scrollbar-thin-light overflow-x-auto">
+              <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-surface">
@@ -323,7 +323,7 @@ function SummaryInner() {
             {pumpRows(report).length > 0 && (
               <div className="border-t border-surface px-5 py-4">
                 <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Pump Readings</div>
-                <div className="scrollbar-thin-light overflow-x-auto">
+                <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-surface">

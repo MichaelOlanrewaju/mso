@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React from "react"
 
 // Shared review-before-save popup. Shows exactly what's about to be
 // submitted plus any sanity-check warnings, and requires an explicit
@@ -7,33 +7,16 @@ import React, { useEffect } from "react"
 // out of the normal range), which has caused real problems this
 // project before.
 export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnings, onConfirm, onCancel, confirming }) {
-  // Escape closes the modal — but never mid-save, so a stray keypress
-  // can't dismiss the sheet while the request is in flight.
-  useEffect(() => {
-    if (!open) return
-    const onKey = e => {
-      if (e.key === "Escape" && !confirming) onCancel?.()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [open, confirming, onCancel])
-
   if (!open) return null
   return (
     <div
-      className="animate-backdrop-in fixed inset-0 z-[999] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={confirming ? undefined : onCancel}
+      className="fixed inset-0 z-[999] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={onCancel}
     >
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="animate-sheet-up max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-[22px] bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl sm:animate-modal-pop sm:rounded-[20px]"
+        className="max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-[22px] bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[20px]"
         onClick={e => e.stopPropagation()}
       >
-        {/* Grab handle — signals "sheet" on mobile, hidden on desktop */}
-        <div className="mx-auto -mt-1 mb-3 h-1 w-9 rounded-full bg-border sm:hidden" aria-hidden="true" />
-
         <div className="mb-0.5 flex items-center gap-2">
           <i className="bi bi-clipboard2-check text-[17px] text-cyan-dark" />
           <div className="text-[15px] font-extrabold text-ink">{title}</div>
@@ -65,7 +48,7 @@ export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnin
             type="button"
             onClick={onCancel}
             disabled={confirming}
-            className="min-h-[46px] flex-1 rounded-[12px] border border-border bg-surface py-3 text-[13.5px] font-bold text-ink-2 transition-colors hover:bg-border/60 disabled:opacity-60"
+            className="flex-1 rounded-[12px] border border-border bg-surface py-3 text-[13.5px] font-bold text-ink-2 disabled:opacity-60"
           >
             Go Back
           </button>
@@ -73,7 +56,7 @@ export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnin
             type="button"
             onClick={onConfirm}
             disabled={confirming}
-            className="flex min-h-[46px] flex-1 items-center justify-center gap-2 rounded-[12px] bg-navy py-3 text-[13.5px] font-bold text-white shadow-lift transition-all hover:bg-navy-2 disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-2 rounded-[12px] bg-navy py-3 text-[13.5px] font-bold text-white shadow-lift disabled:opacity-60"
           >
             {confirming ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-check2" />}
             {confirming ? "Saving…" : "Confirm & Save"}

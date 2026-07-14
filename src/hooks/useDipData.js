@@ -5,6 +5,10 @@ import { postWithProgress } from "../utils/postWithProgress"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* How often to re-check whether the GM has approved an edit request. Fifteen
+   seconds: fast enough that a supervisor standing at the tank isn't left
+   waiting, slow enough not to hammer Apps Script. */
+const LOCK_POLL_MS = 15000
 
 export { TANKS }
 
@@ -189,10 +193,51 @@ export function useDipData(username, selectedDate) {
     [username, loadPhotos]
   )
 
+  /* Re-check the locks without reloading the whole day.
+     Why this exists: the lock status was fetched ONCE, on page load. So when a
+     supervisor requested an edit and the GM approved it thirty seconds later,
+     the supervisor's screen never found out — it sat on "Waiting for approval"
+     with the fields locked, indefinitely. The only escape was to change the
+     date away and back, or hard-refresh. */
+  const refreshLocks = useCallback(date => {
+    if (!SCRIPT_URL || !date) return
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getEditLockStatus")
+    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("date", date)
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => {
+        if (!isMounted.current || !d.ok) return
+        setDipOpeningLocked(!!d.dipOpeningLocked)
+        setDipClosingLocked(!!d.dipClosingLocked)
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (selectedDate) loadForDate(selectedDate)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate])
+
+  /* Poll the locks so an approval lands on the supervisor's screen on its own.
+     Skipped while the tab is hidden — no point burning requests on a phone in
+     someone's pocket — and fired immediately on return, so unlocking your phone
+     shows the current state rather than a stale one. */
+  useEffect(() => {
+    if (!selectedDate) return
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return
+      refreshLocks(selectedDate)
+    }
+    const id = setInterval(tick, LOCK_POLL_MS)
+    const onVisible = () => { if (document.visibilityState === "visible") refreshLocks(selectedDate) }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [selectedDate, refreshLocks])
 
   const updateTank = useCallback((tankId, field, value) => {
     setTankState(prev => ({ ...prev, [tankId]: { ...prev[tankId], [field]: Number(value) || 0 } }))
@@ -323,6 +368,7 @@ export function useDipData(username, selectedDate) {
     dipClosingLocked,
     requestEdit,
     requestingEdit,
+    refreshLocks,
     existingPhotos,
     updateTank,
     saveOpening,

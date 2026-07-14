@@ -184,16 +184,16 @@ function EditModal({ message, onSave, onClose }) {
           <textarea
             autoFocus rows={3}
             value={text} onChange={e => setText(e.target.value)}
-            className="w-full resize-none rounded-[12px] border border-border px-3.5 py-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15"
+            className="w-full resize-none rounded-[12px] border border-border px-3.5 py-3 text-[14px] text-ink outline-none focus:border-cyan"
           />
         </div>
         <div className="flex gap-2.5 border-t border-surface px-4 pb-4">
           <button type="button" onClick={onClose}
-            className="flex-1 rounded-[10px] border border-border py-3 text-[13.5px] font-semibold text-ink-4">
+            className="flex-1 rounded-[11px] border border-border py-3 text-[13.5px] font-semibold text-ink-4">
             Cancel
           </button>
           <button type="button" onClick={() => onSave(text.trim())} disabled={!text.trim()}
-            className="flex-1 rounded-[10px] py-3 text-[13.5px] font-bold text-white disabled:opacity-50" style={{ background: BRAND_GRADIENT }}>
+            className="flex-1 rounded-[11px] py-3 text-[13.5px] font-bold text-white disabled:opacity-50" style={{ background: BRAND_GRADIENT }}>
             Save
           </button>
         </div>
@@ -402,11 +402,11 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             </div>
             <div className="flex gap-2.5 border-t border-surface px-4 pb-5">
               <button type="button" onClick={() => setShowDeleteConv(false)}
-                className="flex-1 rounded-[10px] border border-border py-3 text-[13.5px] font-semibold text-ink-4">
+                className="flex-1 rounded-[11px] border border-border py-3 text-[13.5px] font-semibold text-ink-4">
                 Cancel
               </button>
               <button type="button" onClick={() => { setShowDeleteConv(false); handleDeleteConv() }}
-                className="flex-1 rounded-[10px] bg-red py-3 text-[13.5px] font-bold text-white">
+                className="flex-1 rounded-[11px] bg-red py-3 text-[13.5px] font-bold text-white">
                 Delete for me
               </button>
             </div>

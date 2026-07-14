@@ -17,60 +17,12 @@
   }
   body {
     @apply bg-pagebg text-ink font-sans antialiased min-h-screen overflow-x-hidden;
-    text-rendering: optimizeLegibility;
   }
   a {
     @apply text-inherit no-underline;
   }
   button {
     @apply cursor-pointer font-sans;
-  }
-
-  /* Brand-tinted text selection — small detail, felt everywhere. */
-  ::selection {
-    background: rgba(23, 157, 208, 0.22);
-  }
-
-  /* One consistent keyboard focus ring for the whole app. Most
-     components had no visible focus state at all; :focus-visible keeps
-     it keyboard-only so mouse/touch users never see stray rings. */
-  :focus {
-    outline: none;
-  }
-  :focus-visible {
-    outline: 2px solid #179dd0;
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-
-  /* Tactile press feedback on every button, app-wide. Kills the grey
-     iOS tap flash and the double-tap zoom delay, and replaces them with
-     a subtle uniform scale-down. Disabled buttons stay still. */
-  button,
-  a,
-  [role="button"] {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  button {
-    transition-property: transform, opacity, background-color, border-color, color, box-shadow;
-    transition-duration: 0.15s;
-    transition-timing-function: ease;
-  }
-  button:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-  button:disabled {
-    cursor: not-allowed;
-  }
-
-  /* Form controls inherit the app typeface (iOS/Android default to
-     system fonts otherwise) and lose the inconsistent native tint. */
-  input,
-  select,
-  textarea {
-    font-family: inherit;
-    accent-color: #179dd0;
   }
 }
 
@@ -89,22 +41,6 @@
   .scrollbar-thin-dark::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
-  }
-
-  .scrollbar-thin-light {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(15, 23, 42, 0.15) transparent;
-  }
-  .scrollbar-thin-light::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .scrollbar-thin-light::-webkit-scrollbar-thumb {
-    background: rgba(15, 23, 42, 0.15);
-    border-radius: 3px;
-  }
-  .scrollbar-thin-light::-webkit-scrollbar-track {
-    background: transparent;
   }
 
   .skel {

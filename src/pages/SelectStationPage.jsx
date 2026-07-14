@@ -140,7 +140,7 @@ export default function SelectStationPage() {
 
       <div className="relative z-[1] mx-auto w-full max-w-[880px] px-6 text-center">
         <div className="mb-8 flex items-center justify-center">
-          <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[14px] border border-white/[0.08] bg-white/[0.06] shadow-lift">
+          <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[15px] border border-white/[0.08] bg-white/[0.06] shadow-lift">
             <span className="font-mono text-xl font-black text-cyan">M</span>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function SelectStationPage() {
           <button
             type="button"
             onClick={auth.logout}
-            className="inline-flex items-center gap-[7px] rounded-[10px] border border-white/[0.08] px-[18px] py-[9px] text-[13px] font-semibold text-white/40 transition-all hover:border-white/20 hover:text-white/70"
+            className="inline-flex items-center gap-[7px] rounded-[9px] border border-white/[0.08] px-[18px] py-[9px] text-[13px] font-semibold text-white/40 transition-all hover:border-white/20 hover:text-white/70"
           >
             <i className="bi bi-box-arrow-left" /> Sign Out
           </button>

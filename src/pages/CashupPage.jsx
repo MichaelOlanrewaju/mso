@@ -34,7 +34,7 @@ function MoneyRow({ label, sub, value, onChange, charge, chargeLabel, net }) {
         <input
           type="number" inputMode="decimal" placeholder="0" min="0" step="1"
           value={value} onChange={e => onChange(e.target.value)}
-          className={`mono w-[140px] rounded-[10px] border-[1.5px] px-3 py-2 text-right text-[15px] font-extrabold outline-none transition-colors ${
+          className={`mono w-[140px] rounded-[9px] border-[1.5px] px-3 py-2 text-right text-[15px] font-extrabold outline-none transition-colors ${
             hasValue ? "border-cyan/35 bg-white text-ink" : "border-border bg-surface text-ink-3"
           } focus:border-cyan focus:bg-white`}
         />
@@ -158,7 +158,7 @@ function CashupInner() {
         <button
           type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-border bg-surface text-ink-2"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
         >
           <i className="bi bi-arrow-left" />
         </button>
@@ -179,7 +179,7 @@ function CashupInner() {
         <div className="relative mb-4 overflow-hidden rounded-card p-5" style={{ background: recon.grad }}>
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">
             <i className={`bi ${recon.icon}`} /> {recon.label}
-            <button type="button" onClick={refreshExpected} className="ml-auto flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-white/15 bg-white/10 text-white/60">
+            <button type="button" onClick={refreshExpected} className="ml-auto flex h-[26px] w-[26px] items-center justify-center rounded-[7px] border border-white/15 bg-white/10 text-white/60">
               <i className={`bi bi-arrow-clockwise ${loadingExpected ? "animate-spin-fast" : ""}`} />
             </button>
           </div>
@@ -267,7 +267,7 @@ function CashupInner() {
           {TABS.map(([key, label, icon]) => (
             <button
               key={key} type="button" onClick={() => setTab(key)}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2.5 text-[12px] font-bold transition-colors ${
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-2.5 text-[12px] font-bold transition-colors ${
                 tab === key ? "bg-navy text-white" : "text-ink-3"
               }`}
             >
@@ -313,22 +313,22 @@ function CashupInner() {
                     <input
                       type="text" placeholder="Description (e.g. Logistics to bank)"
                       value={e.desc} onChange={ev => updateExpense(i, "desc", ev.target.value)}
-                      className="flex-1 rounded-[10px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                      className="flex-1 rounded-[9px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[13px] font-medium text-ink outline-none focus:border-cyan focus:bg-white"
                     />
                     <input
                       type="number" placeholder="₦0" min="0" step="1"
                       value={e.amt} onChange={ev => updateExpense(i, "amt", ev.target.value)}
-                      className="mono w-[110px] rounded-[10px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-right text-[13px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                      className="mono w-[110px] rounded-[9px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-right text-[13px] font-bold text-ink outline-none focus:border-cyan focus:bg-white"
                     />
                     <button type="button" onClick={() => removeExpense(i)} className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[8px] border border-[#FECACA] bg-red-light text-red">
                       <i className="bi bi-trash text-[13px]" />
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addExpense} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3">
+                <button type="button" onClick={addExpense} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3">
                   <i className="bi bi-plus-circle" /> Add Expense
                 </button>
-                <div className="mt-2.5 flex items-center justify-between rounded-[10px] border border-border bg-surface px-3.5 py-2.5">
+                <div className="mt-2.5 flex items-center justify-between rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                   <span className="text-[11px] font-semibold text-ink-3">Total Expenses</span>
                   <span className="mono text-[14px] font-extrabold text-ink">{naira(totalExpenses)}</span>
                 </div>
@@ -342,7 +342,7 @@ function CashupInner() {
                   <input
                     type="number" inputMode="numeric" placeholder="0" min="0" step="1"
                     value={emtlCount} onChange={e => setEmtlCount(e.target.value)}
-                    className="mono w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[15px] font-extrabold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                    className="mono w-full rounded-[9px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[15px] font-extrabold text-ink outline-none focus:border-cyan focus:bg-white"
                   />
                 </div>
                 <div className="pt-4 text-ink-4"><i className="bi bi-x-lg text-[11px]" /></div>
@@ -402,7 +402,7 @@ function CashupInner() {
                             value={it.product}
                             onChange={ev => updateLubricant(i, "product", ev.target.value)}
                             aria-label="Oil product"
-                            className="mb-2 w-full min-w-0 rounded-[10px] border-[1.5px] border-border bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 sm:mb-0 sm:flex-1 sm:bg-surface sm:focus:bg-white"
+                            className="mb-2 w-full min-w-0 rounded-[9px] border-[1.5px] border-border bg-white px-3 py-2.5 text-[13px] font-medium text-ink outline-none focus:border-cyan sm:mb-0 sm:flex-1 sm:bg-surface sm:focus:bg-white"
                           >
                             <option value="">Select product…</option>
                             {lubProducts.map(p => (
@@ -419,12 +419,12 @@ function CashupInner() {
                             value={it.qty}
                             onChange={ev => updateLubricant(i, "qty", ev.target.value)}
                             aria-label="Quantity sold"
-                            className="mono w-[58px] flex-shrink-0 rounded-[10px] border-[1.5px] border-border bg-white px-2 py-2.5 text-right text-[13px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 sm:bg-surface sm:focus:bg-white"
+                            className="mono w-[58px] flex-shrink-0 rounded-[9px] border-[1.5px] border-border bg-white px-2 py-2.5 text-right text-[13px] font-bold text-ink outline-none focus:border-cyan sm:bg-surface sm:focus:bg-white"
                           />
 
                           {/* Read-only. The price is not the cashier's to set. */}
                           <div
-                            className="mono flex flex-1 items-center justify-end rounded-[10px] border border-border bg-white px-2 py-2.5 text-[12.5px] font-extrabold tabular-nums text-ink sm:w-[86px] sm:flex-none"
+                            className="mono flex flex-1 items-center justify-end rounded-[9px] border border-border bg-white px-2 py-2.5 text-[12.5px] font-extrabold tabular-nums text-ink sm:w-[86px] sm:flex-none"
                             title={it.product ? `${naira(unit)} each` : "Pick a product first"}
                           >
                             {it.product ? naira(lineTotal) : "—"}
@@ -446,7 +446,7 @@ function CashupInner() {
                     <button
                       type="button"
                       onClick={addLubricant}
-                      className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3 transition-colors hover:border-cyan/40 hover:text-cyan-dark"
+                      className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3 transition-colors hover:border-cyan/40 hover:text-cyan-dark"
                     >
                       <i className="bi bi-plus-circle" /> Add Product
                     </button>
@@ -460,7 +460,7 @@ function CashupInner() {
                       const p = lubProducts.find(x => x.product === it.product)
                       return p && Number(it.qty) > 0 && Number(it.qty) > p.stock
                     }) && (
-                      <div className="mt-2.5 flex items-start gap-2 rounded-[10px] border border-amber/30 bg-amber-light px-3.5 py-2.5">
+                      <div className="mt-2.5 flex items-start gap-2 rounded-[9px] border border-amber/30 bg-amber-light px-3.5 py-2.5">
                         <i className="bi bi-exclamation-triangle-fill mt-px text-[12px] text-amber" />
                         <p className="text-[11px] leading-relaxed text-ink-2">
                           You&rsquo;re selling more than the recorded stock. That&rsquo;s fine — the sale
@@ -470,7 +470,7 @@ function CashupInner() {
                       </div>
                     )}
 
-                    <div className="mt-2.5 flex items-center justify-between rounded-[10px] border border-border bg-surface px-3.5 py-2.5">
+                    <div className="mt-2.5 flex items-center justify-between rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                       <span className="text-[11px] font-semibold text-ink-3">Total Amount Remitted</span>
                       <span className="mono text-[14px] font-extrabold text-ink">{naira(lubricantTotal)}</span>
                     </div>
@@ -481,15 +481,15 @@ function CashupInner() {
 
             <SectionCard title="LPG Report" sub="KG and Price now come from Sales pump readings">
               <div className="grid grid-cols-2 gap-3 p-4">
-                <div className="rounded-[10px] border border-border bg-surface px-3.5 py-2.5">
+                <div className="rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                   <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-ink-4">Expected KG</div>
                   <div className="mono mt-0.5 text-[14px] font-extrabold text-ink">{expected.lpgKg ? expected.lpgKg.toLocaleString("en-NG", { maximumFractionDigits: 2 }) : "—"}kg</div>
                 </div>
-                <div className="rounded-[10px] border border-border bg-surface px-3.5 py-2.5">
+                <div className="rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                   <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-ink-4">Unit Price</div>
                   <div className="mono mt-0.5 text-[14px] font-extrabold text-ink">{expected.lpgPrice ? naira(expected.lpgPrice) : "—"}</div>
                 </div>
-                <div className="col-span-2 flex items-center justify-between rounded-[10px] border border-border bg-surface px-3.5 py-2.5">
+                <div className="col-span-2 flex items-center justify-between rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                   <span className="text-[11px] font-semibold text-ink-3">Expected Sales</span>
                   <span className="mono text-[14px] font-extrabold text-ink">{naira(lpgSales)}</span>
                 </div>
@@ -498,11 +498,11 @@ function CashupInner() {
                   <input
                     type="number" inputMode="decimal" placeholder="0" min="0" step="1"
                     value={lpgRemitted} onChange={e => setLpgRemitted(e.target.value)}
-                    className="mono w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[14px] font-extrabold text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                    className="mono w-full rounded-[9px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[14px] font-extrabold text-ink outline-none focus:border-cyan focus:bg-white"
                   />
                 </label>
                 {lpgVariance !== null && lpgVariance !== 0 && (
-                  <div className="col-span-2 flex items-center gap-2 rounded-[10px] border border-red/25 bg-red-light px-3.5 py-2.5 text-[11.5px] font-semibold text-red">
+                  <div className="col-span-2 flex items-center gap-2 rounded-[9px] border border-red/25 bg-red-light px-3.5 py-2.5 text-[11.5px] font-semibold text-red">
                     <i className="bi bi-exclamation-triangle-fill" />
                     Remitted {lpgVariance > 0 ? "exceeds" : "is short of"} sales by {naira(Math.abs(lpgVariance))}
                   </div>
@@ -515,7 +515,7 @@ function CashupInner() {
                 <textarea
                   rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
                   placeholder="e.g. Chief Bode took ₦15,000 PMS on credit, promised to pay tomorrow."
-                  className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-cyan focus:ring-[3px] focus:ring-cyan/15 focus:bg-white"
+                  className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none focus:border-cyan focus:bg-white"
                 />
               </div>
             </SectionCard>
@@ -553,14 +553,14 @@ function CashupInner() {
 
       <div className="fixed bottom-0 left-0 right-0 z-[300] border-t border-border bg-white px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,.08)]" style={{ paddingBottom: "calc(12px + var(--sab))" }}>
         <div className="mx-auto flex max-w-[640px] gap-2.5">
-          <button type="button" onClick={refreshExpected} className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-[12px] border-[1.5px] border-border bg-surface text-ink-3">
+          <button type="button" onClick={refreshExpected} className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-[13px] border-[1.5px] border-border bg-surface text-ink-3">
             <i className="bi bi-arrow-clockwise" />
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={saving || locked || cashupLocked}
-            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[12px] bg-green text-[15px] font-extrabold text-white shadow-[0_4px_18px_rgba(22,163,74,.3)] disabled:opacity-60"
+            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[13px] bg-green text-[15px] font-extrabold text-white shadow-[0_4px_18px_rgba(22,163,74,.3)] disabled:opacity-60"
           >
             {saving ? (
               <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
