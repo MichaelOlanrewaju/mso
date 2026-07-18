@@ -5,14 +5,16 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 const SHIFT_TYPES = ["Morning (6am–2pm)", "Afternoon (2pm–10pm)", "Night (10pm–6am)"]
 
 function getAPI(action, extra = {}) {
   if (!SCRIPT_URL) return Promise.resolve({ ok: false })
   const url = new URL(SCRIPT_URL)
   url.searchParams.set("action", action)
-  url.searchParams.set("station", STATION_KEY)
+  url.searchParams.set("station", activeStation())
   Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v))
   return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
 }
@@ -173,7 +175,7 @@ export default function ShiftsPage() {
             </label>
             <button type="button" onClick={handleSave} disabled={saving}
               className="flex w-full items-center justify-center gap-2 rounded-[12px] py-3.5 text-[14px] font-bold text-white shadow-lift disabled:opacity-60"
-              style={{ background:"linear-gradient(135deg,#130656,#1a0875)" }}>
+              style={{ background:"var(--brand-gradient-btn)" }}>
               {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <><i className="bi bi-clock" /> Save Shift</>}
             </button>
           </div>

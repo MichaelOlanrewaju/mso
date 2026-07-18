@@ -8,9 +8,11 @@ import { compressImage } from "../utils/compressImage"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
-const AVATAR_COLORS = ["#179DD0","#06091A","#16A34A","#179DD0","#DC2626","#7C3AED"]
+const AVATAR_COLORS = ["var(--brand-accent)","#06091A","#16A34A","var(--brand-accent)","#DC2626","#7C3AED"]
 function avatarColor(name) {
   return AVATAR_COLORS[(name || " ").charCodeAt(0) % AVATAR_COLORS.length]
 }
@@ -137,7 +139,7 @@ export default function ProfilePage() {
         const res = await fetch(SCRIPT_URL, {
           method: "POST", headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({
-            action: "savePhoto", station: STATION_KEY,
+            action: "savePhoto", station: activeStation(),
             date: new Date().toISOString().split("T")[0],
             session: "Profile", subject: `profile__${auth.username}`,
             dataUrl: compressed, mimeType: file.type,

@@ -247,7 +247,7 @@ export default function LandingPage() {
           <div className="mt-9 hidden items-center gap-5 lg:flex">
             <button type="button" onClick={() => navigate("/login")} aria-label="Sign in to your account"
               className="group relative flex items-center gap-3 overflow-hidden rounded-[15px] px-7 text-[15px] font-extrabold text-white transition-transform hover:scale-[1.02]"
-              style={{ height: 54, background: "#179DD0", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
+              style={{ height: 54, background: "var(--brand-accent)", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
               <span className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 55%)" }} />
               <i className="bi bi-box-arrow-in-right" />
               Sign In to Continue
@@ -263,7 +263,7 @@ export default function LandingPage() {
               </span>
               <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
               <span className="inline-flex items-center gap-[5px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
-                <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#179DD0", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
+                <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "var(--brand-accent)", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
                 M&amp;M Oil &amp; Gas
               </span>
             </div>
@@ -293,7 +293,7 @@ export default function LandingPage() {
         {/* CTA */}
         <button type="button" onClick={() => navigate("/login")} aria-label="Sign in to your account"
           className="relative mb-3 flex w-full items-center justify-center gap-3 overflow-hidden rounded-[15px] text-[15px] font-extrabold text-white"
-          style={{ height: 54, background: "#179DD0", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
+          style={{ height: 54, background: "var(--brand-accent)", boxShadow: "0 4px 22px rgba(23,157,208,.42)" }}>
           <span className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(135deg,rgba(255,255,255,.14) 0%,transparent 55%)" }} />
           <i className="bi bi-box-arrow-in-right" />
           Sign In to Continue
@@ -311,7 +311,7 @@ export default function LandingPage() {
           </span>
           <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
           <span className="inline-flex items-center gap-[5px] text-[11.5px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
-            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#179DD0", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
+            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "var(--brand-accent)", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
             M&amp;M Oil &amp; Gas
           </span>
           <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>

@@ -4,7 +4,7 @@ const TOP_BAR = {
   hero: "from-deepnavy to-cyan",
   cyan: "from-deepnavy to-cyan",
   green: "from-[#059669] to-[#34D399]",
-  amber: "from-[#1188B5] to-[#179DD0]",
+  amber: "from-[#1188B5] to-[var(--brand-accent)]",
   red: "from-[#991B1B] to-[#F87171]",
 }
 
@@ -32,7 +32,7 @@ export default function KpiCard({
         }`}
       style={
         isHero
-          ? { animationDelay: `${delay}ms`, background: "linear-gradient(135deg, #130656 0%, #1a0875 55%, #179DD0 160%)" }
+          ? { animationDelay: `${delay}ms`, background: "var(--brand-gradient-btn)" }
           : { animationDelay: `${delay}ms` }
       }
     >

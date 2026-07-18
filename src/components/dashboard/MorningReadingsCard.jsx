@@ -1,5 +1,9 @@
 import React from "react"
-import { TANKS } from "../../config/pumps"
+/* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
+   to different tanks. Reading a shared config that assumed MSO's layout would
+   have collected dips for a tank that does not exist. */
+import { tanksFor, pumpsFor } from "../../config/stations"
+import { activeStation } from "../../utils/station"
 
 /**
  * The morning submission, made visible.
@@ -30,7 +34,7 @@ function TankRow({ tank, vol }) {
   const low = pct <= 20 && vol > 0
   const unit = tank.unit === "KG" ? "KG" : "L"
   const tint =
-    tank.product === "AGO" ? "#7C3AED" : tank.product === "LPG" ? "#F59E0B" : "#179DD0"
+    tank.product === "AGO" ? "#7C3AED" : tank.product === "LPG" ? "#F59E0B" : "var(--brand-accent)"
 
   return (
     <div className="border-b border-surface px-[18px] py-3 last:border-none">
@@ -62,7 +66,7 @@ function TankRow({ tank, vol }) {
               width: `${pct}%`,
               background: low
                 ? "linear-gradient(90deg,#DC2626,#F87171)"
-                : `linear-gradient(90deg,${tint},#130656)`,
+                : `linear-gradient(90deg,${tint},var(--brand-primary))`,
             }}
           />
         </div>
@@ -88,7 +92,7 @@ function PumpRow({ id, reading }) {
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-[10px] font-extrabold"
           style={
             done
-              ? { background: "#EAF6FC", color: "#1188B5" }
+              ? { background: "var(--brand-accent-light)", color: "var(--brand-accent-dark)" }
               : { background: "#F8FAFC", color: "#94A3B8" }
           }
         >
@@ -145,7 +149,7 @@ export default function MorningReadingsCard({ status, tankLevels, pumpMetres, su
   /* Merge the tank config with today's levels, so a tank that hasn't been dipped
      still appears (as "—") instead of silently vanishing from the list — an
      absent tank is information too. LPG is hidden unless it's actually in use. */
-  const tankRows = TANKS.map(t => {
+  const tankRows = tanksFor(activeStation()).map(t => {
     const level = (tankLevels || []).find(
       l => String(l.id).replace(/\s+/g, "") === t.id
     )

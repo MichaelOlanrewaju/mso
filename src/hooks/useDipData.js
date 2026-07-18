@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { TANKS } from "../config/pumps"
+/* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
+   to different tanks. Reading a shared config that assumed MSO's layout would
+   have collected dips for a tank that does not exist. */
+import { tanksFor, pumpsFor } from "../config/stations"
+import { activeStation } from "../utils/station"
 import { compressImage } from "../utils/compressImage"
 import { postWithProgress } from "../utils/postWithProgress"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+
 /* How often to re-check whether the GM has approved an edit request. Fifteen
    seconds: fast enough that a supervisor standing at the tank isn't left
    waiting, slow enough not to hammer Apps Script. */
 const LOCK_POLL_MS = 15000
 
-export { TANKS }
-
+/* Built from the station's real tank list. Hardcoding TK1..TK5 would create a
+   TK3 entry at M&M — a tank that doesn't exist — and every `tankState[t.id]`
+   lookup elsewhere would then quietly read and write a phantom reading. */
 function emptyTankState() {
-  return { TK1: { open: 0, close: 0 }, TK2: { open: 0, close: 0 }, TK3: { open: 0, close: 0 }, TK4: { open: 0, close: 0 }, TK5: { open: 0, close: 0 } }
+  const state = {}
+  tanksFor(activeStation()).forEach(t => { state[t.id] = { open: 0, close: 0 } })
+  return state
 }
 
 // LPG (TK5) uses a distinct backend field-naming convention
@@ -98,7 +107,7 @@ export function useDipData(username, selectedDate) {
     if (!SCRIPT_URL) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPhotos")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
@@ -135,7 +144,7 @@ export function useDipData(username, selectedDate) {
 
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "getDailyReport")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("date", date)
       url.searchParams.set("username", username || "")
 
@@ -150,7 +159,7 @@ export function useDipData(username, selectedDate) {
           const r = d.report
           rawReportRef.current = r
           const next = emptyTankState()
-          TANKS.forEach(t => {
+          tanksFor(activeStation()).forEach(t => {
             const k = fieldPrefix(t.id)
             next[t.id] = {
               open: Number(r[`${k}_opening`]) || 0,
@@ -177,7 +186,7 @@ export function useDipData(username, selectedDate) {
       // than falsely locked.
       const lockUrl = new URL(SCRIPT_URL)
       lockUrl.searchParams.set("action", "getEditLockStatus")
-      lockUrl.searchParams.set("station", STATION_KEY)
+      lockUrl.searchParams.set("station", activeStation())
       lockUrl.searchParams.set("date", date)
       fetch(lockUrl.toString(), { method: "GET", redirect: "follow" })
         .then(res => res.json())
@@ -203,7 +212,7 @@ export function useDipData(username, selectedDate) {
     if (!SCRIPT_URL || !date) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getEditLockStatus")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
@@ -245,7 +254,7 @@ export function useDipData(username, selectedDate) {
 
   const saveOpening = useCallback(
     date => {
-      const hasAny = TANKS.some(t => tankState[t.id].open > 0)
+      const hasAny = tanksFor(activeStation()).some(t => tankState[t.id].open > 0)
       if (!hasAny) return Promise.resolve({ ok: false, error: "Enter at least one opening stock reading" })
 
       const data = {
@@ -257,7 +266,7 @@ export function useDipData(username, selectedDate) {
         ...preservedFields(rawReportRef.current),
       }
 
-      return post({ action: "saveDailyReport", station: STATION_KEY, username, date, data }).then(d => {
+      return post({ action: "saveDailyReport", station: activeStation(), username, date, data }).then(d => {
         if (!d.ok) return d
         rawReportRef.current = { ...rawReportRef.current, ...data }
         return d
@@ -274,7 +283,7 @@ export function useDipData(username, selectedDate) {
       const tankDiffs = {}
       let anyDiff = false
 
-      TANKS.forEach(tk => {
+      tanksFor(activeStation()).forEach(tk => {
         const s = tankState[tk.id]
         const diff = s.open > 0 && s.close > 0 && s.open > s.close ? s.open - s.close : 0
         tankDiffs[tk.id] = diff
@@ -299,7 +308,7 @@ export function useDipData(username, selectedDate) {
         ...preservedFields(rawReportRef.current),
       }
 
-      return post({ action: "saveDailyReport", station: STATION_KEY, username, date, data }).then(d => {
+      return post({ action: "saveDailyReport", station: activeStation(), username, date, data }).then(d => {
         if (!d.ok) return d
         rawReportRef.current = { ...rawReportRef.current, ...data }
         return d
@@ -330,7 +339,7 @@ export function useDipData(username, selectedDate) {
       try {
         const result = await postWithProgress(
           SCRIPT_URL,
-          { action: "savePhoto", station: STATION_KEY, username, date, session, subject, mimeType: sendMime, base64 },
+          { action: "savePhoto", station: activeStation(), username, date, session, subject, mimeType: sendMime, base64 },
           onProgress
         )
         return result
@@ -345,7 +354,7 @@ export function useDipData(username, selectedDate) {
     (date, type, name, message) => {
       setRequestingEdit(true)
       return post({
-        action: "saveEditRequest", station: STATION_KEY, username, name,
+        action: "saveEditRequest", station: activeStation(), username, name,
         date, type, message: message || "Requesting permission to correct an entry",
       }).then(d => {
         setRequestingEdit(false)

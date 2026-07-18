@@ -29,7 +29,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
             <span className="h-[9px] w-[9px] rounded-sm bg-cyan" /> PMS Petrol
           </div>
           <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-2">
-            <span className="h-[9px] w-[9px] rounded-sm bg-[#179DD0]" /> AGO Diesel
+            <span className="h-[9px] w-[9px] rounded-sm bg-[var(--brand-accent)]" /> AGO Diesel
           </div>
         </div>
 
@@ -48,7 +48,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
                       style={{ height: `${Math.max(b.pmsHeight, 3)}px` }}
                     />
                     <div
-                      className="flex-1 rounded-t-[3px] bg-gradient-to-t from-[#1188B5] to-[#179DD0] transition-opacity hover:opacity-70"
+                      className="flex-1 rounded-t-[3px] bg-gradient-to-t from-[#1188B5] to-[var(--brand-accent)] transition-opacity hover:opacity-70"
                       style={{ height: `${Math.max(b.agoHeight, 3)}px` }}
                     />
                   </div>

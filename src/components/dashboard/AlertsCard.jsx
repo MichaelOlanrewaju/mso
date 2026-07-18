@@ -1,13 +1,14 @@
 import React from "react"
 import { useNavigate } from "react-router-dom"
+import { activeStation } from "../../utils/station"
 
 function buildCashupAlerts(pendingCashups, onApprove, onReject) {
   if (!pendingCashups || !pendingCashups.length) return []
   return pendingCashups.map(c => ({
     key: `cashup-${c.date}`,
     icon: "bi-cash-stack",
-    iconBg: "#EAF6FC",
-    iconColor: "#179DD0",
+    iconBg: "var(--brand-accent-light)",
+    iconColor: "var(--brand-accent)",
     title: `Cash Reconciliation — ${c.date}`,
     text: `${c.submittedBy || "Cashier"}: Expected ₦${Math.round(c.grandTotal).toLocaleString("en-NG")} · To Bank ₦${Math.round(c.toBank).toLocaleString("en-NG")}${c.remarks ? ` — "${c.remarks}"` : ""}`,
     actions: onApprove
@@ -86,7 +87,7 @@ function buildPayrollAlerts(pendingPayroll, onNavigate) {
       key: `payroll-${p.month}`,
       icon: "bi-wallet2",
       iconBg: "#EEF0FB",
-      iconColor: "#130656",
+      iconColor: "var(--brand-primary)",
       title: `Payroll — ${label}`,
       text: onNavigate
         ? `${p.staffCount} staff · ₦${Math.round(p.totalNet).toLocaleString("en-NG")} net total · Prepared by ${p.preparedBy || "GM"} — awaiting your approval.`
@@ -101,8 +102,17 @@ function buildPayrollAlerts(pendingPayroll, onNavigate) {
 export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, onRejectEdit, shortages, onReviewShortage, pendingPayroll, payrollReadOnly, pendingCashups, onApproveCashup, onRejectCashup }) {
   const navigate = useNavigate()
 
+  /* "Dismiss all" hides the list when it's long and you just want the page
+     decluttered — it does NOT resolve anything. These alerts are live: a pending
+     cash-up still needs approval whether or not it's on screen. So dismissed
+     items come back on the next refresh if they're still unresolved. Bulk-
+     approving or bulk-rejecting from one button would be dangerous (it's money
+     and edit permissions), so dismiss only hides — the real decision still gets
+     made per item. */
+  const [dismissed, setDismissed] = React.useState(false)
+
   const handlePayrollNavigate = month => {
-    navigate(`/payroll-mso?month=${month}`)
+    navigate(`/payroll/${activeStation()}?month=${month}`)
   }
 
   const alerts = [
@@ -115,6 +125,14 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
 
   const count = alerts.length
   const hasAlerts = count > 0
+
+  /* A signature of the current alert set. When new alerts arrive (or the set
+     otherwise changes), un-dismiss — a freshly submitted cash-up should surface
+     even if you dismissed the previous batch. */
+  const alertSig = alerts.map(a => a.key).join("|")
+  React.useEffect(() => { setDismissed(false) }, [alertSig])
+
+  const showList = hasAlerts && !dismissed
 
   return (
     /* This card carries every decision the owner has to make — approvals,
@@ -159,12 +177,22 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
           </div>
         </div>
         {hasAlerts && (
-          <span
-            className="flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-[12px] font-extrabold tabular-nums text-white"
-            style={{ background: "#EF4444", boxShadow: "0 2px 8px rgba(239,68,68,.35)" }}
-          >
-            {count}
-          </span>
+          <div className="flex items-center gap-2">
+            {/* Only worth offering when there's a pile of them. One or two, you
+                just act on them. */}
+            {count >= 3 && !dismissed && (
+              <button type="button" onClick={() => setDismissed(true)}
+                className="rounded-full border border-red/25 bg-white/70 px-2.5 py-1 text-[11px] font-bold text-red transition-colors hover:bg-white">
+                Dismiss all
+              </button>
+            )}
+            <span
+              className="flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-[12px] font-extrabold tabular-nums text-white"
+              style={{ background: "#EF4444", boxShadow: "0 2px 8px rgba(239,68,68,.35)" }}
+            >
+              {count}
+            </span>
+          </div>
         )}
       </div>
 
@@ -174,6 +202,16 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
             <p className="text-[12px] leading-relaxed text-ink-4">
               Approvals, shortages and low-tank warnings appear here.
             </p>
+          </div>
+        ) : !showList ? (
+          <div className="flex items-center justify-between gap-3 px-[18px] py-4">
+            <p className="text-[12px] text-ink-4">
+              {count} item{count === 1 ? "" : "s"} hidden — still waiting on you.
+            </p>
+            <button type="button" onClick={() => setDismissed(false)}
+              className="rounded-[9px] border border-border px-3 py-1.5 text-[11px] font-bold text-ink-3 hover:bg-surface">
+              Show
+            </button>
           </div>
         ) : (
           alerts.map((a, i) => (

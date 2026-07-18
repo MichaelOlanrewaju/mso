@@ -51,7 +51,7 @@ export function InstallStrip() {
       </div>
       <button type="button" onClick={handleInstall} disabled={installing}
         className="flex-shrink-0 rounded-[9px] px-3.5 py-2 text-[12px] font-extrabold text-white disabled:opacity-50"
-        style={{ background: "#179DD0", boxShadow: "0 2px 12px rgba(23,157,208,.40)", border: "none", cursor: "pointer" }}>
+        style={{ background: "var(--brand-accent)", boxShadow: "0 2px 12px rgba(23,157,208,.40)", border: "none", cursor: "pointer" }}>
         {installing ? "…" : "Install"}
       </button>
       <button type="button" onClick={() => setDismissed(true)}
@@ -175,7 +175,7 @@ export function NotificationPrompt({ onDismiss, onEnable }) {
         <div className="px-5 py-5">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[14px]"
             style={{ background: "rgba(23,157,208,0.10)" }}>
-            <i className="bi bi-bell-fill text-[20px]" style={{ color: "#179DD0" }} />
+            <i className="bi bi-bell-fill text-[20px]" style={{ color: "var(--brand-accent)" }} />
           </div>
           <div className="mb-1 text-[16px] font-extrabold text-gray-900">Stay in the loop</div>
           <div className="text-[13.5px] text-gray-500" style={{ lineHeight: 1.6 }}>
@@ -189,7 +189,7 @@ export function NotificationPrompt({ onDismiss, onEnable }) {
           </button>
           <button type="button" onClick={handleAllow} disabled={asking}
             className="flex-[2] rounded-[10px] py-2.5 text-[13.5px] font-bold text-white disabled:opacity-60"
-            style={{ background: "#179DD0" }}>
+            style={{ background: "var(--brand-accent)" }}>
             {asking ? "Enabling…" : "Allow notifications"}
           </button>
         </div>

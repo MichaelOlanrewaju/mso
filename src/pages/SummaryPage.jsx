@@ -9,7 +9,9 @@ import { naira, numberNG, litres } from "../utils/format"
 import { PrintHeader, PrintWatermark } from "../components/ui/PrintElements"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 function PhotoThumb({ fileId, onClick }) {
   const { dataUri, status } = useDriveImage(fileId)
@@ -134,7 +136,7 @@ function SummaryInner() {
     setPhotos([])
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPhotos")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())

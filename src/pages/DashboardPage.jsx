@@ -29,9 +29,11 @@ import { useShortages } from "../hooks/useShortages"
 import { usePendingPayroll } from "../hooks/usePayroll"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { initials, roleLabel } from "../utils/format"
+/* The station comes from the signed-in user's session, not a build-time env
+   var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
 
 // One orchestrated, capped stagger for the page-load sequence —
 // each section ships 60ms later than the last, never feels sluggish.
@@ -60,33 +62,37 @@ function DashboardInner() {
     return <div className="min-h-screen bg-pagebg" />
   }
 
+  /* Each action refreshes the dashboard on success, so the acted-on item leaves
+     the "Needs your attention" panel immediately instead of lingering until a
+     manual page refresh. (Payroll approve/reject self-refreshes via its own
+     hook, so it isn't repeated here.) */
   const handleReviewShortage = (rowIndex, decision) =>
     reviewShortage({ rowIndex, decision, username: auth.username }).then(d => {
-      if (d.ok) toast.showToast("Updated", "Shortage marked as reviewed", "ok")
+      if (d.ok) { toast.showToast("Updated", "Shortage marked as reviewed", "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleApproveEdit = rowIndex =>
     reviewEdit(rowIndex, "approve").then(d => {
-      if (d.ok) toast.showToast("Approved", "Supervisor can now edit that record", "ok")
+      if (d.ok) { toast.showToast("Approved", "Supervisor can now edit that record", "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleRejectEdit = rowIndex =>
     reviewEdit(rowIndex, "reject").then(d => {
-      if (d.ok) toast.showToast("Rejected", "Edit request rejected", "ok")
+      if (d.ok) { toast.showToast("Rejected", "Edit request rejected", "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleApproveCashup = date =>
     decideCashup(date, "approve").then(d => {
-      if (d.ok) toast.showToast("Approved", `Cash reconciliation for ${date} approved`, "ok")
+      if (d.ok) { toast.showToast("Approved", `Cash reconciliation for ${date} approved`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleRejectCashup = date =>
     decideCashup(date, "reject").then(d => {
-      if (d.ok) toast.showToast("Rejected", `Cashier can now correct and resubmit ${date}`, "ok")
+      if (d.ok) { toast.showToast("Rejected", `Cashier can now correct and resubmit ${date}`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
@@ -179,6 +185,11 @@ function DashboardInner() {
                 It renders its own "all clear" state, so it stays put rather
                 than appearing and disappearing and shifting the page. */}
             <div className="enter mb-5" style={delay(2)}>
+              <SectionLabel>Period totals</SectionLabel>
+              <PeriodTotalsCard />
+            </div>
+
+            <div className="enter mb-5" style={delay(3)}>
               <SectionLabel>Needs your attention</SectionLabel>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                 <div className="flex flex-col gap-4 lg:col-span-8">
@@ -246,11 +257,6 @@ function DashboardInner() {
             <div className="enter mb-5" style={delay(5)}>
               <SectionLabel>Oil</SectionLabel>
               <OilCard />
-            </div>
-
-            <div className="enter mb-5" style={delay(5)}>
-              <SectionLabel>Period totals</SectionLabel>
-              <PeriodTotalsCard />
             </div>
 
             <div className="enter" style={delay(6)}>

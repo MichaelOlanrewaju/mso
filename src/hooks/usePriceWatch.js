@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 const POLL_MS = 30000 // check every 30s while the app is open
-const LAST_SEEN_KEY = `mso-price-watch-${STATION_KEY}`
+const LAST_SEEN_KEY = `mso-price-watch-${activeStation()}`
 
 function loadLastSeen() {
   try {
@@ -45,7 +47,7 @@ export function usePriceWatch({ enabled }) {
     if (!SCRIPT_URL || !enabled) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getCurrentPrices")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
       .then(d => {

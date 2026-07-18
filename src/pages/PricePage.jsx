@@ -81,7 +81,7 @@ export default function PricePage() {
         ) : (
           <>
             <div className="mb-5 flex gap-3">
-              <PriceCard label="PMS" price={prices.pms} since={since.pms} color="#179DD0" />
+              <PriceCard label="PMS" price={prices.pms} since={since.pms} color="var(--brand-accent)" />
               <PriceCard label="AGO" price={prices.ago} since={since.ago} color="#7C3AED" />
               <PriceCard label="LPG" price={prices.lpg} since={since.lpg} color="#16A34A" unit="kg" />
             </div>
@@ -144,7 +144,7 @@ export default function PricePage() {
                   type="submit"
                   disabled={saving}
                   className="flex h-[44px] w-full items-center justify-center rounded-[10px] text-[13.5px] font-bold text-white shadow-lift disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #130656, #1a0875)" }}
+                  style={{ background: "var(--brand-gradient-btn)" }}
                 >
                   {saving ? "Saving…" : `Update ${product} Price`}
                 </button>

@@ -109,7 +109,7 @@ function Step({ step, state }) {
         <span
           className="absolute -right-1 -top-1 flex h-[15px] w-[15px] items-center justify-center rounded-full text-[8.5px] font-extrabold"
           style={{
-            background: done ? "#22C55E" : active ? "#179DD0" : "rgba(255,255,255,.18)",
+            background: done ? "#22C55E" : active ? "var(--brand-accent)" : "rgba(255,255,255,.18)",
             color: done || active ? "#fff" : "rgba(255,255,255,.5)",
           }}
         >
@@ -220,10 +220,24 @@ export default function DayHero({ status, data }) {
   if (loading) {
     headline = <span className="skel-dark inline-block h-9 w-[190px] align-middle" />
   } else if (opening) {
-    eyebrow = "Stock on hand"
+    /* PMS and AGO must never be summed. They're different products at different
+       prices — 33,500 L of petrol plus 600 L of diesel is not "34,100 L of
+       fuel", it's a number that means nothing. So the hero leads with PMS (the
+       main product, the big mover) and AGO gets its own line to the side. The
+       split row below already breaks both out; this just stops the headline
+       merging them. */
+    eyebrow = "PMS on hand"
     headline = (
-      <span className="animate-count-in text-[32px] font-extrabold leading-none tracking-[-0.03em] text-white md:text-[38px]">
-        {stock ? litres(stock.total) : "—"}
+      <span className="flex items-baseline gap-3">
+        <span className="animate-count-in text-[32px] font-extrabold leading-none tracking-[-0.03em] text-white md:text-[38px]">
+          {stock ? litres(stock.pms) : "—"}
+        </span>
+        {stock && stock.ago > 0 && (
+          <span className="flex items-baseline gap-1 whitespace-nowrap text-white/55">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px]" style={{ color: "#B69CF0" }}>+ AGO</span>
+            <span className="mono text-[15px] font-bold text-white/80 md:text-[17px]">{litres(stock.ago)}</span>
+          </span>
+        )}
       </span>
     )
     chip = <Chip tone="open" pulse>Day underway · awaiting closing dip</Chip>
@@ -265,7 +279,7 @@ export default function DayHero({ status, data }) {
     <section
       aria-label="Today at a glance"
       className="dot-grid relative overflow-hidden rounded-panel border border-deepnavy-2 shadow-hero"
-      style={{ background: "linear-gradient(135deg,#130656 0%,#1a0875 52%,#179DD0 175%)" }}
+      style={{ background: "var(--brand-gradient-btn)" }}
     >
       <span
         aria-hidden
@@ -318,7 +332,7 @@ export default function DayHero({ status, data }) {
             </>
           ) : opening ? (
             <>
-              <Split label="PMS in tanks" tint="#179DD0" value={stock ? litres(stock.pms) : "—"} sub="From opening dip" />
+              <Split label="PMS in tanks" tint="var(--brand-accent)" value={stock ? litres(stock.pms) : "—"} sub="From opening dip" />
               <Split label="AGO in tanks" tint="#7C3AED" value={stock ? litres(stock.ago) : "—"} sub="From opening dip" />
               <div className="hidden flex-1 sm:block">
                 <Split
@@ -331,7 +345,7 @@ export default function DayHero({ status, data }) {
             </>
           ) : (
             <>
-              <Split label="PMS sold" tint="#179DD0" value={litres(data?.pmsLitres)} sub={naira(data?.pmsRevenue)} />
+              <Split label="PMS sold" tint="var(--brand-accent)" value={litres(data?.pmsLitres)} sub={naira(data?.pmsRevenue)} />
               <Split label="AGO sold" tint="#7C3AED" value={litres(data?.agoLitres)} sub={naira(data?.agoRevenue)} />
               <div className="hidden flex-1 sm:block">
                 <Split

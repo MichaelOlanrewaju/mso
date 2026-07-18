@@ -3,7 +3,7 @@ import React from "react"
 // Tiny dependency-free sparkline — just enough to show "this number has
 // a recent shape", not a full chart. Lives in its own file so it's easy
 // to swap for recharts/etc. later without touching KpiGrid.
-export default function Sparkline({ values, stroke = "#179DD0", width = 72, height = 26 }) {
+export default function Sparkline({ values, stroke = "var(--brand-accent)", width = 72, height = 26 }) {
   if (!values || values.length < 2) return null
 
   const max = Math.max(...values)

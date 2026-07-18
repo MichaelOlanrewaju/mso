@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 export function useRecordsData(username, selectedDate) {
   const [status, setStatus] = useState("loading")
@@ -27,7 +29,7 @@ export function useRecordsData(username, selectedDate) {
 
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "getDailyReport")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("date", date)
       url.searchParams.set("username", username || "")
 

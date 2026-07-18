@@ -1,8 +1,12 @@
 import React from "react"
+import { getStation } from "../../config/stations"
+import { activeStation } from "../../utils/station"
 import { useClock } from "../../hooks/useClock"
 
 export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefresh, title = "Dashboard" }) {
   const { time, date } = useClock()
+
+  const stationName = getStation(activeStation()).name
 
   return (
     <header
@@ -29,7 +33,22 @@ export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefres
           <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-extrabold tracking-[-0.03em] leading-tight text-navy md:text-[17px]">
             {title}
           </div>
-          <div className="mt-px text-[9.5px] text-ink-4 md:text-[10.5px]">{date}</div>
+          {/* The station is named on every single screen, always. Brand colour
+              alone distinguishes MSO from M&M, but colour is not enough at 6am —
+              and the most dangerous mistake this app can make is someone
+              entering one station's readings while looking at the other's. */}
+          <div className="mt-px flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+              style={{ background: "var(--brand-accent)" }}
+            />
+            <span className="truncate text-[9.5px] font-bold text-brand md:text-[10.5px]">
+              {stationName}
+            </span>
+            <span className="text-border">·</span>
+            <span className="truncate text-[9.5px] text-ink-4 md:text-[10.5px]">{date}</span>
+          </div>
         </div>
       </div>
 

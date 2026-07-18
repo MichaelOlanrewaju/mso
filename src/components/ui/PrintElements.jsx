@@ -1,4 +1,6 @@
 import React from "react"
+import { getStation } from "../../config/stations"
+import { activeStation } from "../../utils/station"
 
 // Both render nothing on screen (see the .print-header/.print-watermark
 // rules in global.css) — they only appear in the actual printed output.
@@ -17,10 +19,23 @@ import React from "react"
    Drop the colour logo in at that path and it prints properly; if the file is
    missing, the header degrades to a clean typographic lockup rather than
    showing a broken-image icon. */
-const LOGO_SRC = "/images/msostation.jpg"
+/* One logo per station, named by key. Each station drops its own colour asset
+   at /public/images/logo-<key>.jpg (or .png). If it's missing the header falls
+   back to a clean typographic lockup — no broken-image icon. MSO keeps its
+   existing file as the fallback for its own key. */
+const LOGO_BY_STATION = {
+  mso: "/images/msostation.jpg",
+  mrs: "/images/mm-oil-and-gas.jpg",
+}
 
 export function PrintHeader({ title, subtitle }) {
   const [logoOk, setLogoOk] = React.useState(true)
+
+  /* The letterhead follows whichever station you're printing for — an M&M daily
+     summary carries M&M's logo and name, not MSO's. */
+  const stationKey = activeStation()
+  const station = getStation(stationKey)
+  const LOGO_SRC = LOGO_BY_STATION[stationKey] || LOGO_BY_STATION.mso
 
   return (
     /* width:100% is what makes the alignment work at all. The element is
@@ -35,7 +50,7 @@ export function PrintHeader({ title, subtitle }) {
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 24,
-        borderBottom: "2.5px solid #130656",
+        borderBottom: "2.5px solid var(--brand-primary)",
         paddingBottom: 14,
         marginBottom: 20,
       }}
@@ -64,18 +79,18 @@ export function PrintHeader({ title, subtitle }) {
             style={{
               fontSize: 16,
               fontWeight: 800,
-              color: "#130656",
+              color: "var(--brand-primary)",
               lineHeight: 1.15,
               letterSpacing: "-0.01em",
             }}
           >
-            MSO Limpid Co. Ltd
+            {station.legalName}
           </div>
           <div
             style={{
               fontSize: 9,
               fontWeight: 700,
-              color: "#179DD0",
+              color: "var(--brand-accent)",
               letterSpacing: "1.2px",
               textTransform: "uppercase",
               marginTop: 3,

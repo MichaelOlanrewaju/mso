@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getCached, setCached } from "../utils/fetchCache"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 export function useDashboardData(username) {
   const [status, setStatus] = useState("idle")
@@ -17,7 +19,7 @@ export function useDashboardData(username) {
     }
   }, [])
 
-  const cacheKey = `dashboard:${STATION_KEY}:${username || "owner"}`
+  const cacheKey = `dashboard:${activeStation()}:${username || "owner"}`
 
   const load = useCallback(
     (opts = {}) => {
@@ -44,7 +46,7 @@ export function useDashboardData(username) {
 
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "getDashboard")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("username", username || "owner")
       if (skipCache) url.searchParams.set("fresh", "1")
 

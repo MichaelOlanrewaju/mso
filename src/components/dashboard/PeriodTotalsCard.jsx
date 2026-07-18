@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useState } from "react"
 import { naira, litres } from "../../utils/format"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../../utils/station"
 
 function usePeriodTotals() {
   const [data, setData] = useState(null)
@@ -14,7 +16,7 @@ function usePeriodTotals() {
     try {
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "getPeriodTotals")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
       if (res.ok) setData(res)
     } catch (e) {
@@ -85,7 +87,7 @@ export default function PeriodTotalsCard() {
       </div>
 
       {/* Revenue hero strip */}
-      <div className="mx-4 my-3 overflow-hidden rounded-[12px]" style={{ background: "linear-gradient(135deg,#130656,#1a0875)" }}>
+      <div className="mx-4 my-3 overflow-hidden rounded-[12px]" style={{ background: "var(--brand-gradient-btn)" }}>
         <div className="grid grid-cols-2 divide-x divide-white/10 px-1 py-3.5">
           <div className="px-3 text-center">
             <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-white/50">Total Revenue</div>

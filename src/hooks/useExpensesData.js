@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 function todayISO() {
   return new Date().toISOString().split("T")[0]
@@ -22,7 +24,7 @@ export function useExpensesData(username) {
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getDailyReport")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", todayISO())
     url.searchParams.set("username", username || "")
 
@@ -60,7 +62,7 @@ export function useExpensesData(username) {
       headers: { "Content-Type": "text/plain" },
       body: JSON.stringify({
         action: "saveExpense",
-        station: STATION_KEY,
+        station: activeStation(),
         username,
         date: todayISO(),
         description: desc.trim(),

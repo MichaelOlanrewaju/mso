@@ -9,7 +9,7 @@ export default function ModeToggle({ mode, onChange, hasOpening, hasClosing }) {
         className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-2.5 text-[12.5px] font-bold transition-all"
         style={
           mode === "open"
-            ? { background: "linear-gradient(135deg, #130656, #1a0875)", color: "#fff" }
+            ? { background: "var(--brand-gradient-btn)", color: "#fff" }
             : { color: "#94A3B8" }
         }
       >
@@ -23,7 +23,7 @@ export default function ModeToggle({ mode, onChange, hasOpening, hasClosing }) {
         className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] py-2.5 text-[12.5px] font-bold transition-all"
         style={
           mode === "close"
-            ? { background: "linear-gradient(135deg, #130656, #179DD0)", color: "#fff" }
+            ? { background: "var(--brand-gradient-btn)", color: "#fff" }
             : { color: "#94A3B8" }
         }
       >

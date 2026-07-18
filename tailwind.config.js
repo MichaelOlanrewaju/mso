@@ -4,6 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Station-aware brand tokens — these read the CSS variables that
+        // useStation() paints onto <html>, so `bg-brand` is navy at MSO and
+        // wine at M&M without any component knowing which station it's on.
+        brand: "var(--brand-primary)",
+        "brand-accent": "var(--brand-accent)",
+        "brand-dark": "var(--brand-primary-dark)",
+        "brand-accent-dark": "var(--brand-accent-dark)",
+        "brand-accent-light": "var(--brand-accent-light)",
+        "brand-light": "var(--brand-primary-light)",
+
         cyan: { DEFAULT: "#179DD0", dark: "#1188B5", light: "#EAF6FC" },
         navy: { DEFAULT: "#06091A", 2: "#0D1226", 3: "#141935" },
         deepnavy: { DEFAULT: "#130656", light: "#EEF0FF", 2: "#1a0875" },
@@ -28,6 +38,10 @@ export default {
       fontFamily: {
         sans: ["Plus Jakarta Sans", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+      },
+      backgroundImage: {
+        "brand-gradient": "var(--brand-gradient)",
+        "brand-btn": "var(--brand-gradient-btn)",
       },
       boxShadow: {
         card: "0 1px 3px rgba(15,23,42,.05), 0 4px 16px rgba(15,23,42,.07)",

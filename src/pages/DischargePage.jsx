@@ -8,7 +8,9 @@ import { naira } from "../utils/format"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 const PRODUCTS = ["Tank 1 (PMS)", "Tank 2 (PMS)", "Tank 3 (AGO)", "Tank 4 (AGO)"]
 
 // Real Discharge sheet column names — these match the live spreadsheet
@@ -25,7 +27,7 @@ function get(action, extra = {}) {
   if (!SCRIPT_URL) return Promise.resolve({ ok: false, error: "Not connected." })
   const url = new URL(SCRIPT_URL)
   url.searchParams.set("action", action)
-  url.searchParams.set("station", STATION_KEY)
+  url.searchParams.set("station", activeStation())
   Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v))
   return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
 }
@@ -189,7 +191,7 @@ export default function DischargePage() {
     setFeedback(null)
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "saveDischarge")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     Object.entries({ ...form, username: auth.username, token: getToken() }).forEach(([k, v]) => url.searchParams.set(k, v))
     const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
     setSaving(false)
@@ -245,7 +247,7 @@ export default function DischargePage() {
     setFeedback(null)
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "addDischargePrice")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("rowIndex", pricingRow.rowIndex)
     url.searchParams.set("pricePerLitre", priceInput)
     url.searchParams.set("username", auth.username)
@@ -313,7 +315,7 @@ export default function DischargePage() {
           <>
             {/* Owner/GM summary strip — running totals by period, front and center */}
             {isGMOrOwner && !loading && records.length > 0 && (
-              <div className="mb-4 overflow-hidden rounded-[16px] shadow-lift" style={{ background: "linear-gradient(135deg,#130656,#1a0875)" }}>
+              <div className="mb-4 overflow-hidden rounded-[16px] shadow-lift" style={{ background: "var(--brand-gradient-btn)" }}>
                 <div className="flex gap-1 px-3 pt-3">
                   {[["week", "This Week"], ["month", "This Month"], ["all", "All Time"]].map(([k, l]) => (
                     <button key={k} type="button" onClick={() => setPeriod(k)}
@@ -538,7 +540,7 @@ export default function DischargePage() {
 
               <button type="button" onClick={handleSubmitDischarge} disabled={saving || !form.product || !form.supplier || !form.actualReceived}
                 className="flex w-full items-center justify-center gap-2 rounded-[12px] py-3.5 text-[14px] font-bold text-white shadow-lift transition disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg,#130656,#1a0875)" }}>
+                style={{ background: "var(--brand-gradient-btn)" }}>
                 {saving ? <><span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> Saving…</> : <><i className="bi bi-fuel-pump" /> Record Discharge</>}
               </button>
             </div>

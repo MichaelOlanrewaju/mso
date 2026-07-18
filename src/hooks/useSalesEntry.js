@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { PUMPS } from "../config/pumps"
+/* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
+   to different tanks. Reading a shared config that assumed MSO's layout would
+   have collected dips for a tank that does not exist. */
+import { tanksFor, pumpsFor } from "../config/stations"
+import { activeStation } from "../utils/station"
 import { compressImage } from "../utils/compressImage"
 import { postWithProgress } from "../utils/postWithProgress"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+
 /* How often to re-check whether the GM has approved an edit request. The lock
    status used to be fetched once, on page load — so an approval that landed
    thirty seconds later never reached the supervisor's screen. */
@@ -27,7 +33,7 @@ function stateKey(p) {
 
 function emptyReadings() {
   const readings = {}
-  PUMPS.forEach(p => {
+  pumpsFor(activeStation()).forEach(p => {
     readings[stateKey(p)] = { open: "", close: "" }
   })
   return readings
@@ -78,7 +84,7 @@ export function useSalesEntry(username, name, selectedDate) {
     if (!SCRIPT_URL) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPhotos")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
@@ -112,13 +118,13 @@ export function useSalesEntry(username, name, selectedDate) {
 
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "getDailyReport")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("date", date)
       url.searchParams.set("username", username || "")
 
       const lockUrl = new URL(SCRIPT_URL)
       lockUrl.searchParams.set("action", "getEditLockStatus")
-      lockUrl.searchParams.set("station", STATION_KEY)
+      lockUrl.searchParams.set("station", activeStation())
       lockUrl.searchParams.set("date", date)
       fetch(lockUrl.toString(), { method: "GET", redirect: "follow" })
         .then(res => res.json())
@@ -141,7 +147,7 @@ export function useSalesEntry(username, name, selectedDate) {
           let anyOpen = false
           let anyClose = false
 
-          PUMPS.forEach(p => {
+          pumpsFor(activeStation()).forEach(p => {
             const key = stateKey(p)
             const session = pm[key] && pm[key].sessions && pm[key].sessions[0]
             if (session) {
@@ -178,7 +184,7 @@ export function useSalesEntry(username, name, selectedDate) {
     if (!SCRIPT_URL || !date) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getEditLockStatus")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
@@ -216,7 +222,7 @@ export function useSalesEntry(username, name, selectedDate) {
     prices => {
       let pmsL = 0, agoL = 0, lpgKg = 0
       let hasError = false
-      PUMPS.forEach(p => {
+      pumpsFor(activeStation()).forEach(p => {
         const key = stateKey(p)
         const d = diffFor(readings[key])
         if (d === "err") hasError = true
@@ -240,7 +246,7 @@ export function useSalesEntry(username, name, selectedDate) {
   )
 
   const hasAnyReading = useCallback(
-    field => PUMPS.some(p => Number(readings[stateKey(p)][field]) > 0),
+    field => pumpsFor(activeStation()).some(p => Number(readings[stateKey(p)][field]) > 0),
     [readings]
   )
 
@@ -260,7 +266,7 @@ export function useSalesEntry(username, name, selectedDate) {
       if (op === 0 && cl === 0) return Promise.resolve({ ok: true, skipped: true })
 
       return post({
-        action: "savePumpMetre", station: STATION_KEY, username, date,
+        action: "savePumpMetre", station: activeStation(), username, date,
         pump: key, product: p.product, tank: p.tank,
         openingMetre: op, closingMetre: cl, diff, price,
         amount: Math.round(diff * price), sessionNum: 1,
@@ -274,7 +280,7 @@ export function useSalesEntry(username, name, selectedDate) {
           // the SalesLog/transactions feed, not the reading of record —
           // so it's attempted but doesn't fail the whole pump save.
           return post({
-            action: "saveSale", station: STATION_KEY, username, date,
+            action: "saveSale", station: activeStation(), username, date,
             tank: p.tank, pump: label, product: p.product,
             litres: diff, pricePerL: price, amount: Math.round(diff * price),
             payMethod: "Mixed", attendant: name || username, notes: notes || "",
@@ -316,14 +322,14 @@ export function useSalesEntry(username, name, selectedDate) {
       }
 
       setSaving(true)
-      return post({ action: "saveDailyReport", station: STATION_KEY, username, date, data })
+      return post({ action: "saveDailyReport", station: activeStation(), username, date, data })
         .then(d => {
           if (!d.ok) {
             setSaving(false)
             return d
           }
           const failedPumps = []
-          const pumpsWithReadings = PUMPS.filter(p => {
+          const pumpsWithReadings = pumpsFor(activeStation()).filter(p => {
             const r = readings[stateKey(p)]
             const hasReading = Number(r.open) > 0 || Number(r.close) > 0
             // Locked pumps are already correctly saved (that's exactly
@@ -397,7 +403,7 @@ export function useSalesEntry(username, name, selectedDate) {
       try {
         return await postWithProgress(
           SCRIPT_URL,
-          { action: "savePhoto", station: STATION_KEY, username, date, session, subject, mimeType: sendMime, base64 },
+          { action: "savePhoto", station: activeStation(), username, date, session, subject, mimeType: sendMime, base64 },
           onProgress
         )
       } catch (e) {
@@ -422,7 +428,7 @@ export function useSalesEntry(username, name, selectedDate) {
     (date, pumpLabel, pumpKey, mode, message) => {
       setRequestingEdit(true)
       return post({
-        action: "saveEditRequest", station: STATION_KEY, username, name,
+        action: "saveEditRequest", station: activeStation(), username, name,
         date, type: `pump_${mode === "close" ? "close" : "open"}_${pumpKey}`,
         message: message || `Requesting permission to correct Pump ${pumpLabel} (${mode === "close" ? "Closing" : "Opening"})`,
       }).then(d => {

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 /**
  * Oil: catalogue, stock, deliveries.
@@ -35,7 +37,7 @@ export function useLubricant({ username } = {}) {
     if (!SCRIPT_URL) { setStatus("error"); return }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getLubricantProducts")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
@@ -56,7 +58,7 @@ export function useLubricant({ username } = {}) {
     fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ ...body, station: STATION_KEY, username, token: getToken() }),
+      body: JSON.stringify({ ...body, station: activeStation(), username, token: getToken() }),
       redirect: "follow",
     }).then(r => r.json()),
   [username])
@@ -119,7 +121,7 @@ export function useLubricantDeliveries() {
     if (!SCRIPT_URL) { setStatus("error"); return }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getLubricantDeliveries")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
@@ -143,7 +145,7 @@ export function useLubricantSummary({ from = "", to = "" } = {}) {
     if (!SCRIPT_URL) { setStatus("error"); return }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getLubricantSummary")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     if (from) url.searchParams.set("from", from)
     if (to) url.searchParams.set("to", to)
     url.searchParams.set("token", getToken())

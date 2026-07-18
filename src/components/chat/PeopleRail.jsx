@@ -54,7 +54,7 @@ export default function PeopleRail({ people, onStart }) {
                 <span
                   aria-hidden="true"
                   className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full text-white transition-transform duration-200 group-hover:scale-110"
-                  style={{ background: "#179DD0", boxShadow: "0 0 0 2px rgba(255,255,255,.92)" }}
+                  style={{ background: "var(--brand-accent)", boxShadow: "0 0 0 2px rgba(255,255,255,.92)" }}
                 >
                   <i className="bi bi-plus text-[12px]" />
                 </span>

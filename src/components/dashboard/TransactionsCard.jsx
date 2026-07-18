@@ -1,4 +1,5 @@
 import React from "react"
+import { activeStation } from "../../utils/station"
 import { Link } from "react-router-dom"
 import { naira, numberNG } from "../../utils/format"
 
@@ -26,7 +27,7 @@ export default function TransactionsCard({ status, transactions }) {
           <div className="mt-0.5 text-[10.5px] text-ink-4">Tank · pump · nozzle · staff</div>
         </div>
         <Link
-          to="/records-mso"
+          to={`/records/${activeStation()}`}
           className="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-[11.5px] font-semibold text-cyan transition-[gap] duration-150 hover:gap-2"
         >
           All records <i className="bi bi-arrow-right" />

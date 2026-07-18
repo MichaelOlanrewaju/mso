@@ -8,7 +8,7 @@ export default function StepProgress({ total, current }) {
           key={i}
           className="h-[3px] flex-1 rounded-full transition-colors"
           style={{
-            background: i < current ? "#179DD0" : i === current ? "rgba(23,157,208,.5)" : "rgba(255,255,255,.15)",
+            background: i < current ? "var(--brand-accent)" : i === current ? "rgba(23,157,208,.5)" : "rgba(255,255,255,.15)",
           }}
         />
       ))}

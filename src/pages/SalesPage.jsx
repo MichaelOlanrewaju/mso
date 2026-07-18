@@ -15,7 +15,11 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePrices } from "../hooks/usePrices"
 import { useSalesEntry } from "../hooks/useSalesEntry"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { PUMPS } from "../config/pumps"
+/* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
+   to different tanks. Reading a shared config that assumed MSO's layout would
+   have collected dips for a tank that does not exist. */
+import { tanksFor, pumpsFor } from "../config/stations"
+import { activeStation } from "../utils/station"
 
 function todayISO() {
   return new Date().toISOString().split("T")[0]
@@ -25,7 +29,7 @@ function todayISO() {
 // even where two physical pumps share the same signage label like "P1"
 // on different tanks). Display components read pump.pumpId for the
 // human-facing label; never overwrite pump.id with it.
-const STEPS = PUMPS.map(p => ({ pump: p }))
+const STEPS = pumpsFor(activeStation()).map(p => ({ pump: p }))
 
 function SalesInner() {
   const auth = useAuth({ requireAuth: true })
@@ -227,7 +231,7 @@ function SalesInner() {
       <SafeAreaDebug />
       <div
         className="sticky top-0 z-[200] px-4 pb-4 text-white shadow-lg"
-        style={{ paddingTop: "max(var(--sat), 52px)", background: "linear-gradient(135deg, #130656 0%, #1a0875 100%)" }}
+        style={{ paddingTop: "max(var(--sat), 52px)", background: "var(--brand-gradient-btn)" }}
       >
         <div className="mx-auto max-w-[640px]">
           <div className="mb-3 flex items-center justify-between">
@@ -258,7 +262,7 @@ function SalesInner() {
           <StatusStrip hasOpening={hasOpening} hasClosing={hasClosing} hasCash={false} />
 
           <div className="overflow-hidden rounded-card border border-cyan/15 bg-white shadow-card">
-            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #130656, #179DD0)" }} />
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, var(--brand-primary), var(--brand-accent))" }} />
             <div className="p-5">
               {status === "loading" ? (
                 <div className="flex items-center justify-center py-10 text-[13px] text-ink-4">
@@ -317,7 +321,7 @@ function SalesInner() {
 
           <div
             className="mt-3 flex items-center justify-between rounded-[14px] px-4 py-3 text-white shadow-card"
-            style={{ background: "linear-gradient(135deg, #130656 0%, #179DD0 140%)" }}
+            style={{ background: "var(--brand-gradient-btn)" }}
           >
             <div className="flex items-center gap-2 text-[12.5px] font-medium text-white/85">
               <span className="h-2 w-2 rounded-full bg-green" style={{ boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />

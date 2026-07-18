@@ -26,9 +26,11 @@ import { useShortages } from "../hooks/useShortages"
 import { usePendingPayroll } from "../hooks/usePayroll"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { initials, roleLabel } from "../utils/format"
+/* The station comes from the signed-in user's session, not a build-time env
+   var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
 
 function delay(step) {
   return { animationDelay: `${Math.min(step * 60, 360)}ms` }
@@ -53,33 +55,38 @@ function GMInner() {
   }
 
 
+  /* Every one of these must call refresh() on success. Without it the server
+     approves/rejects correctly, but the "Needs your attention" panel keeps
+     showing the item — it's built from dashboard data that was never reloaded.
+     That's why a rejected item appeared stuck: the action worked, the panel just
+     never updated. */
   const handleApprove = rowIndex =>
     review(rowIndex, "approve").then(d => {
-      if (d.ok) toast.showToast("Approved", "Supervisor can now edit that record", "ok")
+      if (d.ok) { toast.showToast("Approved", "Supervisor can now edit that record", "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleReject = rowIndex =>
     review(rowIndex, "reject").then(d => {
-      if (d.ok) toast.showToast("Rejected", "Edit request rejected", "ok")
+      if (d.ok) { toast.showToast("Rejected", "Edit request rejected", "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleApproveCashup = date =>
     decideCashup(date, "approve").then(d => {
-      if (d.ok) toast.showToast("Approved", `Cash reconciliation for ${date} approved`, "ok")
+      if (d.ok) { toast.showToast("Approved", `Cash reconciliation for ${date} approved`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleRejectCashup = date =>
     decideCashup(date, "reject").then(d => {
-      if (d.ok) toast.showToast("Rejected", `Cashier can now correct and resubmit ${date}`, "ok")
+      if (d.ok) { toast.showToast("Rejected", `Cashier can now correct and resubmit ${date}`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
   const handleReviewShortage = (rowIndex, decision) =>
     reviewShortage({ rowIndex, decision, username: auth.username }).then(d => {
-      if (d.ok) toast.showToast("Updated", "Shortage marked as reviewed", "ok")
+      if (d.ok) { toast.showToast("Updated", "Shortage marked as reviewed", "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
@@ -142,7 +149,7 @@ function GMInner() {
                 </div>
                 <button type="button" onClick={requestNotifications}
                   className="flex-shrink-0 rounded-[9px] px-3.5 py-2 text-[12px] font-bold text-white transition-all hover:brightness-110 active:scale-95"
-                  style={{ background: "linear-gradient(135deg,#130656,#179DD0)" }}>
+                  style={{ background: "var(--brand-gradient-btn)" }}>
                   Enable
                 </button>
               </div>
@@ -162,6 +169,11 @@ function GMInner() {
                 />
               </div>
             )}
+
+            <div className="enter mb-5" style={delay(2)}>
+              <SectionLabel>Period totals</SectionLabel>
+              <PeriodTotalsCard />
+            </div>
 
             <div className="enter mb-5" style={delay(3)}>
               <SectionLabel>Needs your attention</SectionLabel>
@@ -225,10 +237,6 @@ function GMInner() {
               <OilCard />
             </div>
 
-            <div className="enter mb-5" style={delay(5)}>
-              <SectionLabel>Period totals</SectionLabel>
-              <PeriodTotalsCard />
-            </div>
 
             <div className="enter" style={delay(6)}>
               <SectionLabel>Recent transactions</SectionLabel>

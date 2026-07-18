@@ -2,17 +2,17 @@
    Kept in one place so cards, header and rails can never drift apart. */
 
 export const BRAND_GRADIENT =
-  "linear-gradient(135deg,#130656 0%,#1a0875 55%,#179DD0 130%)"
+  "var(--brand-gradient-btn)"
 
 /* Header gets a deeper, longer throw than the small chips/avatars so the
    surface reads as a single sheet of glass rather than a flat fill. */
 export const HEADER_GRADIENT =
-  "linear-gradient(150deg,#130656 0%,#180a63 40%,#1a0875 70%,#179DD0 165%)"
+  "var(--brand-gradient)"
 
 export const CARD_SHADOW = "0 2px 10px rgba(19,6,86,.06)"
 export const CARD_SHADOW_HOVER = "0 10px 28px rgba(19,6,86,.13)"
 
-const AVATAR_COLORS = ["#179DD0", "#130656", "#16A34A", "#179DD0", "#DC2626", "#7C3AED"]
+const AVATAR_COLORS = ["var(--brand-accent)", "var(--brand-primary)", "#16A34A", "var(--brand-accent)", "#DC2626", "#7C3AED"]
 
 export function avatarColor(name) {
   return AVATAR_COLORS[(name || " ").charCodeAt(0) % AVATAR_COLORS.length]

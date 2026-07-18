@@ -240,7 +240,7 @@ export default function LubricantPage() {
                   className={`flex flex-shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold transition-all active:scale-95 ${
                     tab === t.id ? "text-white" : "border border-border bg-white text-ink-3 hover:text-ink"
                   }`}
-                  style={tab === t.id ? { background: "linear-gradient(135deg,#130656,#179DD0)" } : undefined}
+                  style={tab === t.id ? { background: "var(--brand-gradient-btn)" } : undefined}
                 >
                   <i className={`bi ${t.icon} text-[11px]`} />{t.label}
                 </button>
@@ -285,7 +285,7 @@ export default function LubricantPage() {
                     <div className="mt-4 flex gap-2">
                       <button type="button" onClick={submitSell} disabled={saving}
                         className="flex-1 rounded-[10px] py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
-                        style={{ background: "linear-gradient(135deg,#130656,#179DD0)" }}>
+                        style={{ background: "var(--brand-gradient-btn)" }}>
                         {saving ? "Saving…" : "Save"}
                       </button>
                       <button type="button" onClick={() => setEditing(null)}
@@ -310,7 +310,7 @@ export default function LubricantPage() {
                     <div className="mt-3 flex gap-2">
                       <button type="button" onClick={submitCost} disabled={saving}
                         className="flex-1 rounded-[10px] py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
-                        style={{ background: "linear-gradient(135deg,#130656,#179DD0)" }}>
+                        style={{ background: "var(--brand-gradient-btn)" }}>
                         {saving ? "Saving…" : "Save cost"}
                       </button>
                       <button type="button" onClick={() => setCosting(null)}
@@ -622,7 +622,7 @@ export default function LubricantPage() {
                       <div className="flex gap-2">
                         <button type="button" onClick={submitDelivery} disabled={saving}
                           className="flex-1 rounded-[10px] py-2.5 text-[12.5px] font-bold text-white disabled:opacity-50"
-                          style={{ background: "linear-gradient(135deg,#130656,#179DD0)" }}>
+                          style={{ background: "var(--brand-gradient-btn)" }}>
                           {saving ? "Saving…" : "Record delivery"}
                         </button>
                         <button type="button" onClick={resetInvoice}

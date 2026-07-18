@@ -15,7 +15,7 @@ const ROLES = [
 
 const ROLE_LABELS = { ceo: "CEO", owner: "CEO", gm: "GM", supervisor: "Supervisor", cashier: "Cashier", attendant: "Attendant" }
 
-const AVATAR_COLORS = ["#179DD0","#06091A","#16A34A","#179DD0","#DC2626","#7C3AED"]
+const AVATAR_COLORS = ["var(--brand-accent)","#06091A","#16A34A","var(--brand-accent)","#DC2626","#7C3AED"]
 function avatarBg(name) {
   return AVATAR_COLORS[(name || " ").charCodeAt(0) % AVATAR_COLORS.length]
 }

@@ -5,8 +5,8 @@ const ToastContext = createContext(null)
 const ICONS = {
   ok: { icon: "bi-check-circle-fill", bg: "#F0FDF4", color: "#16A34A" },
   err: { icon: "bi-x-circle-fill", bg: "#FEF2F2", color: "#DC2626" },
-  info: { icon: "bi-info-circle-fill", bg: "#EAF6FC", color: "#179DD0" },
-  warn: { icon: "bi-exclamation-triangle-fill", bg: "#EAF6FC", color: "#1188B5" },
+  info: { icon: "bi-info-circle-fill", bg: "var(--brand-accent-light)", color: "var(--brand-accent)" },
+  warn: { icon: "bi-exclamation-triangle-fill", bg: "var(--brand-accent-light)", color: "var(--brand-accent-dark)" },
 }
 
 export function ToastProvider({ children }) {

@@ -53,9 +53,9 @@ export default function AgoCard({ status, ago, agoPrice }) {
           <DataBox
             label="Difference"
             value={loading || !hasData ? "—" : `${numberNG(ago.diff)}L`}
-            bg="#EAF6FC"
+            bg="var(--brand-accent-light)"
             border="#BEE6F5"
-            color="#179DD0"
+            color="var(--brand-accent)"
           />
           <DataBox
             label="Margin"

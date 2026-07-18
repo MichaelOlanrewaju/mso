@@ -11,10 +11,10 @@ import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG } from "../utils/format"
 
 const RECON_STYLES = {
-  pending: { grad: "linear-gradient(135deg,#130656 0%,#1a0875 100%)", accent: "#94A3B8", icon: "bi-hourglass-split", label: "Enter amounts to reconcile" },
+  pending: { grad: "var(--brand-gradient-btn)", accent: "#94A3B8", icon: "bi-hourglass-split", label: "Enter amounts to reconcile" },
   balanced: { grad: "linear-gradient(135deg,#0f7a3d 0%,#16A34A 100%)", accent: "#BBF7D0", icon: "bi-check-circle-fill", label: "Balanced" },
   short: { grad: "linear-gradient(135deg,#7f1d1d 0%,#DC2626 100%)", accent: "#FECACA", icon: "bi-exclamation-triangle-fill", label: "Short" },
-  over: { grad: "linear-gradient(135deg,#0E7196 0%,#179DD0 100%)", accent: "#BEE6F5", icon: "bi-arrow-up-circle-fill", label: "Over" },
+  over: { grad: "linear-gradient(135deg,#0E7196 0%,var(--brand-accent) 100%)", accent: "#BEE6F5", icon: "bi-arrow-up-circle-fill", label: "Over" },
 }
 
 // A compact, single-row money input — label + input on one line, optional
@@ -172,7 +172,7 @@ function CashupInner() {
       </div>
 
       <div className="mx-auto max-w-[640px] px-4 py-4 pb-[120px]">
-        <DateRow date={date} onChange={setDate} supName={auth.name || auth.username} roleLabel="Cashier" />
+        <DateRow date={date} onChange={setDate} supName={auth.name || auth.username} roleLabel={auth.role === "supervisor" ? "Supervisor" : "Cashier"} />
 
         {/* ── STATUS HERO — the one number that matters most, always visible,
             never repeated three times across the page like before ── */}

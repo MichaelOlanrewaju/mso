@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { activeStation } from "../utils/station"
 import { getToken } from "../utils/session"
 
 /* ── usePWA ─────────────────────────────────────────────────
@@ -173,7 +174,7 @@ export function useLiveNotifications({ enabled, station = "mso", username }) {
           ;(cashupRes.pending || []).forEach(c => {
             const id = `cashup-${c.date}`
             if (!seen.has(id)) {
-              fireNotification("Cash Reconciliation pending", `${c.submittedBy || "Cashier"} submitted ${c.date} for approval`, "/dashboard-mso")
+              fireNotification("Cash Reconciliation pending", `${c.submittedBy || "Cashier"} submitted ${c.date} for approval`, `/dashboard/${activeStation()}`)
               newlySeen.push(id)
             }
           })
@@ -191,7 +192,7 @@ export function useLiveNotifications({ enabled, station = "mso", username }) {
           ;(editRes.requests || []).forEach(r => {
             const id = `edit-${r.rowIndex}`
             if (!seen.has(id)) {
-              fireNotification("Edit request pending", `${r.name || r.requestedBy} wants to correct a record for ${r.date}`, "/dashboard-mso")
+              fireNotification("Edit request pending", `${r.name || r.requestedBy} wants to correct a record for ${r.date}`, `/dashboard/${activeStation()}`)
               newlySeen.push(id)
             }
           })
@@ -209,7 +210,7 @@ export function useLiveNotifications({ enabled, station = "mso", username }) {
           ;(payRes.pending || []).forEach(p => {
             const id = `payroll-${p.month}`
             if (!seen.has(id)) {
-              fireNotification("Payroll pending approval", `${p.month} payroll is awaiting your review`, "/payroll-mso")
+              fireNotification("Payroll pending approval", `${p.month} payroll is awaiting your review`, `/payroll/${activeStation()}`)
               newlySeen.push(id)
             }
           })
@@ -250,7 +251,7 @@ export function useLiveNotifications({ enabled, station = "mso", username }) {
                 fireNotification(
                   `${h.product} price updated`,
                   `New ${h.product} price: ₦${h.price}/L${h.by ? ` — set by ${h.by}` : ""}`,
-                  "/sales-mso"
+                  `/sales/${activeStation()}`
                 )
               }
               newlySeen.push(id)

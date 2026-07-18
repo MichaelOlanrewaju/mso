@@ -86,7 +86,7 @@ export default function KpiGrid({ status, data }) {
     pendingFoot: "no expenses yet",
   })
 
-  const pendingStyle = { color: "#179DD0" }
+  const pendingStyle = { color: "var(--brand-accent)" }
   const mutedStyle = { opacity: 0.5 }
 
   return (
@@ -96,20 +96,20 @@ export default function KpiGrid({ status, data }) {
           variant="hero"
           icon="bi-graph-up-arrow"
           iconBg="rgba(23,157,208,.18)"
-          iconColor="#179DD0"
+          iconColor="var(--brand-accent)"
           label="Grand Total"
           value={totalValue}
           foot={totalFoot}
           loading={loading}
           delay={0}
-          signature={trend && <Sparkline values={trend} stroke="#179DD0" />}
+          signature={trend && <Sparkline values={trend} stroke="var(--brand-accent)" />}
         />
       </div>
       <KpiCard
         variant="cyan"
         icon="bi-fuel-pump"
-        iconBg="#EAF6FC"
-        iconColor="#1188B5"
+        iconBg="var(--brand-accent-light)"
+        iconColor="var(--brand-accent-dark)"
         label="PMS Sold"
         value={<span style={pms.pending ? pendingStyle : pms.muted ? mutedStyle : undefined}>{pms.value}</span>}
         foot={pms.foot}
@@ -119,8 +119,8 @@ export default function KpiGrid({ status, data }) {
       <KpiCard
         variant="amber"
         icon="bi-droplet-fill"
-        iconBg="#EAF6FC"
-        iconColor="#179DD0"
+        iconBg="var(--brand-accent-light)"
+        iconColor="var(--brand-accent)"
         label="AGO Sold"
         value={<span style={ago.pending ? pendingStyle : ago.muted ? mutedStyle : undefined}>{ago.value}</span>}
         foot={ago.foot}

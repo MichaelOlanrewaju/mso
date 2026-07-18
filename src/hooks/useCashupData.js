@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 const MP_RATE = 0.003
 const ZM_RATE = 0.003
 
@@ -56,7 +58,7 @@ export function useCashupData(username, name, initialDate) {
     setLoadingExpected(true)
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getDailyReport")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
 
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -89,7 +91,7 @@ export function useCashupData(username, name, initialDate) {
 
     const lockUrl = new URL(SCRIPT_URL)
     lockUrl.searchParams.set("action", "getEditLockStatus")
-    lockUrl.searchParams.set("station", STATION_KEY)
+    lockUrl.searchParams.set("station", activeStation())
     lockUrl.searchParams.set("date", date)
     fetch(lockUrl.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
@@ -215,7 +217,7 @@ export function useCashupData(username, name, initialDate) {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
-          action: "saveEditRequest", station: STATION_KEY, username, name,
+          action: "saveEditRequest", station: activeStation(), username, name,
           date, type: "cashup",
           message: message || "Requesting permission to correct the cash reconciliation",
         }),
@@ -263,7 +265,7 @@ export function useCashupData(username, name, initialDate) {
     return fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "saveDailyReport", station: STATION_KEY, username, date, data }),
+      body: JSON.stringify({ action: "saveDailyReport", station: activeStation(), username, date, data }),
       redirect: "follow",
     })
       .then(res => res.json())
@@ -278,7 +280,7 @@ export function useCashupData(username, name, initialDate) {
             fetch(SCRIPT_URL, {
               method: "POST",
               headers: { "Content-Type": "text/plain" },
-              body: JSON.stringify({ action: "saveExpense", station: STATION_KEY, username, date, description: e.desc, amount: Number(e.amt) }),
+              body: JSON.stringify({ action: "saveExpense", station: activeStation(), username, date, description: e.desc, amount: Number(e.amt) }),
               redirect: "follow",
             })
           )
@@ -289,7 +291,7 @@ export function useCashupData(username, name, initialDate) {
               method: "POST",
               headers: { "Content-Type": "text/plain" },
               // unitPrice is deliberately NOT sent. The server looks it up.
-              body: JSON.stringify({ action: "saveLubricant", station: STATION_KEY, username, date, product: it.product, qty: Number(it.qty) }),
+              body: JSON.stringify({ action: "saveLubricant", station: activeStation(), username, date, product: it.product, qty: Number(it.qty) }),
               redirect: "follow",
             })
           )

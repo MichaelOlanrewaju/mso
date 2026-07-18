@@ -64,7 +64,7 @@ export default function ConversationCard({
         }`}
         style={{
           boxShadow: isActive
-            ? "0 0 0 2px #179DD0, 0 8px 22px rgba(19,6,86,.12)"
+            ? "0 0 0 2px var(--brand-accent), 0 8px 22px rgba(19,6,86,.12)"
             : hasUnread
             ? "0 4px 16px rgba(19,6,86,.10)"
             : CARD_SHADOW,
@@ -84,7 +84,7 @@ export default function ConversationCard({
           <span
             aria-hidden="true"
             className="absolute inset-y-0 left-0 w-[3px]"
-            style={{ background: "linear-gradient(180deg,#179DD0,#130656)" }}
+            style={{ background: "linear-gradient(180deg,var(--brand-accent),var(--brand-primary))" }}
           />
         )}
 
@@ -105,7 +105,7 @@ export default function ConversationCard({
             <span
               aria-hidden="true"
               className="absolute -left-1 -top-1 flex h-[19px] w-[19px] items-center justify-center rounded-full text-white"
-              style={{ background: "#130656", boxShadow: "0 0 0 2.5px #fff" }}
+              style={{ background: "var(--brand-primary)", boxShadow: "0 0 0 2.5px #fff" }}
             >
               <i className="bi bi-pin-angle-fill text-[9px]" />
             </span>

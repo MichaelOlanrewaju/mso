@@ -11,11 +11,11 @@ export function dashboardPathFor(sessionUser) {
   const username = sessionUser.u || sessionUser.username
   // Owner or multi-station user with no station selected yet → station picker
   if (!station || station === "both" || station === "null") return "/select"
-  if (role === "supervisor") return `/dashboard-supervisor-${station}`
-  if (role === "gm") return `/dashboard-gm-${station}`
-  if (role === "cashier") return `/dashboard-cashier-${station}`
+  if (role === "supervisor") return `/dashboard-supervisor/${station}`
+  if (role === "gm") return `/dashboard-gm/${station}`
+  if (role === "cashier") return `/dashboard-cashier/${station}`
   // owner (by role or username) or unknown → general dashboard
-  return `/dashboard-${station}`
+  return `/dashboard/${station}`
 }
 
 function readSession() {

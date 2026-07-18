@@ -20,7 +20,7 @@ export default function WizardNav({ onBack, onNext, isLast, saving }) {
           disabled={saving}
           className="flex h-[50px] flex-1 items-center justify-center gap-2 rounded-[12px] text-[14px] font-bold text-white shadow-lift transition-all disabled:opacity-50"
           style={{
-            background: isLast ? "linear-gradient(135deg, #16A34A, #15803D)" : "linear-gradient(135deg, #130656, #179DD0)",
+            background: isLast ? "linear-gradient(135deg, #16A34A, #15803D)" : "var(--brand-gradient-btn)",
           }}
         >
           {saving ? (

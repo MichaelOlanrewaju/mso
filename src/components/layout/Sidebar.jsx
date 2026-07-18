@@ -1,47 +1,49 @@
 import React, { useState } from "react"
+import { activeStation } from "../../utils/station"
 import { Link, useLocation } from "react-router-dom"
 
 // NOTE: Sidebar is only ever rendered for owner/gm (supervisor and cashier
 // have their own dedicated dashboard UIs) — so nothing here should be a
 // floor-operations task like Record Sales, Tank Dip, Cash Reconciliation,
 // or Expenses entry. Those belong to supervisor/cashier only.
-const SECTIONS = [
+const buildSections = () => [
   {
     label: "Discharge & Issues",
     links: [
-      { href: "/discharge-mso",icon: "bi-truck",                text: "Discharge" },
-      { href: "/shortage-mso", icon: "bi-exclamation-triangle", text: "Shortage" },
+      { href: `/discharge/${activeStation()}`,icon: "bi-truck",                text: "Discharge" },
+      { href: `/shortage/${activeStation()}`, icon: "bi-exclamation-triangle", text: "Shortage" },
     ],
   },
   {
     label: "Reports",
     links: [
-      { href: "/summary-mso",  icon: "bi-printer",              text: "Daily Summary" },
-      { href: "/records-mso",  icon: "bi-journal-text",         text: "Records" },
-      { href: "/variance-mso", icon: "bi-graph-up-arrow",       text: "Stock Variance" },
-      { href: "/pnl-mso",      icon: "bi-bar-chart-line-fill",  text: "P&L Report" },
-      { href: "/price-mso",    icon: "bi-tag",                  text: "Pump Prices" },
-      { href: "/lubricant-mso", icon: "bi-droplet-fill",        text: "Oil" },
-      { href: "/activity-mso", icon: "bi-journal-check",        text: "Activity Log" },
+      { href: `/summary/${activeStation()}`,  icon: "bi-printer",              text: "Daily Summary" },
+      { href: `/records/${activeStation()}`,  icon: "bi-journal-text",         text: "Records" },
+      { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",       text: "Stock Variance" },
+      { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",  text: "P&L Report" },
+      { href: `/price/${activeStation()}`,    icon: "bi-tag",                  text: "Pump Prices" },
+      { href: `/lubricant/${activeStation()}`, icon: "bi-droplet-fill",        text: "Oil" },
+      { href: `/activity/${activeStation()}`, icon: "bi-journal-check",        text: "Activity Log" },
     ],
   },
   {
     label: "Stock & Credit",
     links: [
-      { href: "/debtors-mso",  icon: "bi-person-fill-exclamation", text: "Debtors" },
-      { href: "/orders-mso",   icon: "bi-box-arrow-in-down",    text: "Stock Orders" },
+      { href: `/debtors/${activeStation()}`,  icon: "bi-person-fill-exclamation", text: "Debtors" },
+      { href: `/orders/${activeStation()}`,   icon: "bi-box-arrow-in-down",    text: "Stock Orders" },
     ],
   },
   {
     label: "HR & Finance",
     links: [
-      { href: "/payroll-mso",   icon: "bi-wallet2",             text: "Payroll" },
-      { href: "/add-staff-mso", icon: "bi-person-plus",         text: "Add Staff" },
+      { href: `/payroll/${activeStation()}`,   icon: "bi-wallet2",             text: "Payroll" },
+      { href: `/add-staff/${activeStation()}`, icon: "bi-person-plus",         text: "Add Staff" },
+      { href: `/station-assignments`,          icon: "bi-arrow-left-right",    text: "Station Assignments" },
     ],
   },
   {
     label: "Communication",
-    links: [{ href: "/chat-mso", icon: "bi-chat-dots",          text: "Staff Chat" }],
+    links: [{ href: `/chat/${activeStation()}`, icon: "bi-chat-dots",          text: "Staff Chat" }],
   },
   {
     label: "Account",
@@ -68,6 +70,10 @@ function NavLinkItem({ href, icon, text }) {
 }
 
 export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLogout, mobileOpen, onClose, name, role, avatarInitials }) {
+  /* Built per-render so the links follow the active station. As a module
+     constant it froze to whatever station was active when the file first
+     loaded. */
+  const sections = buildSections()
   const ownerOrGm = isOwner || isGM
   return (
     <>
@@ -101,7 +107,7 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
         )}
 
         {/* Sections */}
-        {SECTIONS.map(section => {
+        {sections.map(section => {
           if (section.ownerOrGm && !ownerOrGm) return null
           if (section.pickOnly && !canPickStation) return null
           return (

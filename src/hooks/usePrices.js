@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 export function usePrices() {
   const [prices, setPrices] = useState({ pms: 1272, ago: 1819, lpg: 1250 })
@@ -27,7 +29,7 @@ export function usePrices() {
     setLoading(true)
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getCurrentPrices")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
       .then(d => {
@@ -54,7 +56,7 @@ export function usePrices() {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "savePrice", station: STATION_KEY, token: getToken(), product, price, note, username }),
+          body: JSON.stringify({ action: "savePrice", station: activeStation(), token: getToken(), product, price, note, username }),
         })
         const d = await res.json()
         if (d.ok) load()

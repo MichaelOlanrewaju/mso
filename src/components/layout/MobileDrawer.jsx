@@ -1,27 +1,31 @@
 import React from "react"
+import { activeStation } from "../../utils/station"
 import { useNavigate } from "react-router-dom"
 
 // NOTE: MobileDrawer is only ever rendered for owner/gm (supervisor and
 // cashier have their own dedicated mobile dashboard UIs) — so nothing here
 // should be a floor-operations task like Record Sales, Tank Dip, Cash Up,
 // or Expenses entry. Those belong to supervisor/cashier only.
-const LINKS = [
-  { href: "/discharge-mso",icon: "bi-truck",                  color: "#179DD0", text: "Discharge" },
-  { href: "/shortage-mso", icon: "bi-exclamation-triangle",   color: "#F87171", text: "Shortage" },
-  { href: "/debtors-mso",  icon: "bi-person-fill-exclamation",color: "#DC2626", text: "Debtors" },
-  { href: "/orders-mso",   icon: "bi-box-arrow-in-down",      color: "#179DD0", text: "Orders" },
-  { href: "/variance-mso", icon: "bi-graph-up-arrow",         color: "#0891B2", text: "Variance" },
-  { href: "/pnl-mso",      icon: "bi-bar-chart-line-fill",    color: "#06091A", text: "P&L" },
-  { href: "/summary-mso",  icon: "bi-printer",                color: "#06091A", text: "Summary" },
-  { href: "/records-mso",  icon: "bi-journal-text",           color: "#06091A", text: "Records" },
-  { href: "/activity-mso", icon: "bi-journal-check",          color: "#06091A", text: "Activity Log" },
-  { href: "/payroll-mso",  icon: "bi-wallet2",                color: "#130656", text: "Payroll" },
-  { href: "/add-staff-mso",icon: "bi-person-plus",            color: "#130656", text: "Add Staff" },
-  { href: "/chat-mso",     icon: "bi-chat-dots",              color: "#7C3AED", text: "Staff Chat" },
+const buildLinks = () => [
+  { href: `/discharge/${activeStation()}`,icon: "bi-truck",                  color: "var(--brand-accent)", text: "Discharge" },
+  { href: `/shortage/${activeStation()}`, icon: "bi-exclamation-triangle",   color: "#F87171", text: "Shortage" },
+  { href: `/debtors/${activeStation()}`,  icon: "bi-person-fill-exclamation",color: "#DC2626", text: "Debtors" },
+  { href: `/orders/${activeStation()}`,   icon: "bi-box-arrow-in-down",      color: "var(--brand-accent)", text: "Orders" },
+  { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",         color: "#0891B2", text: "Variance" },
+  { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",    color: "#06091A", text: "P&L" },
+  { href: `/summary/${activeStation()}`,  icon: "bi-printer",                color: "#06091A", text: "Summary" },
+  { href: `/records/${activeStation()}`,  icon: "bi-journal-text",           color: "#06091A", text: "Records" },
+  { href: `/activity/${activeStation()}`, icon: "bi-journal-check",          color: "#06091A", text: "Activity Log" },
+  { href: `/payroll/${activeStation()}`,  icon: "bi-wallet2",                color: "var(--brand-primary)", text: "Payroll" },
+  { href: `/add-staff/${activeStation()}`,icon: "bi-person-plus",            color: "var(--brand-primary)", text: "Add Staff" },
+  { href: `/chat/${activeStation()}`,     icon: "bi-chat-dots",              color: "#7C3AED", text: "Staff Chat" },
   { href: "/profile",      icon: "bi-person-circle",          color: "#64748B", text: "My Profile" },
 ]
 
 export default function MobileDrawer({ open, onClose, onLogout }) {
+  /* Per-render, so links track the active station rather than freezing to
+     whatever was active at first import. */
+  const LINKS = buildLinks()
   const navigate = useNavigate()
   if (!open) return null
 

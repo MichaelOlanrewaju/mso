@@ -1,5 +1,6 @@
 import React from "react"
 import { useNavigate } from "react-router-dom"
+import { activeStation } from "../../utils/station"
 
 export default function PriceChangeAlert({ change, onDismissForNow }) {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ export default function PriceChangeAlert({ change, onDismissForNow }) {
           <div className="mt-2.5 flex gap-2">
             <button
               type="button"
-              onClick={() => navigate("/sales-mso?cutover=" + product.toLowerCase())}
+              onClick={() => navigate(`/sales/${activeStation()}?cutover=` + product.toLowerCase())}
               className="rounded-[9px] bg-amber px-3.5 py-2 text-[12px] font-bold text-white"
             >
               Close pumps now

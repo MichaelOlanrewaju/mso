@@ -7,7 +7,13 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useRecordsData } from "../hooks/useRecordsData"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG, initials, roleLabel } from "../utils/format"
-import { TANKS, PUMPS } from "../config/pumps"
+/* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
+   to different tanks. Reading a shared config that assumed MSO's layout would
+   have collected dips for a tank that does not exist. */
+import { tanksFor, pumpsFor } from "../config/stations"
+import { activeStation } from "../utils/station"
+/* The station comes from the signed-in user's session, not a build-time env
+   var — one deployment serves both MSO and M&M. */
 
 function todayISO() {
   return new Date().toISOString().split("T")[0]
@@ -107,10 +113,9 @@ function RecordsInner() {
     setExporting(true)
     try {
       const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-      const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "getRecords")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("from", exportFrom)
       url.searchParams.set("to", exportTo)
       url.searchParams.set("limit", "366") // covers any range up to a full year
@@ -160,10 +165,10 @@ function RecordsInner() {
   let pmsPumpLitres = 0
   let agoPumpLitres = 0
   if (report) {
-    TANKS.forEach(t => {
+    tanksFor(activeStation()).forEach(t => {
       dipDiffTotal += report[`${t.id.toLowerCase()}_diff`] || 0
     })
-    PUMPS.forEach(p => {
+    pumpsFor(activeStation()).forEach(p => {
       const key = stateKey(p)
       const session = report.pumpMetres && report.pumpMetres[key] && report.pumpMetres[key].sessions && report.pumpMetres[key].sessions[0]
       if (session) {
@@ -222,7 +227,7 @@ function RecordsInner() {
         <div className="flex-1 p-3.5 pb-[100px] md:p-[22px] md:pb-[22px]">
           <div className="mx-auto max-w-[900px]">
             <div className="mb-5 flex items-center gap-3 rounded-card border border-cyan/15 bg-white px-3.5 py-3 shadow-card">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]" style={{ background: "linear-gradient(135deg, #130656, #179DD0)" }}>
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]" style={{ background: "var(--brand-gradient-btn)" }}>
                 <i className="bi bi-calendar3 text-white" />
               </div>
               <div className="flex-1">
@@ -299,26 +304,26 @@ function RecordsInner() {
               <>
                 <div
                   className="mb-3 overflow-hidden rounded-card shadow-card"
-                  style={{ background: "linear-gradient(135deg, #130656 0%, #1a0875 100%)" }}
+                  style={{ background: "var(--brand-gradient-btn)" }}
                 >
                   <div className="border-b border-white/10 px-[18px] py-3">
                     <div className="text-[10px] font-bold uppercase tracking-[1.2px] text-white/60">Cash Reconciliation</div>
                     <div className="text-[11px] text-white/40">Expected revenue (pump litres × price) vs actual collected</div>
                   </div>
                   <div className="grid grid-cols-1 gap-px bg-white/10 sm:grid-cols-3">
-                    <div className="bg-[#130656] p-[18px]">
+                    <div className="bg-[var(--brand-primary)] p-[18px]">
                       <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-white/50">Expected Revenue</div>
                       <div className="mono mt-1 text-[19px] font-extrabold text-white">{naira(expectedRevenue)}</div>
                       <div className="mt-1 text-[10px] text-white/40">
                         PMS {naira(pmsExpected)} + AGO {naira(agoExpected)}
                       </div>
                     </div>
-                    <div className="bg-[#130656] p-[18px]">
+                    <div className="bg-[var(--brand-primary)] p-[18px]">
                       <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-white/50">Actual Collected</div>
                       <div className="mono mt-1 text-[19px] font-extrabold text-white">{naira(actualCollected)}</div>
                       <div className="mt-1 text-[10px] text-white/40">POS + Cash, before charges</div>
                     </div>
-                    <div className="bg-[#130656] p-[18px]">
+                    <div className="bg-[var(--brand-primary)] p-[18px]">
                       <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-white/50">Variance</div>
                       <div
                         className="mono mt-1 text-[19px] font-extrabold"
@@ -377,7 +382,7 @@ function RecordsInner() {
                         </tr>
                       </thead>
                       <tbody>
-                        {TANKS.map(t => (
+                        {tanksFor(activeStation()).map(t => (
                           <TankMarginRow key={t.id} tank={t} report={report} />
                         ))}
                       </tbody>
@@ -399,7 +404,7 @@ function RecordsInner() {
                         </tr>
                       </thead>
                       <tbody>
-                        {PUMPS.map(p => (
+                        {pumpsFor(activeStation()).map(p => (
                           <PumpMetreRow key={stateKey(p)} pump={p} pumpMetres={report.pumpMetres} />
                         ))}
                       </tbody>
@@ -407,13 +412,13 @@ function RecordsInner() {
                   </div>
                 </div>
 
-                <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Revenue &amp; Margin by Product</div>
+                <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Revenue by Product</div>
                 <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
                         <tr>
-                          {["Product", "Litres", "Price/L", "Revenue", "Margin"].map(h => (
+                          {["Product", "Litres", "Price/L", "Revenue", "Dip vs Pump"].map(h => (
                             <th key={h} className="whitespace-nowrap border-b border-border bg-surface px-3.5 py-[9px] text-left text-[9.5px] font-bold uppercase tracking-[1px] text-ink-4">
                               {h}
                             </th>
@@ -426,21 +431,24 @@ function RecordsInner() {
                             <span className="inline-flex items-center rounded-full border border-cyan/20 bg-cyan-light px-2.5 py-[3px] text-[10.5px] font-bold text-cyan-dark">PMS</span>
                           </td>
                           <td className="mono px-3.5 py-2.5">{numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L</td>
-                          <td className="mono px-3.5 py-2.5">{naira(report.pms_price)}</td>
+                          <td className="mono px-3.5 py-2.5">{report.pms_price > 0 ? naira(report.pms_price) : <span className="text-ink-4">—</span>}</td>
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.pms_revenue)}</td>
-                          <td className={`mono px-3.5 py-2.5 font-bold ${report.pms_margin < 0 ? "text-red" : "text-amber"}`}>{Number(report.pms_margin).toFixed(2)}L</td>
+                          <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.pms_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.pms_margin).toFixed(2)}L</td>
                         </tr>
                         <tr>
                           <td className="px-3.5 py-2.5">
                             <span className="inline-flex items-center rounded-full border border-amber/25 bg-amber-light px-2.5 py-[3px] text-[10.5px] font-bold text-amber">AGO</span>
                           </td>
                           <td className="mono px-3.5 py-2.5">{numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L</td>
-                          <td className="mono px-3.5 py-2.5">{naira(report.ago_price)}</td>
+                          <td className="mono px-3.5 py-2.5">{report.ago_price > 0 ? naira(report.ago_price) : <span className="text-ink-4">—</span>}</td>
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.ago_revenue)}</td>
-                          <td className={`mono px-3.5 py-2.5 font-bold ${report.ago_margin < 0 ? "text-red" : "text-amber"}`}>{Number(report.ago_margin).toFixed(2)}L</td>
+                          <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.ago_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.ago_margin).toFixed(2)}L</td>
                         </tr>
                       </tbody>
                     </table>
+                  </div>
+                  <div className="border-t border-surface bg-surface/40 px-3.5 py-2.5 text-[10px] leading-relaxed text-ink-4">
+                    <strong className="text-ink-3">Dip vs Pump</strong> is a stock check in litres, not money — the gap between what the tank dip lost and what the pumps sold. Near zero is healthy; a large figure means fuel left the tank without a matching sale, and is worth investigating.
                   </div>
                 </div>
 

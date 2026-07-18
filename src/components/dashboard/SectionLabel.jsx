@@ -8,7 +8,7 @@ export default function SectionLabel({ children, action }) {
       <span
         aria-hidden
         className="h-[13px] w-[3px] flex-shrink-0 rounded-full"
-        style={{ background: "linear-gradient(180deg,#130656,#179DD0)" }}
+        style={{ background: "var(--brand-gradient)" }}
       />
       <h2 className="text-[11px] font-extrabold uppercase tracking-[1.5px] text-ink-2">
         {children}

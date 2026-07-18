@@ -13,15 +13,15 @@ const HERO_STYLES = {
   pending: { bg: "linear-gradient(135deg, #06091A, #0D1226)", label: "Pending Cashup", sub: "Waiting for supervisor to submit dip readings" },
   balanced: { bg: "linear-gradient(135deg, #15803D, #22C55E)", label: "Balanced ✓", sub: "Within ₦500 tolerance" },
   short: { bg: "linear-gradient(135deg, #991B1B, #DC2626)", label: "SHORT", sub: "Collection is less than expected" },
-  over: { bg: "linear-gradient(135deg, #1188B5, #179DD0)", label: "OVER", sub: "Collection exceeds expected" },
+  over: { bg: "linear-gradient(135deg, #1188B5, var(--brand-accent))", label: "OVER", sub: "Collection exceeds expected" },
 }
 
 const QUICK_ACTIONS = [
-  { icon: "bi-check2-all", bg: "#F0FDF4", color: "#16A34A", label: "Enter Reconciliation", to: "/cashup-mso" },
-  { icon: "bi-receipt-cutoff", bg: "#FEF2F2", color: "#DC2626", label: "Add Expense", to: "/expenses-mso" },
-  { icon: "bi-exclamation-triangle", bg: "#FFF1F2", color: "#DC2626", label: "Report Shortage", to: "/shortage-mso" },
-  { icon: "bi-chat-dots", bg: "#F5F3FF", color: "#6D28D9", label: "Staff Chat", to: "/chat-mso" },
-  { icon: "bi-printer", bg: "#F8FAFC", color: "#64748B", label: "Daily Summary", to: "/summary-mso" },
+  { icon: "bi-check2-all", bg: "#F0FDF4", color: "#16A34A", label: "Enter Reconciliation", to: "/cashup/mso" },
+  { icon: "bi-receipt-cutoff", bg: "#FEF2F2", color: "#DC2626", label: "Add Expense", to: "/expenses/mso" },
+  { icon: "bi-exclamation-triangle", bg: "#FFF1F2", color: "#DC2626", label: "Report Shortage", to: "/shortage/mso" },
+  { icon: "bi-chat-dots", bg: "#F5F3FF", color: "#6D28D9", label: "Staff Chat", to: "/chat/mso" },
+  { icon: "bi-printer", bg: "#F8FAFC", color: "#64748B", label: "Daily Summary", to: "/summary/mso" },
 ]
 
 function CashierInner() {
@@ -111,7 +111,7 @@ function CashierInner() {
           <div className="p-4">
             <div className="flex items-center justify-between border-b border-surface py-2.5">
               <div className="flex items-center gap-2.5">
-                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-[3px]" style={{ background: "#1188B5" }} />
+                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-[3px]" style={{ background: "var(--brand-accent-dark)" }} />
                 <div>
                   <div className="text-[13px] font-semibold text-ink">POS — MP Terminal</div>
                   <div className="text-[10.5px] text-ink-4">0.25% charge applies</div>
@@ -226,14 +226,14 @@ function CashierInner() {
             <div
               className="flex items-center justify-between rounded-[10px] px-3.5 py-2.5"
               style={{
-                background: lpgVariance === null ? "#F8FAFC" : Math.abs(lpgVariance) <= 100 ? "#F0FDF4" : lpgVariance < 0 ? "#FEF2F2" : "#EAF6FC",
+                background: lpgVariance === null ? "#F8FAFC" : Math.abs(lpgVariance) <= 100 ? "#F0FDF4" : lpgVariance < 0 ? "#FEF2F2" : "var(--brand-accent-light)",
                 border: `1px solid ${lpgVariance === null ? "#E8EDF5" : Math.abs(lpgVariance) <= 100 ? "#BBF7D0" : lpgVariance < 0 ? "#FECACA" : "#BEE6F5"}`,
               }}
             >
               <span className="text-[12px] font-semibold text-ink-3">LPG Variance</span>
               <span
                 className="mono text-[14px] font-extrabold"
-                style={{ color: lpgVariance === null ? "#94A3B8" : Math.abs(lpgVariance) <= 100 ? "#16A34A" : lpgVariance < 0 ? "#DC2626" : "#179DD0" }}
+                style={{ color: lpgVariance === null ? "#94A3B8" : Math.abs(lpgVariance) <= 100 ? "#16A34A" : lpgVariance < 0 ? "#DC2626" : "var(--brand-accent)" }}
               >
                 {lpgVariance === null ? "₦—" : `${lpgVariance >= 0 ? "+" : ""}${naira(Math.abs(lpgVariance))}`}
               </span>
@@ -263,7 +263,7 @@ function CashierInner() {
       <div className="fixed bottom-[66px] left-0 right-0 z-[300] border-t border-border bg-white/90 px-4 py-2.5 backdrop-blur-md">
         <button
           type="button"
-          onClick={() => navigate("/cashup-mso")}
+          onClick={() => navigate(`/cashup/${auth.station}`)}
           className="mx-auto flex h-[52px] w-full max-w-[540px] items-center justify-center gap-2 rounded-[13px] bg-green text-[15px] font-extrabold text-white shadow-[0_4px_18px_rgba(22,163,74,.3)]"
         >
           <i className="bi bi-shield-check" /> Submit Cash Reconciliation
@@ -277,13 +277,13 @@ function CashierInner() {
         <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] border border-cyan/[0.18] bg-cyan-light px-2.5 py-[5px] text-[9.5px] font-semibold text-cyan">
           <i className="bi bi-grid-1x2-fill text-xl" /> Home
         </button>
-        <button type="button" onClick={() => navigate("/cashup-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-ink-4">
+        <button type="button" onClick={() => navigate(`/cashup/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-ink-4">
           <i className="bi bi-cash-coin text-xl" /> Cashup
         </button>
-        <button type="button" onClick={() => navigate("/expenses-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-ink-4">
+        <button type="button" onClick={() => navigate(`/expenses/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-ink-4">
           <i className="bi bi-receipt-cutoff text-xl" /> Expenses
         </button>
-        <button type="button" onClick={() => navigate("/chat-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-ink-4">
+        <button type="button" onClick={() => navigate(`/chat/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-ink-4">
           <i className="bi bi-chat-dots text-xl" /> Chat
         </button>
       </nav>

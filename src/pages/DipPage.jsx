@@ -12,7 +12,11 @@ import PhotoCapture from "../components/dip/PhotoCapture"
 import { TankStepPanel } from "../components/dip/StepPanels"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
-import { useDipData, TANKS } from "../hooks/useDipData"
+import { useDipData } from "../hooks/useDipData"
+/* Tanks come from the station config now — M&M has no TK3, so a shared list
+   would render a dip field for a tank that isn't there. */
+import { tanksFor } from "../config/stations"
+import { activeStation } from "../utils/station"
 import { usePrices } from "../hooks/usePrices"
 import { usePageTitle } from "../hooks/usePageTitle"
 
@@ -20,7 +24,7 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
-const STEPS = TANKS.map(cfg => ({ type: "tank", cfg }))
+const STEPS = tanksFor(activeStation()).map(cfg => ({ type: "tank", cfg }))
 
 function DipInner() {
   const auth = useAuth({ requireAuth: true })
@@ -157,7 +161,7 @@ function DipInner() {
   // (Opening/Closing) is being submitted right now, plus flags for
   // anything that looks like it might be a mistake rather than a hard
   // block, since a genuinely unusual reading can still be correct.
-  const reviewRows = TANKS.map(t => {
+  const reviewRows = tanksFor(activeStation()).map(t => {
     const val = mode === "open" ? tankState[t.id].open : tankState[t.id].close
     const openVal = tankState[t.id].open
     const isSuspicious = mode === "close" && val > 0 && openVal > 0 && val < openVal * 0.3
@@ -168,7 +172,7 @@ function DipInner() {
     }
   })
   const reviewWarnings = []
-  TANKS.forEach(t => {
+  tanksFor(activeStation()).forEach(t => {
     const val = mode === "open" ? tankState[t.id].open : tankState[t.id].close
     const openVal = tankState[t.id].open
     if (val === 0) reviewWarnings.push(`${t.id} has no ${mode === "open" ? "opening" : "closing"} reading entered.`)
@@ -201,7 +205,7 @@ function DipInner() {
       <SafeAreaDebug />
       <div
         className="sticky top-0 z-[200] px-4 pb-4 text-white shadow-lg"
-        style={{ paddingTop: "max(var(--sat), 52px)", background: "linear-gradient(135deg, #130656 0%, #1a0875 100%)" }}
+        style={{ paddingTop: "max(var(--sat), 52px)", background: "var(--brand-gradient-btn)" }}
       >
         <div className="mx-auto max-w-[640px]">
           <div className="mb-3 flex items-center justify-between">
@@ -232,7 +236,7 @@ function DipInner() {
           <StatusStrip hasOpening={hasOpening} hasClosing={hasClosing} hasCash={hasCash} />
 
           <div className="overflow-hidden rounded-card border border-cyan/15 bg-white shadow-card">
-            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #130656, #179DD0)" }} />
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, var(--brand-primary), var(--brand-accent))" }} />
             <div className="p-5">
               {status === "loading" ? (
                 <div className="flex items-center justify-center py-10 text-[13px] text-ink-4">
@@ -291,7 +295,7 @@ function DipInner() {
 
           <div
             className="mt-3 overflow-hidden rounded-[16px] px-4 py-4 text-white shadow-card"
-            style={{ background: "linear-gradient(135deg, #130656 0%, #179DD0 140%)" }}
+            style={{ background: "var(--brand-gradient-btn)" }}
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.8px] text-white/85">

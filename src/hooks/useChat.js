@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 const POLL_MS = 10000
 /* Inbox refresh — slower than the message poll on purpose. Unread counts
    and presence dots can lag a few seconds; an open thread cannot. */
@@ -34,7 +36,7 @@ export function useConversations({ username }) {
     if (!SCRIPT_URL || !username) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getConversations")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -84,7 +86,7 @@ export function useChatPresence({ username, active = true }) {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "chatHeartbeat")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("username", username)
       url.searchParams.set("token", getToken())
       fetch(url.toString(), { method: "GET", redirect: "follow" }).catch(() => {})
@@ -123,7 +125,7 @@ export function useChat({ username, name, conversationId }) {
     if (!SCRIPT_URL || !conversationId) return Promise.resolve()
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getChatMessages")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("conversationId", conversationId)
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken()) // for deleted-for-me filtering
@@ -197,7 +199,7 @@ export function useChat({ username, name, conversationId }) {
     if (!SCRIPT_URL || !conversationId || !username) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "markConversationRead")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("conversationId", conversationId)
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
@@ -229,7 +231,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: STATION_KEY, conversationId, username, name, text: trimmed, imageFileId }),
+        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -255,7 +257,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "editChatMessage", token: getToken(), station: STATION_KEY, messageId, text: newText, username }),
+        body: JSON.stringify({ action: "editChatMessage", token: getToken(), station: activeStation(), messageId, text: newText, username }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -275,7 +277,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "deleteChatMessage", token: getToken(), station: STATION_KEY, messageId, username }),
+        body: JSON.stringify({ action: "deleteChatMessage", token: getToken(), station: activeStation(), messageId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
@@ -288,7 +290,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "hideConversation", token: getToken(), station: STATION_KEY, conversationId, username }),
+        body: JSON.stringify({ action: "hideConversation", token: getToken(), station: activeStation(), conversationId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }

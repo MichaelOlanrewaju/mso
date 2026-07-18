@@ -71,7 +71,7 @@ export default function OilCard() {
       </div>
 
       <div className="flex divide-x divide-border border-b border-surface">
-        <Stat label="Revenue" tint="#179DD0" value={naira(summary.revenue)} sub={`${summary.unitsSold} units`} />
+        <Stat label="Revenue" tint="var(--brand-accent)" value={naira(summary.revenue)} sub={`${summary.unitsSold} units`} />
         <Stat
           label="Margin"
           tint={summary.grossMargin >= 0 ? "#22C55E" : "#DC2626"}

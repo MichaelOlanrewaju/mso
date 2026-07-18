@@ -25,9 +25,9 @@ function Step({ step, state, loading }) {
   const isDone = state === "done"
   const isActive = state === "active"
 
-  const ring = isDone ? "#16A34A" : isActive ? "#179DD0" : "#CBD5E1"
-  const tint = isDone ? "#F0FDF4" : isActive ? "#EAF6FC" : "#F8FAFC"
-  const text = isDone ? "#16A34A" : isActive ? "#1188B5" : "#94A3B8"
+  const ring = isDone ? "#16A34A" : isActive ? "var(--brand-accent)" : "#CBD5E1"
+  const tint = isDone ? "#F0FDF4" : isActive ? "var(--brand-accent-light)" : "#F8FAFC"
+  const text = isDone ? "#16A34A" : isActive ? "var(--brand-accent-dark)" : "#94A3B8"
 
   return (
     <li className="flex min-w-0 flex-1 flex-col items-center gap-2">
@@ -74,7 +74,7 @@ function Connector({ filled }) {
         className="block h-full rounded-full transition-all duration-500 ease-out"
         style={{
           width: filled ? "100%" : "0%",
-          background: "linear-gradient(90deg,#16A34A,#179DD0)",
+          background: "linear-gradient(90deg,#16A34A,var(--brand-accent))",
         }}
       />
     </li>
@@ -106,7 +106,7 @@ export default function TodayStatusPills({ todayStatus, loading }) {
             style={
               allDone
                 ? { background: "#F0FDF4", color: "#16A34A" }
-                : { background: "#EAF6FC", color: "#1188B5" }
+                : { background: "var(--brand-accent-light)", color: "var(--brand-accent-dark)" }
             }
           >
             {allDone ? "Complete" : `${[opening, closing, cash].filter(Boolean).length} of 3`}

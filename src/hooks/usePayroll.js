@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 /* ── useStaff ─────────────────────────────────────────────── */
 // actingUsername = the currently logged-in caller (auth.username), used
@@ -27,7 +29,7 @@ export function useStaff(actingUsername) {
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getStaff")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("username", actingUsername)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -48,7 +50,7 @@ export function useStaff(actingUsername) {
     try {
       const res = await fetch(SCRIPT_URL, {
         method: "POST", headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveStaff", station: STATION_KEY, token: getToken(), username: actingUsername, targetUsername: username, name, role, phone, basicSalary, status: empStatus || "active" }),
+        body: JSON.stringify({ action: "saveStaff", station: activeStation(), token: getToken(), username: actingUsername, targetUsername: username, name, role, phone, basicSalary, status: empStatus || "active" }),
       })
       const text = await res.text()
       const d = JSON.parse(text)
@@ -67,7 +69,7 @@ export function useStaff(actingUsername) {
     try {
       const res = await fetch(SCRIPT_URL, {
         method: "POST", headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "inviteStaff", station: STATION_KEY, token: getToken(), username: actingUsername, username_new: username, name, role, phone, basicSalary, email }),
+        body: JSON.stringify({ action: "inviteStaff", station: activeStation(), token: getToken(), username: actingUsername, username_new: username, name, role, phone, basicSalary, email }),
       })
       const text = await res.text()
       const d = JSON.parse(text)
@@ -100,7 +102,7 @@ export function usePayroll(month, username) {
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPayroll")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("month", targetMonth)
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
@@ -124,7 +126,7 @@ export function usePayroll(month, username) {
     try {
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "savePayrollGET")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("month", targetMonth)
       url.searchParams.set("username", username || "")
       url.searchParams.set("token", getToken())
@@ -148,7 +150,7 @@ export function usePayroll(month, username) {
     if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "approvePayroll")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("month", targetMonth)
     url.searchParams.set("decision", decision)
     url.searchParams.set("username", username || "")
@@ -163,7 +165,26 @@ export function usePayroll(month, username) {
     }
   }, [load])
 
-  return { status, lines, saving, savePayrollRun, approvePayrollRun, refresh: () => load(month) }
+  const clearPayrollMonth = useCallback(async ({ month: targetMonth, username, force }) => {
+    if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "clearPayrollMonth")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("month", targetMonth)
+    url.searchParams.set("username", username || "")
+    if (force) url.searchParams.set("force", "1")
+    url.searchParams.set("token", getToken())
+    try {
+      const res = await fetch(url.toString(), { method: "GET", redirect: "follow" })
+      const d = await res.json()
+      if (d.ok) load(targetMonth)
+      return d
+    } catch (e) {
+      return { ok: false, error: "Network error: " + (e.message || String(e)) }
+    }
+  }, [load])
+
+  return { status, lines, saving, savePayrollRun, approvePayrollRun, clearPayrollMonth, refresh: () => load(month) }
 }
 
 /* ── usePendingPayroll — Owner dashboard ──────────────────── */
@@ -181,7 +202,7 @@ export function usePendingPayroll(username) {
     if (!SCRIPT_URL || !username) { setStatus("idle"); return }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPendingPayroll")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -200,7 +221,7 @@ export function usePendingPayroll(username) {
     if (!SCRIPT_URL) return { ok: false }
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "approvePayroll")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("month", month)
     url.searchParams.set("decision", decision)
     url.searchParams.set("username", username || "")

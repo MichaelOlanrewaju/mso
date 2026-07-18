@@ -7,7 +7,9 @@ import { naira } from "../utils/format"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 function todayStr() { return new Date().toISOString().split("T")[0] }
 function monthStart() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01` }
@@ -16,7 +18,7 @@ function getAPI(action, extra = {}) {
   if (!SCRIPT_URL) return Promise.resolve({ ok: false })
   const url = new URL(SCRIPT_URL)
   url.searchParams.set("action", action)
-  url.searchParams.set("station", STATION_KEY)
+  url.searchParams.set("station", activeStation())
   Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v))
   return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
 }

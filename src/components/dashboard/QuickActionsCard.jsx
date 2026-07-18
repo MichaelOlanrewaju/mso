@@ -1,18 +1,20 @@
 import React from "react"
+import { activeStation } from "../../utils/station"
 import { useNavigate } from "react-router-dom"
 
 const ACTIONS = [
-  { icon: "bi-pencil-square",          iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Record Sales",       href: "/sales-mso",    roles: ["supervisor","cashier"] },
-  { icon: "bi-calculator",             iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Cash Up",            href: "/cashup-mso",   roles: ["supervisor","cashier"] },
-  { icon: "bi-truck",                  iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Discharge",          href: "/discharge-mso",roles: ["ceo","owner","gm","supervisor"] },
-  { icon: "bi-clock",                  iconBg: "#F5F3FF", iconColor: "#7C3AED", label: "Shifts",             href: "/shifts-mso",   roles: ["supervisor","cashier"] },
-  { icon: "bi-person-fill-exclamation",iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Debtors",            href: "/debtors-mso",  roles: ["ceo","owner","gm","supervisor"] },
-  { icon: "bi-box-arrow-in-down",      iconBg: "#EAF6FC", iconColor: "#179DD0", label: "Orders",             href: "/orders-mso",   roles: ["ceo","owner","gm"] },
-  { icon: "bi-wallet2",                iconBg: "#EEF0FB", iconColor: "#130656", label: "Payroll",            href: "/payroll-mso",  roles: ["ceo","owner","gm"] },
-  { icon: "bi-bar-chart-line-fill",    iconBg: "#EDE9FE", iconColor: "#6D28D9", label: "P&L Report",        href: "/pnl-mso",      roles: ["ceo","owner","gm"] },
-  { icon: "bi-graph-up-arrow",         iconBg: "#EAF6FC", iconColor: "#0891B2", label: "Variance",           href: "/variance-mso", roles: ["ceo","owner","gm"] },
-  { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "#130656", label: "Summary",            href: "/summary-mso",  roles: ["ceo","owner","gm","supervisor"] },
-  { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: "/shortage-mso", roles: ["ceo","owner","gm","supervisor","cashier"] },
+  { icon: "bi-pencil-square",          iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Record Sales",       href: `/sales/${activeStation()}`,    roles: ["supervisor","cashier"] },
+  { icon: "bi-calculator",             iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Cash Up",            href: `/cashup/${activeStation()}`,   roles: ["supervisor","cashier"] },
+  { icon: "bi-truck",                  iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Discharge",          href: `/discharge/${activeStation()}`,roles: ["ceo","owner","gm","supervisor"] },
+  { icon: "bi-clock",                  iconBg: "#F5F3FF", iconColor: "#7C3AED", label: "Shifts",             href: `/shifts/${activeStation()}`,   roles: ["supervisor","cashier"] },
+  { icon: "bi-person-fill-exclamation",iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Debtors",            href: `/debtors/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
+  { icon: "bi-box-arrow-in-down",      iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Orders",             href: `/orders/${activeStation()}`,   roles: ["ceo","owner","gm"] },
+  { icon: "bi-wallet2",                iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Payroll",            href: `/payroll/${activeStation()}`,  roles: ["ceo","owner","gm"] },
+  { icon: "bi-bar-chart-line-fill",    iconBg: "#EDE9FE", iconColor: "#6D28D9", label: "P&L Report",        href: `/pnl/${activeStation()}`,      roles: ["ceo","owner","gm"] },
+  { icon: "bi-graph-up-arrow",         iconBg: "var(--brand-accent-light)", iconColor: "#0891B2", label: "Variance",           href: `/variance/${activeStation()}`, roles: ["ceo","owner","gm"] },
+  { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Summary",            href: `/summary/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
+  { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: `/shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
+  { icon: "bi-arrow-left-right",        iconBg: "#F5EBEF", iconColor: "#5f1f33", label: "Station Assign.",     href: "/station-assignments",          roles: ["ceo","owner","gm"] },
 ]
 
 export default function QuickActionsCard({ role }) {

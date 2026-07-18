@@ -32,7 +32,7 @@ function monthLabel(m) {
 }
 
 const ROLE_LABELS = { ceo:"CEO", owner:"CEO", gm:"General Manager", supervisor:"Supervisor", cashier:"Cashier", attendant:"Attendant" }
-const PALETTE = ["#179DD0","#16A34A","#179DD0","#DC2626","#7C3AED","#0891B2","#059669"]
+const PALETTE = ["var(--brand-accent)","#16A34A","var(--brand-accent)","#DC2626","#7C3AED","#0891B2","#059669"]
 const avatarBg = n => PALETTE[(n||" ").charCodeAt(0) % PALETTE.length]
 const ini = n => {
   const parts = (n||"").trim().split(/\s+/).filter(Boolean)
@@ -255,7 +255,7 @@ function GMView({ auth, navigate }) {
               <div className="text-[17px] font-extrabold tracking-[-0.02em] text-white">Payroll</div>
               <div className="text-[10px] text-white/40">MSO Limpid Co. Ltd</div>
             </div>
-            <button type="button" onClick={() => navigate("/add-staff-mso")}
+            <button type="button" onClick={() => navigate(`/add-staff/${auth.station}`)}
               className="flex h-9 items-center gap-1.5 rounded-[9px] border border-white/10 bg-white/10 px-3 text-[11.5px] font-bold text-white">
               <i className="bi bi-person-plus" /> Staff
             </button>
@@ -386,8 +386,6 @@ function GMView({ auth, navigate }) {
                 </div>
               </>
             )}
-
-            {/* ══ PREPARE SCREEN (no record or rejected) ══ */}
             {!loading && (!hasRecord || isRejected) && (
               <>
                 {isRejected && (
@@ -463,7 +461,7 @@ function GMView({ auth, navigate }) {
 
                     <button type="button" onClick={handleSubmit} disabled={saving}
                       className="flex w-full items-center justify-center gap-2.5 rounded-[14px] py-4 text-[14.5px] font-bold text-white shadow-lift disabled:opacity-60"
-                      style={{ background: "linear-gradient(135deg,#130656,#1a0875)" }}>
+                      style={{ background: "var(--brand-gradient-btn)" }}>
                       {saving
                         ? <><span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> Saving…</>
                         : isRejected
@@ -483,7 +481,7 @@ function GMView({ auth, navigate }) {
           <>
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[10px] font-bold uppercase tracking-[1px] text-ink-4">{staff.length} staff members</div>
-              <button type="button" onClick={() => navigate("/add-staff-mso")}
+              <button type="button" onClick={() => navigate(`/add-staff/${auth.station}`)}
                 className="flex h-8 items-center gap-1.5 rounded-[8px] bg-navy px-3 text-[11.5px] font-bold text-white">
                 <i className="bi bi-person-plus" /> Add Staff
               </button>
@@ -493,7 +491,7 @@ function GMView({ auth, navigate }) {
               <div className="flex flex-col items-center gap-2 rounded-[16px] bg-white py-14 text-center shadow-sm">
                 <i className="bi bi-person-plus text-4xl text-ink-4" />
                 <div className="text-[14px] font-bold text-ink">No staff yet</div>
-                <button type="button" onClick={() => navigate("/add-staff-mso")}
+                <button type="button" onClick={() => navigate(`/add-staff/${auth.station}`)}
                   className="mt-2 rounded-[10px] bg-navy px-5 py-2.5 text-[12.5px] font-bold text-white">
                   Add First Staff Member
                 </button>

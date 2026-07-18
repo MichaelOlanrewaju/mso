@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 export const SHORTAGE_CATEGORIES = ["Cash Shortage", "Spillage", "Dispensing Error", "Theft", "Equipment Fault", "Other"]
 
@@ -27,7 +29,7 @@ export function useShortages({ all = false } = {}) {
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getShortages")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     if (all) url.searchParams.set("all", "1")
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
@@ -57,7 +59,7 @@ export function useShortages({ all = false } = {}) {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "saveShortage", station: STATION_KEY, date, category, litres, amount, description, username }),
+          body: JSON.stringify({ action: "saveShortage", station: activeStation(), date, category, litres, amount, description, username }),
         })
         const d = await res.json()
         if (d.ok) load()
@@ -76,7 +78,7 @@ export function useShortages({ all = false } = {}) {
       if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "reviewShortage")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("rowIndex", rowIndex)
       url.searchParams.set("decision", decision)
       url.searchParams.set("username", username || "")

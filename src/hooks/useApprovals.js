@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 // Previously duplicated verbatim in both GMDashboardPage.jsx and
 // DashboardPage.jsx (Owner) — both now import from here instead, so a
@@ -15,7 +17,7 @@ export function useEditRequests(username) {
     if (!SCRIPT_URL || !username) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getEditRequests")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -38,7 +40,7 @@ export function useEditRequests(username) {
       // ?action=approveEditRequest routing param itself.
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "approveEditRequest")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("rowIndex", rowIndex)
       url.searchParams.set("decision", decision)
       url.searchParams.set("username", username || "")
@@ -64,7 +66,7 @@ export function useCashupApprovals(username) {
     if (!SCRIPT_URL || !username) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getPendingCashups")
-    url.searchParams.set("station", STATION_KEY)
+    url.searchParams.set("station", activeStation())
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -83,7 +85,7 @@ export function useCashupApprovals(username) {
     (date, decision) => {
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", decision === "approve" ? "approveCashup" : "rejectCashup")
-      url.searchParams.set("station", STATION_KEY)
+      url.searchParams.set("station", activeStation())
       url.searchParams.set("date", date)
       url.searchParams.set("username", username || "")
       url.searchParams.set("token", getToken())

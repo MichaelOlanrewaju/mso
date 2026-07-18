@@ -119,7 +119,7 @@ export default function LoginPage() {
             </span>
             <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
             <span className="inline-flex items-center gap-[6px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.50)" }}>
-              <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#179DD0", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
+              <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "var(--brand-accent)", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
               M&amp;M Oil &amp; Gas
             </span>
             <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
@@ -176,13 +176,13 @@ export default function LoginPage() {
             <div style={{ marginBottom:13 }}>
               <label htmlFor="login-email" style={{ display:"block", fontSize:11.5, fontWeight:700, color:"#334155", letterSpacing:"0.6px", textTransform:"uppercase", marginBottom:7 }}>Email Address</label>
               <div style={{ position:"relative" }}>
-                <i className="bi bi-envelope" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, color: username ? "#179DD0" : "#94A3B8", pointerEvents:"none" }} />
+                <i className="bi bi-envelope" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, color: username ? "var(--brand-accent)" : "#94A3B8", pointerEvents:"none" }} />
                 <input id="login-email" type="email" value={username}
                   onChange={e => { setUsername(e.target.value); clearErrors() }}
                   autoComplete="username" autoCapitalize="off" spellCheck={false}
                   placeholder="your@email.com"
                   style={{ width:"100%", height:50, borderRadius:12, padding:"0 46px", fontSize:15, fontWeight:500, color:"#0F172A", background: error ? "#FFF5F5" : "#F8FAFC", border: `1.5px solid ${error ? "#FCA5A5" : "#E2E8F0"}`, outline:"none", transition:"border-color 0.18s, box-shadow 0.18s, background 0.18s", WebkitAppearance:"none" }}
-                  onFocus={e => { e.target.style.background="#fff"; e.target.style.borderColor="#179DD0"; e.target.style.boxShadow="0 0 0 4px rgba(23,157,208,0.12)" }}
+                  onFocus={e => { e.target.style.background="#fff"; e.target.style.borderColor="var(--brand-accent)"; e.target.style.boxShadow="0 0 0 4px rgba(23,157,208,0.12)" }}
                   onBlur={e => { e.target.style.background="#F8FAFC"; e.target.style.borderColor=error?"#FCA5A5":"#E2E8F0"; e.target.style.boxShadow="none" }}
                 />
               </div>
@@ -193,18 +193,18 @@ export default function LoginPage() {
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:7 }}>
                 <label htmlFor="login-password" style={{ fontSize:11.5, fontWeight:700, color:"#334155", letterSpacing:"0.6px", textTransform:"uppercase" }}>Password</label>
                 <button type="button" onClick={() => navigate("/forgot-password")}
-                  style={{ fontSize:12, fontWeight:500, color:"#179DD0", background:"none", border:"none", cursor:"pointer" }}>
+                  style={{ fontSize:12, fontWeight:500, color:"var(--brand-accent)", background:"none", border:"none", cursor:"pointer" }}>
                   Forgot?
                 </button>
               </div>
               <div style={{ position:"relative" }}>
-                <i className="bi bi-lock" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, color: password ? "#179DD0" : "#94A3B8", pointerEvents:"none" }} />
+                <i className="bi bi-lock" style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, color: password ? "var(--brand-accent)" : "#94A3B8", pointerEvents:"none" }} />
                 <input id="login-password" type={showPass ? "text" : "password"} value={password}
                   onChange={e => { setPassword(e.target.value); clearErrors() }}
                   autoComplete="current-password"
                   placeholder="Your password"
                   style={{ width:"100%", height:50, borderRadius:12, padding:"0 46px", fontSize:15, fontWeight:500, color:"#0F172A", background: error ? "#FFF5F5" : "#F8FAFC", border: `1.5px solid ${error ? "#FCA5A5" : "#E2E8F0"}`, outline:"none", WebkitAppearance:"none" }}
-                  onFocus={e => { e.target.style.background="#fff"; e.target.style.borderColor="#179DD0"; e.target.style.boxShadow="0 0 0 4px rgba(23,157,208,0.12)" }}
+                  onFocus={e => { e.target.style.background="#fff"; e.target.style.borderColor="var(--brand-accent)"; e.target.style.boxShadow="0 0 0 4px rgba(23,157,208,0.12)" }}
                   onBlur={e => { e.target.style.background="#F8FAFC"; e.target.style.borderColor=error?"#FCA5A5":"#E2E8F0"; e.target.style.boxShadow="none" }}
                 />
                 <button type="button" onClick={() => setShowPass(s => !s)} tabIndex={-1}
@@ -217,7 +217,7 @@ export default function LoginPage() {
 
             {/* Submit */}
             <button type="submit" disabled={submitting}
-              style={{ width:"100%", height:52, marginTop:16, border:"none", borderRadius:13, fontSize:15.5, fontWeight:800, color:"#fff", background:"#179DD0", display:"flex", alignItems:"center", justifyContent:"center", gap:12, boxShadow:"0 2px 6px rgba(0,0,0,0.08), 0 8px 28px rgba(23,157,208,0.38)", cursor:submitting?"not-allowed":"pointer", opacity:submitting?0.6:1, position:"relative", overflow:"hidden", transition:"background 0.18s, transform 0.2s, box-shadow 0.2s" }}>
+              style={{ width:"100%", height:52, marginTop:16, border:"none", borderRadius:13, fontSize:15.5, fontWeight:800, color:"#fff", background:"var(--brand-accent)", display:"flex", alignItems:"center", justifyContent:"center", gap:12, boxShadow:"0 2px 6px rgba(0,0,0,0.08), 0 8px 28px rgba(23,157,208,0.38)", cursor:submitting?"not-allowed":"pointer", opacity:submitting?0.6:1, position:"relative", overflow:"hidden", transition:"background 0.18s, transform 0.2s, box-shadow 0.2s" }}>
               <span style={{ position:"absolute", inset:0, background:"linear-gradient(150deg,rgba(255,255,255,0.14) 0%,transparent 52%)", pointerEvents:"none" }} />
               {submitting
                 ? <span style={{ width:21, height:21, border:"2.5px solid rgba(255,255,255,0.25)", borderTopColor:"#fff", borderRadius:"50%", animation:"spin 0.65s linear infinite", display:"inline-block" }} />

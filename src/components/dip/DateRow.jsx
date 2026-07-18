@@ -33,7 +33,7 @@ export default function DateRow({ date, onChange, supName, roleLabel = "Supervis
     <div className="mb-3 flex items-center gap-3 rounded-[14px] border border-cyan/15 bg-white px-3.5 py-3 shadow-card">
       <div
         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]"
-        style={{ background: "linear-gradient(135deg, #130656, #179DD0)" }}
+        style={{ background: "var(--brand-gradient-btn)" }}
       >
         <i className="bi bi-calendar3 text-white" />
       </div>

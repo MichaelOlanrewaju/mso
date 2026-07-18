@@ -6,13 +6,15 @@ import { usePageTitle } from "../hooks/usePageTitle"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
+/* The station now comes from the signed-in user's session, not from a
+   build-time env var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 function getAPI(action, extra = {}) {
   if (!SCRIPT_URL) return Promise.resolve({ ok: false })
   const url = new URL(SCRIPT_URL)
   url.searchParams.set("action", action)
-  url.searchParams.set("station", STATION_KEY)
+  url.searchParams.set("station", activeStation())
   Object.entries(extra).forEach(([k, v]) => { if (v) url.searchParams.set(k, v) })
   return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
 }
@@ -25,8 +27,8 @@ function actionStyle(action) {
   if (a.includes("APPROV") || a.includes("PRICED")) return { icon: "bi-check-circle", color: "#16A34A" }
   if (a.includes("REJECT") || a.includes("FAIL")) return { icon: "bi-x-circle", color: "#DC2626" }
   if (a.includes("EDIT_REQUEST")) return { icon: "bi-pencil-square", color: "#7C3AED" }
-  if (a.includes("SHORTAGE")) return { icon: "bi-exclamation-triangle", color: "#179DD0" }
-  if (a.includes("SAVE") || a.includes("UPDATE")) return { icon: "bi-cloud-check", color: "#179DD0" }
+  if (a.includes("SHORTAGE")) return { icon: "bi-exclamation-triangle", color: "var(--brand-accent)" }
+  if (a.includes("SAVE") || a.includes("UPDATE")) return { icon: "bi-cloud-check", color: "var(--brand-accent)" }
   return { icon: "bi-info-circle", color: "#64748B" }
 }
 

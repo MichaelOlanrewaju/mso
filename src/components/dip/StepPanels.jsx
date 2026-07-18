@@ -1,6 +1,6 @@
 import React from "react"
 
-const DOT_COLOR = { PMS: "#179DD0", AGO: "#179DD0", LPG: "#7C3AED" }
+const DOT_COLOR = { PMS: "var(--brand-accent)", AGO: "var(--brand-accent)", LPG: "#7C3AED" }
 
 export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
   const unit = cfg.unit || "L"
@@ -21,7 +21,7 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
       <div className="mb-4 flex items-center gap-3">
         <div
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px]"
-          style={{ background: cfg.product === "AGO" ? "#EAF6FC" : cfg.product === "LPG" ? "#F5F3FF" : "#EAF6FC" }}
+          style={{ background: cfg.product === "AGO" ? "var(--brand-accent-light)" : cfg.product === "LPG" ? "#F5F3FF" : "var(--brand-accent-light)" }}
         >
           <i className={`bi ${cfg.product === "LPG" ? "bi-fire" : "bi-water"} text-xl`} style={{ color: DOT_COLOR[cfg.product] }} />
         </div>
@@ -77,7 +77,7 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
         <>
           <div
             className="mt-3 flex items-center justify-between rounded-[14px] px-4 py-3 text-white shadow-card"
-            style={{ background: "linear-gradient(135deg, #130656, #179DD0)" }}
+            style={{ background: "var(--brand-gradient-btn)" }}
           >
             <span className="text-[12.5px] font-semibold text-white/90">Dip difference</span>
             <span className="font-mono text-[14px] font-bold text-white">{dipDiff.toLocaleString("en-NG", { maximumFractionDigits: 2 })}{unit}</span>

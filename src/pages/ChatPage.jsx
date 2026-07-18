@@ -9,14 +9,16 @@ import { useStaff } from "../hooks/usePayroll"
 import { useDriveImage } from "../hooks/useDriveImage"
 import { compressImage } from "../utils/compressImage"
 import ChatSidebar from "../components/chat/ChatSidebar"
+/* The station comes from the signed-in user's session, not a build-time env
+   var — one deployment serves both MSO and M&M. */
+import { activeStation } from "../utils/station"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-const STATION_KEY = import.meta.env.VITE_STATION_KEY || "mso"
 
 // The app's signature navy→violet gradient, reused here from Dip/Sales/
 // Payroll so Chat reads as part of the same product instead of a bolted-on
 // generic messenger.
-const BRAND_GRADIENT = "linear-gradient(135deg,#130656 0%,#1a0875 55%,#179DD0 130%)"
+const BRAND_GRADIENT = "var(--brand-gradient-btn)"
 
 function timeLabel(iso) {
   if (!iso) return ""
@@ -27,7 +29,7 @@ function timeLabel(iso) {
   return d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })
 }
 
-const AVATAR_COLORS = ["#179DD0","#130656","#16A34A","#179DD0","#DC2626","#7C3AED"]
+const AVATAR_COLORS = ["var(--brand-accent)","var(--brand-primary)","#16A34A","var(--brand-accent)","#DC2626","#7C3AED"]
 function avatarColor(name) { return AVATAR_COLORS[(name||" ").charCodeAt(0) % AVATAR_COLORS.length] }
 function initials(name) { return (name||"?").trim().split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase() }
 
@@ -256,7 +258,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
-              action: "savePhoto", station: STATION_KEY,
+              action: "savePhoto", station: activeStation(),
               date: now, session: "Chat", subject: `chat__${Date.now()}`,
               base64, mimeType,
               username: auth.username,

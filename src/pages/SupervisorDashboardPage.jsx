@@ -86,20 +86,20 @@ export default function SupervisorDashboardPage() {
   const agoRev = Math.round(Number((data && data.agoLitres) || 0) * Number((data && data.agoPrice) || 1819))
 
   let ctaLabel = "Enter Opening Dip Readings"
-  let ctaBg = "linear-gradient(135deg, #130656, #1a0875)"
+  let ctaBg = "var(--brand-gradient-btn)"
   if (hasClose) {
     ctaLabel = "Both readings submitted today ✓"
     ctaBg = "#3F3F46"
   } else if (hasOpen) {
     ctaLabel = "Enter Closing Dip Readings"
-    ctaBg = "linear-gradient(135deg, #1a0875, #179DD0)"
+    ctaBg = "linear-gradient(135deg, #1a0875, var(--brand-accent))"
   }
 
   return (
     <div className="min-h-screen bg-pagebg pb-[90px]">
       <div
         className="px-4 pb-3 text-white"
-        style={{ paddingTop: "max(var(--sat), 52px)", background: "linear-gradient(135deg, #130656 0%, #1a0875 100%)" }}
+        style={{ paddingTop: "max(var(--sat), 52px)", background: "var(--brand-gradient-btn)" }}
       >
         <div className="mx-auto flex max-w-[640px] items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -131,7 +131,7 @@ export default function SupervisorDashboardPage() {
         <StaffNotifications username={auth.username} role={auth.role} station="mso" />
         <button
           type="button"
-          onClick={() => (hasClose ? null : navigate("/dip-mso"))}
+          onClick={() => (hasClose ? null : navigate(`/dip/${auth.station}`))}
           className="mb-5 flex h-[50px] w-full items-center gap-2.5 rounded-[12px] px-4 text-[14px] font-bold text-white shadow-lift"
           style={{ background: ctaBg }}
         >
@@ -157,10 +157,10 @@ export default function SupervisorDashboardPage() {
         <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Actions</div>
         <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {[
-            { icon: "bi-water", bg: "#EEF0FF", color: "#130656", label: "Dip Entry", to: "/dip-mso" },
-            { icon: "bi-speedometer2", bg: "#F5F3FF", color: "#7C3AED", label: "Pump", to: "/sales-mso" },
-            { icon: "bi-chat-dots", bg: "#EAF6FC", color: "#179DD0", label: "Staff Chat", to: "/chat-mso" },
-            { icon: "bi-truck", bg: "#FFF1F2", color: "#DC2626", label: "Discharge", to: "/discharge-mso" },
+            { icon: "bi-water", bg: "#EEF0FF", color: "var(--brand-primary)", label: "Dip Entry", to: "/dip/mso" },
+            { icon: "bi-speedometer2", bg: "#F5F3FF", color: "#7C3AED", label: "Pump", to: "/sales/mso" },
+            { icon: "bi-chat-dots", bg: "var(--brand-accent-light)", color: "var(--brand-accent)", label: "Staff Chat", to: "/chat/mso" },
+            { icon: "bi-truck", bg: "#FFF1F2", color: "#DC2626", label: "Discharge", to: "/discharge/mso" },
           ].map(qa => (
             <button
               key={qa.label}
@@ -281,37 +281,43 @@ export default function SupervisorDashboardPage() {
 
         <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Menu</div>
         <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <MenuRow icon="bi-water" iconBg="#EEF0FF" iconColor="#130656" title="Dip Entry" sub="Enter opening & closing readings" onClick={() => navigate("/dip-mso")} />
-          <MenuRow icon="bi-speedometer2" iconBg="#F5F3FF" iconColor="#7C3AED" title="Pump Metres" sub="Today's pump sales data" onClick={() => navigate("/sales-mso")} />
-          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="#179DD0" title="Daily Records" sub="View & manage historical data" onClick={() => navigate("/records-mso")} />
-          <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="#179DD0" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate("/discharge-mso")} />
-          <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate("/expenses-mso")} />
-          <MenuRow icon="bi-tag" iconBg="#EEF0FF" iconColor="#130656" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate("/price-mso")} />
+          <MenuRow icon="bi-water" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="Dip Entry" sub="Enter opening & closing readings" onClick={() => navigate(`/dip/${auth.station}`)} />
+          <MenuRow icon="bi-speedometer2" iconBg="#F5F3FF" iconColor="#7C3AED" title="Pump Metres" sub="Today's pump sales data" onClick={() => navigate(`/sales/${auth.station}`)} />
+          {/* Supervisors can run cash reconciliation too — on weekends the cashier
+              sometimes isn't in, and someone still has to close the day out. The
+              backend already allows it (saveDailyReport has no role gate); this
+              is just the way in. */}
+          <MenuRow icon="bi-cash-stack" iconBg="#F0FDF4" iconColor="#16A34A" title="Cash Reconciliation" sub="Close out the day's takings" onClick={() => navigate(`/cashup/${auth.station}`)} />
+          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
+          <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate(`/discharge/${auth.station}`)} />
+          <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate(`/expenses/${auth.station}`)} />
+          <MenuRow icon="bi-tag" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate(`/price/${auth.station}`)} />
           {/* The supervisor is the one who sets oil selling prices and records
               deliveries — the backend has always allowed it, but until now the
               page lived only in the owner/GM sidebar, which supervisors never
               see. This is their way in. */}
-          <MenuRow icon="bi-droplet-fill" iconBg="#FEF3C7" iconColor="#D97706" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate("/lubricant-mso")} />
-          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate("/summary-mso")} />
-          <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate("/shortage-mso")} />
+          <MenuRow icon="bi-droplet-fill" iconBg="#FEF3C7" iconColor="#D97706" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate(`/lubricant/${auth.station}`)} />
+          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
+          <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate(`/shortage/${auth.station}`)} />
+          <MenuRow icon="bi-person-circle" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="My Profile" sub="Update your details & password" onClick={() => navigate(`/profile`)} />
           <MenuRow icon="bi-box-arrow-right" iconBg="#FFF1F2" iconColor="#DC2626" title="Sign Out" sub="End your session" onClick={auth.logout} danger />
         </div>
       </div>
 
       <nav
         className="fixed bottom-0 left-0 right-0 z-[500] flex justify-around px-1 py-1.5 shadow-[0_-4px_20px_rgba(19,6,86,.1)]"
-        style={{ paddingBottom: "calc(6px + var(--sab))", background: "linear-gradient(180deg, #130656 0%, #0D1226 100%)" }}
+        style={{ paddingBottom: "calc(6px + var(--sab))", background: "var(--brand-gradient)" }}
       >
-        <button type="button" onClick={() => navigate("/dashboard-supervisor-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] border border-cyan/25 bg-white/10 px-2.5 py-[5px] text-[9.5px] font-semibold text-cyan">
+        <button type="button" onClick={() => navigate(`/dashboard-supervisor/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] border border-cyan/25 bg-white/10 px-2.5 py-[5px] text-[9.5px] font-semibold text-cyan">
           <i className="bi bi-grid-1x2-fill text-xl" /> Home
         </button>
-        <button type="button" onClick={() => navigate("/dip-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
+        <button type="button" onClick={() => navigate(`/dip/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
           <i className="bi bi-water text-xl" /> Dip
         </button>
-        <button type="button" onClick={() => navigate("/sales-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
+        <button type="button" onClick={() => navigate(`/sales/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
           <i className="bi bi-speedometer2 text-xl" /> Pump
         </button>
-        <button type="button" onClick={() => navigate("/chat-mso")} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
+        <button type="button" onClick={() => navigate(`/chat/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
           <i className="bi bi-chat-dots text-xl" /> Chat
         </button>
       </nav>

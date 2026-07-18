@@ -5,6 +5,20 @@
 @tailwind utilities;
 
 :root {
+  /* Brand colours live here, not in components. useStation() overwrites these
+     at runtime with the signed-in user's station palette — MSO navy/cyan, or
+     M&M wine/gold — so one stylesheet serves both brands and nothing has to
+     re-render to change colour.
+     These defaults are MSO's, used before auth resolves. */
+  --brand-primary: #130656;
+  --brand-accent: #179DD0;
+  --brand-primary-dark: #0D0440;
+  --brand-accent-dark: #1188B5;
+  --brand-accent-light: #EAF6FC;
+  --brand-primary-light: #E9E7F5;
+  --brand-gradient: linear-gradient(135deg,#130656 0%,#1a0875 52%,#179DD0 175%);
+  --brand-gradient-btn: linear-gradient(135deg,#130656,#179DD0);
+
   --sat: env(safe-area-inset-top);
   --sab: env(safe-area-inset-bottom);
   --sal: env(safe-area-inset-left);
