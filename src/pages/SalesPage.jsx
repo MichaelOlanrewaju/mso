@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import { litres } from "../utils/format"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -237,11 +238,11 @@ function SalesInner() {
     { label: "Product", value: step.pump.product },
     { label: "Tank", value: step.pump.tank },
     ...(mode === "open"
-      ? [{ label: "Opening Reading", value: openVal > 0 ? `${openVal.toLocaleString("en-NG")}L` : "Not entered", warn: openVal === 0 }]
+      ? [{ label: "Opening Reading", value: openVal > 0 ? `${litres(openVal)}` : "Not entered", warn: openVal === 0 }]
       : [
-          { label: "Opening Reading", value: `${openVal.toLocaleString("en-NG")}L` },
-          { label: "Closing Reading", value: closeVal > 0 ? `${closeVal.toLocaleString("en-NG")}L` : "Not entered", warn: closeVal === 0 },
-          { label: "Litres Dispensed", value: `${diff.toLocaleString("en-NG")}L${diff === 0 ? " (no sales today)" : ""}` },
+          { label: "Opening Reading", value: `${litres(openVal)}` },
+          { label: "Closing Reading", value: closeVal > 0 ? `${litres(closeVal)}` : "Not entered", warn: closeVal === 0 },
+          { label: "Litres Dispensed", value: `${litres(diff)}${diff === 0 ? " (no sales today)" : ""}` },
         ]),
   ]
   const reviewWarnings = []
@@ -249,7 +250,7 @@ function SalesInner() {
     reviewWarnings.push("Closing is lower than Opening — pump meters only count up. Please check this reading.")
   }
   if (mode === "close" && closeVal > 0 && diff > 0 && openVal > 0 && diff > openVal * 3) {
-    reviewWarnings.push(`This shows ${diff.toLocaleString("en-NG")}L dispensed — unusually large. Double-check the closing reading isn't mistyped.`)
+    reviewWarnings.push(`This shows ${litres(diff)} dispensed — unusually large. Double-check the closing reading isn't mistyped.`)
   }
   if ((mode === "open" && openVal === 0) || (mode === "close" && closeVal === 0)) {
     reviewWarnings.push(`No ${mode === "open" ? "opening" : "closing"} reading entered for this pump.`)

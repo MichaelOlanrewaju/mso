@@ -1,4 +1,5 @@
 import React from "react"
+import { litresValue, naira } from "../../utils/format"
 
 export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
   const isAgo = pump.product === "AGO"
@@ -37,7 +38,7 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
       {mode === "close" && (
         <div className="mb-3 flex items-center justify-between rounded-[14px] border border-border bg-surface px-4 py-3">
           <span className="text-[12px] font-semibold text-ink-3">Opening (locked)</span>
-          <span className="font-mono text-[15px] font-bold text-ink">{op.toLocaleString("en-NG")}{unit}</span>
+          <span className="font-mono text-[15px] font-bold text-ink">{litresValue(op)}{unit}</span>
         </div>
       )}
 
@@ -65,7 +66,7 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
       )}
       {!errClose && cl > 0 && mode === "close" && cl > op && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-green">
-          <i className="bi bi-check-circle" /> Valid · Diff: {diff.toLocaleString("en-NG", { maximumFractionDigits: 2 })}{unit}
+          <i className="bi bi-check-circle" /> Valid · Diff: {litresValue(diff)}{unit}
         </div>
       )}
 
@@ -76,11 +77,11 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
             style={{ background: "var(--brand-gradient-btn)" }}
           >
             <span className="text-[12.5px] font-semibold text-white/90">Pump difference</span>
-            <span className="font-mono text-[14px] font-bold text-white">{diff.toLocaleString("en-NG", { maximumFractionDigits: 2 })}{unit}</span>
+            <span className="font-mono text-[14px] font-bold text-white">{litresValue(diff)}{unit}</span>
           </div>
           <div className="mt-2 flex items-center justify-between rounded-[14px] bg-green-light px-4 py-3">
             <span className="text-[12.5px] font-semibold text-green">Revenue</span>
-            <span className="font-mono text-[14px] font-bold text-green">₦{Math.round(diff * price).toLocaleString("en-NG")}</span>
+            <span className="font-mono text-[14px] font-bold text-green">{naira(diff * price)}</span>
           </div>
         </>
       )}

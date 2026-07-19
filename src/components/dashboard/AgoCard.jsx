@@ -1,5 +1,5 @@
 import React from "react"
-import { numberNG, naira } from "../../utils/format"
+import { numberNG, naira, litres } from "../../utils/format"
 
 function DataBox({ label, value, bg, border, color }) {
   return (
@@ -38,21 +38,21 @@ export default function AgoCard({ status, ago, agoPrice }) {
         <div className="mb-2 grid grid-cols-2 gap-2">
           <DataBox
             label="Opening"
-            value={loading || !hasData ? "—" : `${numberNG(ago.opening)}L`}
+            value={loading || !hasData ? "—" : `${litres(ago.opening)}`}
             bg="#F8FAFC"
             border="#E8EDF5"
             color="#94A3B8"
           />
           <DataBox
             label="Closing"
-            value={loading || !hasData ? "—" : `${numberNG(ago.closing)}L`}
+            value={loading || !hasData ? "—" : `${litres(ago.closing)}`}
             bg="#F8FAFC"
             border="#E8EDF5"
             color="#94A3B8"
           />
           <DataBox
             label="Difference"
-            value={loading || !hasData ? "—" : `${numberNG(ago.diff)}L`}
+            value={loading || !hasData ? "—" : `${litres(ago.diff)}`}
             bg="var(--brand-accent-light)"
             border="#BEE6F5"
             color="var(--brand-accent)"
@@ -68,7 +68,7 @@ export default function AgoCard({ status, ago, agoPrice }) {
 
         <div className="flex flex-wrap items-center justify-between gap-1 rounded-[10px] border border-[#BEE6F5] bg-amber-light px-3.5 py-[11px]">
           <span className="text-xs font-medium text-ink-2">
-            {loading || !hasData ? `— L × ₦${price.toLocaleString("en-NG")}` : `${numberNG(ago.diff)}L × ₦${price.toLocaleString("en-NG")}`}
+            {loading || !hasData ? `— L × ₦${price.toLocaleString("en-NG")}` : `${litres(ago.diff)} × ₦${price.toLocaleString("en-NG")}`}
           </span>
           <span className="mono text-[15px] font-extrabold text-amber">
             {loading || !hasData ? "—" : naira(revenue)}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import { litres, litresValue } from "../utils/format"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -167,7 +168,7 @@ function DipInner() {
     const isSuspicious = mode === "close" && val > 0 && openVal > 0 && val < openVal * 0.3
     return {
       label: `${t.id} — ${t.product} ${mode === "open" ? "Opening" : "Closing"}`,
-      value: val > 0 ? `${Number(val).toLocaleString("en-NG")}L` : "Not entered",
+      value: val > 0 ? `${litres(val)}` : "Not entered",
       warn: val === 0 || isSuspicious,
     }
   })
@@ -177,7 +178,7 @@ function DipInner() {
     const openVal = tankState[t.id].open
     if (val === 0) reviewWarnings.push(`${t.id} has no ${mode === "open" ? "opening" : "closing"} reading entered.`)
     if (mode === "close" && val > 0 && openVal > 0 && val < openVal * 0.3) {
-      reviewWarnings.push(`${t.id} closing (${Number(val).toLocaleString("en-NG")}L) is unusually far below opening (${Number(openVal).toLocaleString("en-NG")}L) — double-check this reading.`)
+      reviewWarnings.push(`${t.id} closing (${litres(val)}) is unusually far below opening (${litres(openVal)}) — double-check this reading.`)
     }
   })
 
@@ -315,7 +316,7 @@ function DipInner() {
                   <div className="mt-1 flex items-baseline gap-0.5">
                     <span className="text-[10px] font-semibold text-white/60">₦</span>
                     <span className="font-mono text-[15px] font-extrabold leading-none tracking-tight text-white">
-                      {Number(p.value || 0).toLocaleString("en-NG")}
+                      {litresValue(p.value || 0)}
                     </span>
                   </div>
                 </div>

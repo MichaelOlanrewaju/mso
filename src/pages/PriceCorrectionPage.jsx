@@ -4,7 +4,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { usePriceCorrection } from "../hooks/usePriceCorrection"
-import { naira, numberNG } from "../utils/format"
+import { naira, numberNG, litres } from "../utils/format"
 import { pumpsFor } from "../config/stations"
 import { activeStation } from "../utils/station"
 
@@ -157,7 +157,7 @@ export default function PriceCorrectionPage() {
                       <div className="min-w-0 flex-1">
                         <div className="mono text-[14px] font-extrabold text-ink">{naira(b.price)}/L</div>
                         <div className="text-[10.5px] text-ink-4">
-                          {numberNG(b.litres, { maximumFractionDigits: 2 })}L · {naira(b.amount)} · {b.rowCount} sale{b.rowCount === 1 ? "" : "s"}
+                          {litres(b.litres, { maximumFractionDigits: 2 })} · {naira(b.amount)} · {b.rowCount} sale{b.rowCount === 1 ? "" : "s"}
                         </div>
                       </div>
                       {!isEditing && !isSplitting && (

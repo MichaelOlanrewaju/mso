@@ -1,4 +1,5 @@
 import React from "react"
+import { litres } from "../../utils/format"
 
 export default function StepsDrawer({ open, onClose, steps, current, mode, tankState, onJump }) {
   if (!open) return null
@@ -6,7 +7,7 @@ export default function StepsDrawer({ open, onClose, steps, current, mode, tankS
   const valueFor = step => {
     const s = tankState[step.cfg.id]
     const v = mode === "open" ? s.open : s.close
-    return v > 0 ? `${v.toLocaleString("en-NG")}L` : "—"
+    return v > 0 ? `${litres(v)}` : "—"
   }
 
   return (

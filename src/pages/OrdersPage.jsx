@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { litres } from "../utils/format"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -109,7 +110,7 @@ export default function OrdersPage() {
                     <div>
                       <div className="text-[13.5px] font-bold text-ink">{o.Product}</div>
                       <div className="text-[10.5px] text-ink-4">{o.Date} · {o.Supplier || "No supplier"}</div>
-                      {o.QuantityOrdered && <div className="mt-0.5 text-[10.5px] text-ink-4">{Number(o.QuantityOrdered).toLocaleString("en-NG")}L ordered</div>}
+                      {o.QuantityOrdered && <div className="mt-0.5 text-[10.5px] text-ink-4">{litres(o.QuantityOrdered)} ordered</div>}
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-bold ${STATUS_STYLE[o.Status]||"bg-surface text-ink-4"}`}>{o.Status}</span>
                   </div>

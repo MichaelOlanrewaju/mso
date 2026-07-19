@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira } from "../utils/format"
+import { naira, litres } from "../utils/format"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
@@ -119,7 +119,7 @@ export default function PnLPage() {
                 <div className="text-[12.5px] font-bold text-ink">Revenue</div>
                 <div className="mono text-[15px] font-extrabold text-navy">{naira(data.revenue)}</div>
               </div>
-              <div className="px-4 py-3 text-[12px] text-ink-4">{data.litresSold ? `${Number(data.litresSold).toLocaleString("en-NG")}L sold` : "No sales data"}</div>
+              <div className="px-4 py-3 text-[12px] text-ink-4">{data.litresSold ? `${litres(data.litresSold)} sold` : "No sales data"}</div>
             </div>
 
             {/* Cost of Stock */}

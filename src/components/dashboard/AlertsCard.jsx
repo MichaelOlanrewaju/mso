@@ -1,4 +1,5 @@
 import React from "react"
+import { litres } from "../../utils/format"
 import { useNavigate } from "react-router-dom"
 import { activeStation } from "../../utils/station"
 
@@ -34,7 +35,7 @@ function buildTankAlerts(tankLevels) {
       iconBg: "#FEF2F2",
       iconColor: "#DC2626",
       title: `${t.id} Critically Low`,
-      text: `Only ${Math.round(t.vol).toLocaleString("en-NG")}L remaining (${Math.round((t.vol / t.cap) * 100)}%) — arrange discharge.`,
+      text: `Only ${litres(Math.round(t.vol))} remaining (${Math.round((t.vol / t.cap) * 100)}%) — arrange discharge.`,
     }))
 }
 

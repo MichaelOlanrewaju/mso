@@ -1,5 +1,5 @@
 import React from "react"
-import { numberNG } from "../../utils/format"
+import { numberNG, litres } from "../../utils/format"
 
 function pctClass(pct) {
   if (pct > 40) return "bg-green-light text-green"
@@ -38,7 +38,7 @@ function TankRow({ tank }) {
         />
       </div>
       <div className="flex w-[106px] flex-shrink-0 items-center justify-end gap-1.5">
-        <div className="mono text-[11.5px] font-bold text-ink">{numberNG(tank.vol)}L</div>
+        <div className="mono text-[11.5px] font-bold text-ink">{litres(tank.vol)}</div>
         <div className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold ${overCapacity ? "bg-red-light text-red" : pctClass(pct)}`}>
           {overCapacity ? "Check ⚠" : `${pct}%`}
         </div>

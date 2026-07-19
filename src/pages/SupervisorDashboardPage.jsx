@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { useDashboardData } from "../hooks/useDashboardData"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { initials } from "../utils/format"
+import { initials, litresValue, litres } from "../utils/format"
 import { StaffNotifications } from "../components/pwa/PWABanners"
 
+/* Money only — keeps thousands separators. Volumes go through litres()/
+   litresValue(), which deliberately omit them (readings are transcribed off a
+   physical counter, where commas are noise). */
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-NG")
 }
@@ -147,7 +150,7 @@ export default function SupervisorDashboardPage() {
                 <i className="bi bi-exclamation-triangle-fill text-red" />
                 <div>
                   <div className="text-[12.5px] font-bold text-red">{a.id} critically low</div>
-                  <div className="text-[11px] text-red/80">Only {fmt(a.vol)}L left ({Math.round((a.vol / a.cap) * 100)}%) — inform GM.</div>
+                  <div className="text-[11px] text-red/80">Only {litres(a.vol)} left ({Math.round((a.vol / a.cap) * 100)}%) — inform GM.</div>
                 </div>
               </div>
             ))}
@@ -201,7 +204,7 @@ export default function SupervisorDashboardPage() {
                         <div className="text-[12px] font-extrabold" style={{ color: col }}>
                           {overCapacity ? "Check reading ⚠" : `${pct}%${pct <= 20 ? " ⚠" : ""}`}
                         </div>
-                        <div className="font-mono text-[10.5px] text-ink-4">{fmt(t.vol)}L</div>
+                        <div className="font-mono text-[10.5px] text-ink-4">{litres(t.vol)}</div>
                       </div>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-surface">
@@ -246,9 +249,9 @@ export default function SupervisorDashboardPage() {
                         <span className="rounded-full border border-cyan/20 bg-cyan-light px-2 py-[2px] text-[11px] font-bold text-cyan-dark">{p.pump}</span>
                       </td>
                       <td className="px-3.5 py-2.5 text-[11.5px] text-ink-4">{p.tank}</td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-[11.5px] text-ink-3">{p.open ? p.open.toLocaleString("en-NG") : "—"}</td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-[11.5px] text-ink-3">{p.close ? p.close.toLocaleString("en-NG") : "—"}</td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-extrabold text-cyan-dark">{p.diff > 0 ? `${p.diff.toLocaleString("en-NG", { maximumFractionDigits: 2 })}L` : "—"}</td>
+                      <td className="px-3.5 py-2.5 text-right font-mono text-[11.5px] text-ink-3">{p.open ? litresValue(p.open) : "—"}</td>
+                      <td className="px-3.5 py-2.5 text-right font-mono text-[11.5px] text-ink-3">{p.close ? litresValue(p.close) : "—"}</td>
+                      <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-extrabold text-cyan-dark">{p.diff > 0 ? litres(p.diff) : "—"}</td>
                     </tr>
                   ))
                 )}

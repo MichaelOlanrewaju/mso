@@ -1,4 +1,5 @@
 import React from "react"
+import { litresValue } from "../../utils/format"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
    have collected dips for a tank that does not exist. */
@@ -54,7 +55,7 @@ function TankRow({ tank, vol }) {
           )}
         </div>
         <div className="mono text-[13px] font-extrabold tabular-nums text-ink">
-          {vol > 0 ? `${Math.round(vol).toLocaleString("en-NG")}${unit}` : "—"}
+          {vol > 0 ? `${litresValue(vol)}${unit}` : "—"}
         </div>
       </div>
 
@@ -105,7 +106,7 @@ function PumpRow({ id, reading }) {
       </div>
       {done ? (
         <div className="mono text-[13px] font-extrabold tabular-nums text-ink">
-          {Math.round(open).toLocaleString("en-NG")}
+          {litresValue(open)}
         </div>
       ) : (
         <span className="rounded-full bg-surface px-2 py-1 text-[9.5px] font-bold text-ink-4">

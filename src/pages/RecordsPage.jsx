@@ -6,7 +6,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useRecordsData } from "../hooks/useRecordsData"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira, numberNG, initials, roleLabel } from "../utils/format"
+import { naira, numberNG, initials, roleLabel, litres } from "../utils/format"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
    have collected dips for a tank that does not exist. */
@@ -49,9 +49,9 @@ function TankMarginRow({ tank, report }) {
           {tank.id}
         </span>
       </td>
-      <td className={`mono px-3.5 py-2.5 font-semibold ${empty ? "text-ink-4" : ""}`}>{numberNG(open)}L</td>
-      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{numberNG(close)}L</td>
-      <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>{numberNG(dipDiff, { maximumFractionDigits: 2 })}L</td>
+      <td className={`mono px-3.5 py-2.5 font-semibold ${empty ? "text-ink-4" : ""}`}>{litres(open)}</td>
+      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(close)}</td>
+      <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>{litres(dipDiff, { maximumFractionDigits: 2 })}</td>
       <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : margin < 0 ? "text-red" : "text-amber"}`}>
         {Number(margin).toFixed(2)}L
       </td>
@@ -80,9 +80,9 @@ function PumpMetreRow({ pump, pumpMetres }) {
         </span>
       </td>
       <td className="px-3.5 py-2.5 text-[11.5px] text-ink-3">{pump.tank}</td>
-      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{numberNG(open)}L</td>
-      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{numberNG(close)}L</td>
-      <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>{numberNG(diff, { maximumFractionDigits: 2 })}L</td>
+      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(open)}</td>
+      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(close)}</td>
+      <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>{litres(diff, { maximumFractionDigits: 2 })}</td>
       <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-green"}`}>{empty ? "—" : naira(amount)}</td>
     </tr>
   )
@@ -430,7 +430,7 @@ function RecordsInner() {
                           <td className="px-3.5 py-2.5">
                             <span className="inline-flex items-center rounded-full border border-cyan/20 bg-cyan-light px-2.5 py-[3px] text-[10.5px] font-bold text-cyan-dark">PMS</span>
                           </td>
-                          <td className="mono px-3.5 py-2.5">{numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L</td>
+                          <td className="mono px-3.5 py-2.5">{litres(report.pms_litres, { maximumFractionDigits: 2 })}</td>
                           <td className="mono px-3.5 py-2.5">{report.pms_price > 0 ? naira(report.pms_price) : <span className="text-ink-4">—</span>}</td>
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.pms_revenue)}</td>
                           <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.pms_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.pms_margin).toFixed(2)}L</td>
@@ -440,7 +440,7 @@ function RecordsInner() {
                           <td className="px-3.5 py-2.5">
                             <span className="inline-flex items-center rounded-full border border-amber/25 bg-amber-light px-2.5 py-[3px] text-[10.5px] font-bold text-amber">AGO</span>
                           </td>
-                          <td className="mono px-3.5 py-2.5">{numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L</td>
+                          <td className="mono px-3.5 py-2.5">{litres(report.ago_litres, { maximumFractionDigits: 2 })}</td>
                           <td className="mono px-3.5 py-2.5">{report.ago_price > 0 ? naira(report.ago_price) : <span className="text-ink-4">—</span>}</td>
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.ago_revenue)}</td>
                           <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.ago_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.ago_margin).toFixed(2)}L</td>
@@ -555,7 +555,7 @@ function PriceTierRows({ tiers, tone }) {
             </span>
           </td>
           <td className="mono px-3.5 py-1.5 text-[11px] text-ink-3">
-            {numberNG(t.litres, { maximumFractionDigits: 2 })}L
+            {litres(t.litres, { maximumFractionDigits: 2 })}
           </td>
           <td className={`mono px-3.5 py-1.5 text-[11px] font-semibold ${tone}`}>{naira(t.price)}</td>
           <td className="mono px-3.5 py-1.5 text-[11px] text-ink-3">{naira(t.amount)}</td>

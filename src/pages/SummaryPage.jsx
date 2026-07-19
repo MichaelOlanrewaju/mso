@@ -69,9 +69,9 @@ function buildSummaryText(report, date) {
     `${date}`,
     ``,
     `Grand Total: ${naira(report.grand_total)}`,
-    `PMS: ${numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(report.pms_revenue)}`,
-    `AGO: ${numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(report.ago_revenue)}`,
-    `PMS Margin: ${numberNG(report.pms_margin, { maximumFractionDigits: 2 })}L (${naira(report.pms_margin_amount)}) · AGO Margin: ${numberNG(report.ago_margin, { maximumFractionDigits: 2 })}L (${naira(report.ago_margin_amount)})`,
+    `PMS: ${litres(report.pms_litres, { maximumFractionDigits: 2 })} @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(report.pms_revenue)}`,
+    `AGO: ${litres(report.ago_litres, { maximumFractionDigits: 2 })} @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(report.ago_revenue)}`,
+    `PMS Margin: ${litres(report.pms_margin, { maximumFractionDigits: 2 })} (${naira(report.pms_margin_amount)}) · AGO Margin: ${litres(report.ago_margin, { maximumFractionDigits: 2 })} (${naira(report.ago_margin_amount)})`,
     ``,
     `Tank Dips:`,
     ...tankRows(report).map(
@@ -248,11 +248,11 @@ function SummaryInner() {
                 <div className="mt-3 flex gap-4 border-t border-white/10 pt-3 text-[11px] opacity-70">
                   <div>
                     <span className="opacity-60">PMS Margin: </span>
-                    <span className="mono font-bold">{numberNG(report.pms_margin, { maximumFractionDigits: 2 })}L ({naira(report.pms_margin_amount)})</span>
+                    <span className="mono font-bold">{litres(report.pms_margin, { maximumFractionDigits: 2 })} ({naira(report.pms_margin_amount)})</span>
                   </div>
                   <div>
                     <span className="opacity-60">AGO Margin: </span>
-                    <span className="mono font-bold">{numberNG(report.ago_margin, { maximumFractionDigits: 2 })}L ({naira(report.ago_margin_amount)})</span>
+                    <span className="mono font-bold">{litres(report.ago_margin, { maximumFractionDigits: 2 })} ({naira(report.ago_margin_amount)})</span>
                   </div>
                 </div>
               )}
@@ -261,14 +261,14 @@ function SummaryInner() {
             <div className="grid grid-cols-2 gap-px bg-surface">
               <div className="bg-white p-4">
                 <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">PMS</div>
-                <div className="mono mt-1 text-[15px] font-extrabold text-ink">{numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L</div>
+                <div className="mono mt-1 text-[15px] font-extrabold text-ink">{litres(report.pms_litres, { maximumFractionDigits: 2 })}</div>
                 <div className="text-[11px] text-ink-3">{naira(report.pms_revenue)} @ {report.pms_price > 0 ? `${naira(report.pms_price)}/L` : "— /L"}</div>
-                <div className="mt-1 text-[10.5px] text-ink-4">Margin: {numberNG(report.pms_margin, { maximumFractionDigits: 2 })}L · {naira(report.pms_margin_amount)}</div>
+                <div className="mt-1 text-[10.5px] text-ink-4">Margin: {litres(report.pms_margin, { maximumFractionDigits: 2 })} · {naira(report.pms_margin_amount)}</div>
                 {report.priceTiers?.PMS?.length > 1 && (
                   <div className="mt-2 space-y-0.5 border-t border-surface pt-2">
                     {report.priceTiers.PMS.map((t, i) => (
                       <div key={i} className="flex justify-between text-[10px] text-ink-4">
-                        <span>{numberNG(t.litres, { maximumFractionDigits: 2 })}L @ {naira(t.price)}</span>
+                        <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
                         <span className="mono font-semibold text-ink-3">{naira(t.amount)}</span>
                       </div>
                     ))}
@@ -277,14 +277,14 @@ function SummaryInner() {
               </div>
               <div className="bg-white p-4">
                 <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">AGO</div>
-                <div className="mono mt-1 text-[15px] font-extrabold text-ink">{numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L</div>
+                <div className="mono mt-1 text-[15px] font-extrabold text-ink">{litres(report.ago_litres, { maximumFractionDigits: 2 })}</div>
                 <div className="text-[11px] text-ink-3">{naira(report.ago_revenue)} @ {report.ago_price > 0 ? `${naira(report.ago_price)}/L` : "— /L"}</div>
-                <div className="mt-1 text-[10.5px] text-ink-4">Margin: {numberNG(report.ago_margin, { maximumFractionDigits: 2 })}L · {naira(report.ago_margin_amount)}</div>
+                <div className="mt-1 text-[10.5px] text-ink-4">Margin: {litres(report.ago_margin, { maximumFractionDigits: 2 })} · {naira(report.ago_margin_amount)}</div>
                 {report.priceTiers?.AGO?.length > 1 && (
                   <div className="mt-2 space-y-0.5 border-t border-surface pt-2">
                     {report.priceTiers.AGO.map((t, i) => (
                       <div key={i} className="flex justify-between text-[10px] text-ink-4">
-                        <span>{numberNG(t.litres, { maximumFractionDigits: 2 })}L @ {naira(t.price)}</span>
+                        <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
                         <span className="mono font-semibold text-ink-3">{naira(t.amount)}</span>
                       </div>
                     ))}

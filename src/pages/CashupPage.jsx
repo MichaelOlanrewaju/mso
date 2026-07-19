@@ -10,7 +10,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useLubricant } from "../hooks/useLubricant"
 import { useCashupData } from "../hooks/useCashupData"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira, numberNG } from "../utils/format"
+import { naira, numberNG, litres } from "../utils/format"
 
 const RECON_STYLES = {
   pending: { grad: "var(--brand-gradient-btn)", accent: "#94A3B8", icon: "bi-hourglass-split", label: "Enter amounts to reconcile" },
@@ -253,12 +253,12 @@ function CashupInner() {
           <div className="mb-5 grid grid-cols-2 gap-2.5">
             <div className="rounded-[12px] border border-border bg-white px-3.5 py-2.5">
               <div className="text-[9px] font-bold uppercase tracking-[0.6px] text-ink-4">PMS Expected</div>
-              <div className="mono mt-0.5 text-[13.5px] font-extrabold text-ink">{numberNG(expected.pmsLitres, { maximumFractionDigits: 2 })}L</div>
+              <div className="mono mt-0.5 text-[13.5px] font-extrabold text-ink">{litres(expected.pmsLitres, { maximumFractionDigits: 2 })}</div>
               <div className="text-[10px] text-ink-4">{naira(expected.pmsRevenue)} @ {naira(expected.pmsPrice)}/L</div>
             </div>
             <div className="rounded-[12px] border border-border bg-white px-3.5 py-2.5">
               <div className="text-[9px] font-bold uppercase tracking-[0.6px] text-ink-4">AGO Expected</div>
-              <div className="mono mt-0.5 text-[13.5px] font-extrabold text-ink">{numberNG(expected.agoLitres, { maximumFractionDigits: 2 })}L</div>
+              <div className="mono mt-0.5 text-[13.5px] font-extrabold text-ink">{litres(expected.agoLitres, { maximumFractionDigits: 2 })}</div>
               <div className="text-[10px] text-ink-4">{naira(expected.agoRevenue)} @ {naira(expected.agoPrice)}/L</div>
             </div>
           </div>

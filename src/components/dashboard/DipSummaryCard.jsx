@@ -1,5 +1,5 @@
 import React from "react"
-import { numberNG, naira } from "../../utils/format"
+import { numberNG, naira, litres } from "../../utils/format"
 
 function Row({ tank }) {
   const empty = tank.diff === 0
@@ -14,11 +14,11 @@ function Row({ tank }) {
         </span>
       </td>
       <td className={`mono px-3.5 py-2.5 font-semibold ${empty ? "text-ink-4" : ""}`}>
-        {numberNG(tank.opening)}L
+        {litres(tank.opening)}
       </td>
-      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{numberNG(tank.closing)}L</td>
+      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(tank.closing)}</td>
       <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>
-        {numberNG(tank.diff)}L
+        {litres(tank.diff)}
       </td>
       <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-amber"}`}>
         {Number(tank.margin).toFixed(2)}L

@@ -1,4 +1,5 @@
 import React from "react"
+import { litresValue, naira } from "../../utils/format"
 
 const DOT_COLOR = { PMS: "var(--brand-accent)", AGO: "var(--brand-accent)", LPG: "#7C3AED" }
 
@@ -41,7 +42,7 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
       {mode === "close" && (
         <div className="mb-3 flex items-center justify-between rounded-[14px] border border-border bg-surface px-4 py-3">
           <span className="text-[12px] font-semibold text-ink-3">Opening (locked)</span>
-          <span className="font-mono text-[15px] font-bold text-ink">{s.open.toLocaleString("en-NG")}{unit}</span>
+          <span className="font-mono text-[15px] font-bold text-ink">{litresValue(s.open)}{unit}</span>
         </div>
       )}
 
@@ -69,7 +70,7 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
       )}
       {!errClose && s.close > 0 && mode === "close" && s.close < s.open && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-green">
-          <i className="bi bi-check-circle" /> Valid · Diff: {dipDiff.toLocaleString("en-NG", { maximumFractionDigits: 2 })}{unit}
+          <i className="bi bi-check-circle" /> Valid · Diff: {litresValue(dipDiff)}{unit}
         </div>
       )}
 
@@ -80,11 +81,11 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
             style={{ background: "var(--brand-gradient-btn)" }}
           >
             <span className="text-[12.5px] font-semibold text-white/90">Dip difference</span>
-            <span className="font-mono text-[14px] font-bold text-white">{dipDiff.toLocaleString("en-NG", { maximumFractionDigits: 2 })}{unit}</span>
+            <span className="font-mono text-[14px] font-bold text-white">{litresValue(dipDiff)}{unit}</span>
           </div>
           <div className="mt-2 flex items-center justify-between rounded-[14px] bg-green-light px-4 py-3">
             <span className="text-[12.5px] font-semibold text-green">Expected revenue</span>
-            <span className="font-mono text-[14px] font-bold text-green">₦{Math.round(dipDiff * price).toLocaleString("en-NG")}</span>
+            <span className="font-mono text-[14px] font-bold text-green">{naira(dipDiff * price)}</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 rounded-[12px] bg-surface px-4 py-2.5 text-[11.5px] font-medium text-ink-4">
             <i className="bi bi-info-circle" /> Margin vs pump metres will show on the Records page once Sales is submitted for this date.

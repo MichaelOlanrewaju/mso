@@ -5,7 +5,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
-import { naira } from "../utils/format"
+import { naira, litres } from "../utils/format"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
@@ -95,6 +95,26 @@ function startOfMonth(d) {
   const date = new Date(d.getFullYear(), d.getMonth(), 1)
   date.setHours(0, 0, 0, 0)
   return date
+}
+
+/* Discharge variance is a single signed number: positive = shortage (received
+   less than ordered), negative = overage (received more). Rendering it as one
+   value keeps the two impossible to contradict, and lets period totals net out
+   correctly — a 600L overage genuinely offsets a 600L shortage elsewhere. */
+function varianceLabel(v) {
+  const n = Number(v) || 0
+  if (!n) return { text: "None", cls: "text-green" }
+  return n > 0
+    ? { text: `${litres(n)} short`, cls: "text-red font-extrabold" }
+    : { text: `${litres(Math.abs(n))} over`, cls: "text-amber font-extrabold" }
+}
+
+function varianceMoney(v) {
+  const n = Number(v) || 0
+  if (!n) return { text: "—", cls: "text-ink-4" }
+  return n > 0
+    ? { text: naira(n), cls: "text-red font-extrabold" }
+    : { text: `+${naira(Math.abs(n))}`, cls: "text-green font-extrabold" }
 }
 
 export default function DischargePage() {
@@ -223,19 +243,29 @@ export default function DischargePage() {
     { label: "Product / Tank", value: form.product },
     { label: "Supplier", value: form.supplier },
     { label: "Driver", value: form.driverName || "Not entered", warn: !form.driverName },
-    { label: "Actual Received", value: `${Number(form.actualReceived || 0).toLocaleString("en-NG")}L` },
-    ...(form.orderedLitres ? [{ label: "Ordered", value: `${Number(form.orderedLitres).toLocaleString("en-NG")}L` }] : []),
-    { label: "Shortage", value: form.shortage ? `${Number(form.shortage).toLocaleString("en-NG")}L` : "None", warn: Number(form.shortage) > 0 },
+    { label: "Actual Received", value: `${litres(form.actualReceived || 0)}` },
+    ...(form.orderedLitres ? [{ label: "Ordered", value: `${litres(form.orderedLitres)}` }] : []),
+    { label: "Variance",
+      value: (() => {
+        const v = form.shortage !== "" ? Number(form.shortage)
+                : (form.orderedLitres && form.actualReceived ? Number(form.orderedLitres) - Number(form.actualReceived) : 0)
+        if (!v) return "None"
+        return v > 0 ? `${litres(v)} short` : `${litres(Math.abs(v))} over`
+      })(),
+      warn: Number(form.shortage) !== 0 },
     ...(form.truckNumber ? [{ label: "Truck No.", value: form.truckNumber }] : []),
     ...(form.waybillNo ? [{ label: "Waybill No.", value: form.waybillNo }] : []),
   ]
   const dischargeWarnings = []
   if (!form.driverName) dischargeWarnings.push("No driver name entered.")
-  if (form.orderedLitres && form.actualReceived && Number(form.actualReceived) > Number(form.orderedLitres)) {
-    dischargeWarnings.push("Actual Received is more than Ordered — please double-check these figures.")
-  }
-  if (Number(form.shortage) > 0) {
-    dischargeWarnings.push(`Shortage of ${Number(form.shortage).toLocaleString("en-NG")}L recorded — this will be flagged for GM/CEO review.`)
+  {
+    const v = form.shortage !== "" ? Number(form.shortage)
+            : (form.orderedLitres && form.actualReceived ? Number(form.orderedLitres) - Number(form.actualReceived) : 0)
+    if (v > 0) {
+      dischargeWarnings.push(`Shortage of ${litres(v)} recorded — this will be flagged for GM/CEO review.`)
+    } else if (v < 0) {
+      dischargeWarnings.push(`Overage of ${litres(Math.abs(v))} — you received more than ordered. Confirm the waybill before submitting.`)
+    }
   }
 
   const handleAddPrice = async () => {
@@ -283,7 +313,7 @@ export default function DischargePage() {
           </div>
           {isGMOrOwner && (
             <div className="flex items-center gap-1.5 rounded-full bg-navy/5 px-3 py-1.5 text-[10.5px] font-bold text-navy">
-              <i className="bi bi-droplet-half" /> {sumRecords(records).litres.toLocaleString("en-NG")}L all-time
+              <i className="bi bi-droplet-half" /> {litres(sumRecords(records).litres)} all-time
             </div>
           )}
         </div>
@@ -329,15 +359,15 @@ export default function DischargePage() {
                 <div className="grid grid-cols-3 divide-x divide-white/10 px-1 py-4">
                   <div className="px-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Litres</div>
-                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.litres.toLocaleString("en-NG")}L</div>
+                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{litres(periodTotals.litres)}</div>
                   </div>
                   <div className="px-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Amount</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{naira(periodTotals.cost)}</div>
                   </div>
                   <div className="px-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Shortage Cost</div>
-                    <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : "text-white"}`}>{naira(periodTotals.shortageAmount)}</div>
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Variance Cost</div>
+                    <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : periodTotals.shortageAmount < 0 ? "text-green" : "text-white"}`}>{periodTotals.shortageAmount < 0 ? `+${naira(Math.abs(periodTotals.shortageAmount))}` : naira(periodTotals.shortageAmount)}</div>
                   </div>
                 </div>
                 {pending.length > 0 && (
@@ -370,7 +400,7 @@ export default function DischargePage() {
                       <div className="h-px flex-1 bg-border" />
                       {isGMOrOwner && (
                         <div className="mono text-[10.5px] font-bold text-ink-4">
-                          {sumRecords(group.items).litres.toLocaleString("en-NG")}L
+                          {litres(sumRecords(group.items).litres)}
                           {sumRecords(group.items).cost > 0 && <> · {naira(sumRecords(group.items).cost)}</>}
                         </div>
                       )}
@@ -405,8 +435,8 @@ export default function DischargePage() {
                           {/* Supervisor/cashier view — no financials, ever */}
                           {isSupervisor && (
                             <div className="grid grid-cols-2 gap-px bg-border">
-                              {[["Litres Received", `${Number(r[COL.ACTUAL]).toLocaleString("en-NG")}L`, "text-navy"],
-                                ["Shortage", r[COL.SHORTAGE] ? `${Number(r[COL.SHORTAGE]).toLocaleString("en-NG")}L` : "None", Number(r[COL.SHORTAGE]) > 0 ? "text-red font-extrabold" : "text-green"]].map(([l, v, c]) => (
+                              {[["Litres Received", `${litres(r[COL.ACTUAL])}`, "text-navy"],
+                                ["Variance", varianceLabel(r[COL.SHORTAGE]).text, varianceLabel(r[COL.SHORTAGE]).cls]].map(([l, v, c]) => (
                                 <div key={l} className="bg-white px-3 py-2.5">
                                   <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
                                   <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
@@ -418,12 +448,12 @@ export default function DischargePage() {
                           {/* GM/Owner view — full financials */}
                           {isGMOrOwner && (
                             <div className="grid grid-cols-3 gap-px bg-border">
-                              {[["Litres Received", `${Number(r[COL.ACTUAL]).toLocaleString("en-NG")}L`, "text-navy"],
+                              {[["Litres Received", `${litres(r[COL.ACTUAL])}`, "text-navy"],
                                 ["Price/Litre", r[COL.PRICE] ? naira(r[COL.PRICE]) : "—", "text-ink"],
                                 ["Total Amount", r[COL.TOTAL] ? naira(r[COL.TOTAL]) : "—", "text-ink font-extrabold"],
-                                ["Shortage", r[COL.SHORTAGE] ? `${Number(r[COL.SHORTAGE]).toLocaleString("en-NG")}L` : "None", Number(r[COL.SHORTAGE]) > 0 ? "text-red font-bold" : "text-green"],
-                                ["Shortage Cost", r[COL.SHORTAGE_AMOUNT] ? naira(r[COL.SHORTAGE_AMOUNT]) : "—", Number(r[COL.SHORTAGE_AMOUNT]) > 0 ? "text-red font-extrabold" : "text-ink-4"],
-                                ["Ordered", r[COL.ORDERED] ? `${Number(r[COL.ORDERED]).toLocaleString("en-NG")}L` : "—", "text-ink"]].map(([l, v, c]) => (
+                                ["Variance", varianceLabel(r[COL.SHORTAGE]).text, varianceLabel(r[COL.SHORTAGE]).cls],
+                                ["Variance Cost", varianceMoney(r[COL.SHORTAGE_AMOUNT]).text, varianceMoney(r[COL.SHORTAGE_AMOUNT]).cls],
+                                ["Ordered", r[COL.ORDERED] ? `${litres(r[COL.ORDERED])}` : "—", "text-ink"]].map(([l, v, c]) => (
                                 <div key={l} className="bg-white px-3 py-2.5">
                                   <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
                                   <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
@@ -508,11 +538,20 @@ export default function DischargePage() {
                     </label>
                   </div>
                   <label className="block">
-                    <span className={labelCls}>Shortage (L)</span>
+                    {/* One signed field covers both directions. A separate
+                        "overage" input would let someone fill in both and
+                        contradict themselves. */}
+                    <span className={labelCls}>Variance (L) — shortage or overage</span>
                     <input type="number" inputMode="decimal" placeholder="0" value={form.shortage} onChange={e => setForm(f => ({...f, shortage: e.target.value}))} className={inputCls} />
                     <span className="mt-1 block text-[10.5px] text-ink-4">
                       {form.orderedLitres && form.actualReceived
-                        ? `Leave blank to auto-calculate: ${Math.max(0, Number(form.orderedLitres) - Number(form.actualReceived)).toLocaleString("en-NG")}L`
+                        ? (() => {
+                            const v = Number(form.orderedLitres) - Number(form.actualReceived)
+                            if (v === 0) return "Leave blank to auto-calculate: exact match"
+                            return v > 0
+                              ? `Leave blank to auto-calculate: ${litres(v)} short`
+                              : `Leave blank to auto-calculate: ${litres(Math.abs(v))} over`
+                          })()
                         : "Leave blank to auto-calculate from Ordered − Actual"}
                     </span>
                   </label>
@@ -584,9 +623,9 @@ export default function DischargePage() {
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-px bg-border text-[12px]">
-                    {[["Ordered", r[COL.ORDERED] ? `${Number(r[COL.ORDERED]).toLocaleString("en-NG")}L` : "—", "text-ink"],
-                      ["Actual Received", `${Number(r[COL.ACTUAL]).toLocaleString("en-NG")}L`, "text-navy"],
-                      ["Shortage", r[COL.SHORTAGE] ? `${Number(r[COL.SHORTAGE]).toLocaleString("en-NG")}L` : "None", Number(r[COL.SHORTAGE]) > 0 ? "text-red font-extrabold" : "text-green"]].map(([l, v, c]) => (
+                    {[["Ordered", r[COL.ORDERED] ? `${litres(r[COL.ORDERED])}` : "—", "text-ink"],
+                      ["Actual Received", `${litres(r[COL.ACTUAL])}`, "text-navy"],
+                      ["Variance", varianceLabel(r[COL.SHORTAGE]).text, varianceLabel(r[COL.SHORTAGE]).cls]].map(([l, v, c]) => (
                       <div key={l} className="bg-white px-3 py-2.5">
                         <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
                         <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
@@ -610,9 +649,15 @@ export default function DischargePage() {
                     </label>
                     {pricingRow?.rowIndex === r.rowIndex && priceInput && (
                       <div className="mb-3 space-y-1.5 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
-                        <div>{Number(r[COL.ACTUAL]).toLocaleString("en-NG")}L × {naira(Number(priceInput))} = <strong className="text-navy">{naira(Number(r[COL.ACTUAL]) * Number(priceInput))}</strong> total amount</div>
+                        <div>{litres(r[COL.ACTUAL])} × {naira(Number(priceInput))} = <strong className="text-navy">{naira(Number(r[COL.ACTUAL]) * Number(priceInput))}</strong> total amount</div>
                         {Number(r[COL.SHORTAGE]) > 0 && (
-                          <div>{Number(r[COL.SHORTAGE]).toLocaleString("en-NG")}L shortage × {naira(Number(priceInput))} = <strong className="text-red">{naira(Number(r[COL.SHORTAGE]) * Number(priceInput))}</strong> shortage cost</div>
+                          <div>
+                            {litres(Math.abs(Number(r[COL.SHORTAGE])))} {Number(r[COL.SHORTAGE]) > 0 ? "shortage" : "overage"} × {naira(Number(priceInput))} ={" "}
+                            <strong className={Number(r[COL.SHORTAGE]) > 0 ? "text-red" : "text-green"}>
+                              {Number(r[COL.SHORTAGE]) > 0 ? naira(Number(r[COL.SHORTAGE]) * Number(priceInput)) : `+${naira(Math.abs(Number(r[COL.SHORTAGE]) * Number(priceInput)))}`}
+                            </strong>{" "}
+                            {Number(r[COL.SHORTAGE]) > 0 ? "shortage cost" : "value received"}
+                          </div>
                         )}
                       </div>
                     )}

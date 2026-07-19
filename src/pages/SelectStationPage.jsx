@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import { litres } from "../utils/format"
 import { setActiveStation } from "../utils/station"
 import { useAuth } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
@@ -144,11 +145,11 @@ export default function SelectStationPage() {
 
   const msoStats = {
     revenue: stats.mso ? `₦${Number(stats.mso.revenue).toLocaleString("en-NG")}` : "—",
-    litres: stats.mso ? `${Number(stats.mso.litres).toLocaleString("en-NG")}L` : "—",
+    litres: stats.mso ? `${litres(stats.mso.litres)}` : "—",
   }
   const mrsStats = {
     revenue: stats.mrs ? `₦${Number(stats.mrs.revenue).toLocaleString("en-NG")}` : "—",
-    litres: stats.mrs ? `${Number(stats.mrs.litres).toLocaleString("en-NG")}L` : "—",
+    litres: stats.mrs ? `${litres(stats.mrs.litres)}` : "—",
   }
 
   return (

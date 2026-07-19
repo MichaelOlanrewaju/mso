@@ -1,7 +1,7 @@
 import React from "react"
 import { activeStation } from "../../utils/station"
 import { Link } from "react-router-dom"
-import { naira, numberNG } from "../../utils/format"
+import { naira, numberNG, litres } from "../../utils/format"
 
 const METHOD_PILL = {
   pos: "border-cyan/20 bg-cyan-light text-cyan-dark",
@@ -96,7 +96,7 @@ export default function TransactionsCard({ status, transactions }) {
                         {t.product || "—"}
                       </span>
                     </td>
-                    <td className="mono px-3.5 py-2.5 font-semibold">{numberNG(t.litres || 0)}L</td>
+                    <td className="mono px-3.5 py-2.5 font-semibold">{litres(t.litres || 0)}</td>
                     <td className="mono px-3.5 py-2.5 font-bold text-ink">{naira(t.amount || 0)}</td>
                     <td className="px-3.5 py-2.5">
                       <span
