@@ -30,6 +30,7 @@ const AddStaffPage           = lazy(() => import("./pages/AddStaffPage"))
 const ChatPage               = lazy(() => import("./pages/ChatPage"))
 const ProfilePage            = lazy(() => import("./pages/ProfilePage"))
 const StationAssignmentPage  = lazy(() => import("./pages/StationAssignmentPage"))
+const PriceCorrectionPage    = lazy(() => import("./pages/PriceCorrectionPage"))
 const ForgotPasswordPage     = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage      = lazy(() => import("./pages/ResetPasswordPage"))
 const DischargePage          = lazy(() => import("./pages/DischargePage"))
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/chat/:station" element={<StationGuard><ChatPage /></StationGuard>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/station-assignments" element={<StationAssignmentPage />} />
+          <Route path="/correct-prices" element={<PriceCorrectionPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

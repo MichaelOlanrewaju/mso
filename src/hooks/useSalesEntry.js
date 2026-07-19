@@ -68,6 +68,10 @@ export function useSalesEntry(username, name, selectedDate) {
   const [hasClosing, setHasClosing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savingStep, setSavingStep] = useState(false)
+  /* Which session each pump is currently on. After a price cutover a pump
+     moves to session 2, and the evening closing must be written to THAT row —
+     not back onto the morning session. */
+  const [currentSession, setCurrentSession] = useState({})
   const [existingPhotos, setExistingPhotos] = useState({}) // { [pumpId__session]: { session, fileId, submittedBy } }
   const [pumpLocks, setPumpLocks] = useState({}) // { [pumpKey]: boolean }
   const [requestingEdit, setRequestingEdit] = useState(false)
@@ -144,20 +148,30 @@ export function useSalesEntry(username, name, selectedDate) {
           }
           const pm = d.report.pumpMetres
           const next = emptyReadings()
+          const nextSession = {}
           let anyOpen = false
           let anyClose = false
 
           pumpsFor(activeStation()).forEach(p => {
             const key = stateKey(p)
-            const session = pm[key] && pm[key].sessions && pm[key].sessions[0]
+            /* The LATEST session, not the first. After a mid-day price cutover a
+               pump has two (or more) sessions; the one still open is the last.
+               Reading sessions[0] showed the supervisor the morning session and
+               would have overwritten it with the evening's closing figure. */
+            const all = (pm[key] && pm[key].sessions) || []
+            const session = all.length
+              ? all.reduce((a, b) => ((b.sessNum || 1) >= (a.sessNum || 1) ? b : a))
+              : null
             if (session) {
               if (session.open > 0) anyOpen = true
               if (session.close > 0) anyClose = true
               next[key] = { open: session.open || "", close: session.close || "" }
+              nextSession[key] = session.sessNum || 1
             }
           })
 
           setReadings(next)
+          setCurrentSession(nextSession)
           setHasOpening(anyOpen)
           setHasClosing(anyClose)
           setStatus("ready")
@@ -269,7 +283,7 @@ export function useSalesEntry(username, name, selectedDate) {
         action: "savePumpMetre", station: activeStation(), username, date,
         pump: key, product: p.product, tank: p.tank,
         openingMetre: op, closingMetre: cl, diff, price,
-        amount: Math.round(diff * price), sessionNum: 1,
+        amount: Math.round(diff * price), sessionNum: currentSession[stateKey(p)] || 1,
       })
         .catch(() => ({ ok: false, error: "Network error — check connection" }))
         .then(res => {

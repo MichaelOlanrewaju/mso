@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -64,12 +65,12 @@ function pumpRows(report) {
 
 function buildSummaryText(report, date) {
   const lines = [
-    `MSO Limpid — Daily Summary`,
+    `${getStation(activeStation()).name} — Daily Summary`,
     `${date}`,
     ``,
     `Grand Total: ${naira(report.grand_total)}`,
-    `PMS: ${numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L @ ${naira(report.pms_price)}/L = ${naira(report.pms_revenue)}`,
-    `AGO: ${numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L @ ${naira(report.ago_price)}/L = ${naira(report.ago_revenue)}`,
+    `PMS: ${numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(report.pms_revenue)}`,
+    `AGO: ${numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(report.ago_revenue)}`,
     `PMS Margin: ${numberNG(report.pms_margin, { maximumFractionDigits: 2 })}L (${naira(report.pms_margin_amount)}) · AGO Margin: ${numberNG(report.ago_margin, { maximumFractionDigits: 2 })}L (${naira(report.ago_margin_amount)})`,
     ``,
     `Tank Dips:`,
@@ -129,7 +130,7 @@ function SummaryInner() {
   const { status, report } = useRecordsData(auth.username, date)
   const [photos, setPhotos] = useState([])
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
-  usePageTitle("Daily Summary — MSO Limpid")
+  usePageTitle(`Daily Summary — ${getStation(activeStation()).name}`)
 
   useEffect(() => {
     if (!SCRIPT_URL || !date) return
@@ -239,7 +240,7 @@ function SummaryInner() {
         {status === "ready" && report && (
           <div className="overflow-hidden rounded-card border border-border bg-white shadow-card print:border-0 print:shadow-none">
             <div className="bg-navy px-5 py-5 text-white print:bg-white print:text-ink print:border-b print:border-border">
-              <div className="text-[10px] font-bold uppercase tracking-[1.5px] opacity-50">MSO Limpid · Daily Summary</div>
+              <div className="text-[10px] font-bold uppercase tracking-[1.5px] opacity-50">{getStation(activeStation()).name} · Daily Summary</div>
               <div className="mt-1 text-[15px] font-bold opacity-80">{new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
               <div className="mono mt-3 text-[30px] font-black tracking-tight">{naira(report.grand_total)}</div>
               <div className="text-[11px] opacity-50">Grand Total</div>
@@ -261,7 +262,7 @@ function SummaryInner() {
               <div className="bg-white p-4">
                 <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">PMS</div>
                 <div className="mono mt-1 text-[15px] font-extrabold text-ink">{numberNG(report.pms_litres, { maximumFractionDigits: 2 })}L</div>
-                <div className="text-[11px] text-ink-3">{naira(report.pms_revenue)} @ {naira(report.pms_price)}/L</div>
+                <div className="text-[11px] text-ink-3">{naira(report.pms_revenue)} @ {report.pms_price > 0 ? `${naira(report.pms_price)}/L` : "— /L"}</div>
                 <div className="mt-1 text-[10.5px] text-ink-4">Margin: {numberNG(report.pms_margin, { maximumFractionDigits: 2 })}L · {naira(report.pms_margin_amount)}</div>
                 {report.priceTiers?.PMS?.length > 1 && (
                   <div className="mt-2 space-y-0.5 border-t border-surface pt-2">
@@ -277,7 +278,7 @@ function SummaryInner() {
               <div className="bg-white p-4">
                 <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">AGO</div>
                 <div className="mono mt-1 text-[15px] font-extrabold text-ink">{numberNG(report.ago_litres, { maximumFractionDigits: 2 })}L</div>
-                <div className="text-[11px] text-ink-3">{naira(report.ago_revenue)} @ {naira(report.ago_price)}/L</div>
+                <div className="text-[11px] text-ink-3">{naira(report.ago_revenue)} @ {report.ago_price > 0 ? `${naira(report.ago_price)}/L` : "— /L"}</div>
                 <div className="mt-1 text-[10.5px] text-ink-4">Margin: {numberNG(report.ago_margin, { maximumFractionDigits: 2 })}L · {naira(report.ago_margin_amount)}</div>
                 {report.priceTiers?.AGO?.length > 1 && (
                   <div className="mt-2 space-y-0.5 border-t border-surface pt-2">

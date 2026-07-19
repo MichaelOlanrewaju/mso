@@ -1,4 +1,6 @@
 import React, { useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -26,7 +28,7 @@ export default function ShortagePage() {
   const canReport = auth.role === "supervisor" || auth.role === "cashier" || auth.isGM || auth.isOwner
   const canReview = auth.isGM || auth.isOwner
   const { status, shortages, saving, reportShortage, reviewShortage } = useShortages({ all: canReview })
-  usePageTitle("Shortage — MSO Limpid")
+  usePageTitle(`Shortage — ${getStation(activeStation()).name}`)
 
   const [showForm, setShowForm] = useState(false)
   const [date, setDate] = useState(todayISO())

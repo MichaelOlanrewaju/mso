@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -99,7 +100,7 @@ function startOfMonth(d) {
 export default function DischargePage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Discharge — MSO Limpid")
+  usePageTitle(`Discharge — ${getStation(activeStation()).name}`)
 
   const { records, loading, refresh } = useDischarge(auth.username)
   const [tab, setTab] = useState("records")
@@ -278,7 +279,7 @@ export default function DischargePage() {
           </button>
           <div className="flex-1">
             <div className="text-[16px] font-extrabold text-ink">Discharge</div>
-            <div className="text-[10px] text-ink-4">Fuel discharge recording — MSO Limpid</div>
+            <div className="text-[10px] text-ink-4">Fuel discharge recording — {getStation(activeStation()).name}</div>
           </div>
           {isGMOrOwner && (
             <div className="flex items-center gap-1.5 rounded-full bg-navy/5 px-3 py-1.5 text-[10.5px] font-bold text-navy">

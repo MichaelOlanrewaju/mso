@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -34,7 +35,7 @@ function Section({ title, children }) {
 export default function ProfilePage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Profile — MSO Limpid")
+  usePageTitle(`Profile — ${getStation(activeStation()).name}`)
 
   const [profile, setProfile] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
@@ -186,7 +187,7 @@ export default function ProfilePage() {
         </button>
         <div className="flex-1">
           <div className="text-[16px] font-extrabold text-ink">My Profile</div>
-          <div className="text-[10px] text-ink-4">MSO Limpid Co. Ltd</div>
+          <div className="text-[10px] text-ink-4">{getStation(activeStation()).legalName}</div>
         </div>
       </div>
 

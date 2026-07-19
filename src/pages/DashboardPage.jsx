@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { getStation } from "../config/stations"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
@@ -18,6 +19,7 @@ import SalesTrendCard from "../components/dashboard/SalesTrendCard"
 import TransactionsCard from "../components/dashboard/TransactionsCard"
 import ExpensesCard from "../components/dashboard/ExpensesCard"
 import AlertsCard from "../components/dashboard/AlertsCard"
+import StationSwitcherCard from "../components/dashboard/StationSwitcherCard"
 import QuickActionsCard from "../components/dashboard/QuickActionsCard"
 import PayrollApprovalCard from "../components/dashboard/PayrollApprovalCard"
 import { NotificationPrompt, TestNotificationButton } from "../components/pwa/PWABanners"
@@ -56,7 +58,7 @@ function DashboardInner() {
   )
   const toast = useToast()
 
-  usePageTitle("Dashboard — MSO Limpid")
+  usePageTitle(`Dashboard — ${getStation(activeStation()).name}`)
 
   if (auth.loading || !auth.user) {
     return <div className="min-h-screen bg-pagebg" />
@@ -143,6 +145,12 @@ function DashboardInner() {
           <div className="mx-auto w-full max-w-[1400px]">
             <div className="enter" style={delay(0)}>
               <AdminBanner visible={auth.isOwner} />
+            </div>
+
+            {/* Only for people who actually oversee both sites. A single-station
+                user has nothing to switch to, so they never see it. */}
+            <div className="enter" style={delay(0)}>
+              <StationSwitcherCard show={auth.station === "both" || auth.isOwner || auth.role === "ceo" || auth.role === "gm"} />
             </div>
 
             {notifPermission === "granted" && (

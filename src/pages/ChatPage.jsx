@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
@@ -431,7 +432,7 @@ function ChatInner() {
   /* Conversations opened this session — used to zero their badge optimistically
      until the backend's own count catches up on the next inbox refresh. */
   const [readLocally, setReadLocally] = useState(() => new Set())
-  usePageTitle("Chat — MSO Limpid")
+  usePageTitle(`Chat — ${getStation(activeStation()).name}`)
 
   useEffect(() => {
     if (convStatus === "ready" && !activeConv && window.innerWidth >= 768) {

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -26,7 +27,7 @@ function getAPI(action, extra = {}) {
 export default function PnLPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("P&L — MSO Limpid")
+  usePageTitle(`P&L — ${getStation(activeStation()).name}`)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [dateFrom, setDateFrom] = useState(monthStart())
@@ -69,7 +70,7 @@ export default function PnLPage() {
             </button>
             <div>
               <div className="text-[17px] font-extrabold text-white">Profit &amp; Loss</div>
-              <div className="text-[10px] text-white/40">MSO Limpid Co. Ltd</div>
+              <div className="text-[10px] text-white/40">{getStation(activeStation()).legalName}</div>
             </div>
           </div>
 

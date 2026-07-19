@@ -29,7 +29,7 @@ function Row({ tank }) {
 
 export default function DipSummaryCard({ status, tanks, pmsPrice }) {
   const loading = status === "loading" || status === "idle"
-  const price = Number(pmsPrice) || 1272
+  const price = Number(pmsPrice) || 0
 
   let totalMargin = 0
   let totalRevenue = 0

@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { activeStation } from "../../utils/station"
+import { getStation } from "../../config/stations"
 import { Link, useLocation } from "react-router-dom"
 
 // NOTE: Sidebar is only ever rendered for owner/gm (supervisor and cashier
@@ -39,6 +40,7 @@ const buildSections = () => [
       { href: `/payroll/${activeStation()}`,   icon: "bi-wallet2",             text: "Payroll" },
       { href: `/add-staff/${activeStation()}`, icon: "bi-person-plus",         text: "Add Staff" },
       { href: `/station-assignments`,          icon: "bi-arrow-left-right",    text: "Station Assignments" },
+      { href: `/correct-prices`,               icon: "bi-tag",                 text: "Correct Prices" },
     ],
   },
   {
@@ -70,6 +72,7 @@ function NavLinkItem({ href, icon, text }) {
 }
 
 export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLogout, mobileOpen, onClose, name, role, avatarInitials }) {
+  const station = getStation(activeStation())
   /* Built per-render so the links follow the active station. As a module
      constant it froze to whatever station was active when the file first
      loaded. */
@@ -89,11 +92,14 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
         {/* Logo + user */}
         <div className="mb-5 px-2">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[9px] bg-navy">
-              <span className="text-[11px] font-extrabold text-white">MSO</span>
+            {/* The station mark follows whoever you're signed in as. Showing an
+                MSO badge while someone works at M&M is the kind of small wrongness
+                that makes people distrust the rest of the numbers. */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-[9px]" style={{ background: "var(--brand-primary)" }}>
+              <span className="text-[11px] font-extrabold text-white">{station.short}</span>
             </div>
             <div className="min-w-0">
-              <div className="truncate text-[12px] font-bold text-ink">{name || "MSO Limpid"}</div>
+              <div className="truncate text-[12px] font-bold text-ink">{name || station.name}</div>
               <div className="text-[10px] capitalize text-ink-4">{role || ""}</div>
             </div>
           </div>

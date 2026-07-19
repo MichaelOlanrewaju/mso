@@ -1,4 +1,6 @@
 import React, { useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -67,7 +69,7 @@ function CashupInner() {
   const auth = useAuth({ requireAuth: true })
   const toast = useToast()
   const navigate = useNavigate()
-  usePageTitle("Cash Reconciliation — MSO Limpid")
+  usePageTitle(`Cash Reconciliation — ${getStation(activeStation()).name}`)
 
   const {
     date, setDate,

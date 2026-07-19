@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -24,7 +25,7 @@ function getAPI(action, extra = {}) {
 export default function VariancePage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Variance — MSO Limpid")
+  usePageTitle(`Variance — ${getStation(activeStation()).name}`)
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
   const [dateFrom, setDateFrom] = useState(weekAgoStr())

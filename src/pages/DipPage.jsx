@@ -15,7 +15,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useDipData } from "../hooks/useDipData"
 /* Tanks come from the station config now — M&M has no TK3, so a shared list
    would render a dip field for a tank that isn't there. */
-import { tanksFor } from "../config/stations"
+import { tanksFor, getStation } from "../config/stations"
 import { activeStation } from "../utils/station"
 import { usePrices } from "../hooks/usePrices"
 import { usePageTitle } from "../hooks/usePageTitle"
@@ -39,7 +39,7 @@ function DipInner() {
 
   const navigate = useNavigate()
   const toast = useToast()
-  usePageTitle("Dip Entry — MSO Limpid")
+  usePageTitle(`Dip Entry — ${getStation(activeStation()).name}`)
 
   const [mode, setMode] = useState("open")
   const [current, setCurrent] = useState(0)

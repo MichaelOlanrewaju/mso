@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -23,7 +24,7 @@ function getAPI(action, extra = {}) {
 export default function DebtorsPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Debtors — MSO Limpid")
+  usePageTitle(`Debtors — ${getStation(activeStation()).name}`)
   const [debtors, setDebtors] = useState([])
   const [totalOutstanding, setTotalOutstanding] = useState(0)
   const [loading, setLoading] = useState(true)

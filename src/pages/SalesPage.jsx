@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import DateRow from "../components/dip/DateRow"
@@ -10,15 +10,17 @@ import WizardNav from "../components/dip/WizardNav"
 import { PumpStepPanel } from "../components/sales/PumpStepPanel"
 import PumpStepsDrawer from "../components/sales/PumpStepsDrawer"
 import PhotoCapture from "../components/dip/PhotoCapture"
+import PriceCutoverModal from "../components/sales/PriceCutoverModal"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePrices } from "../hooks/usePrices"
+import { usePriceCutover } from "../hooks/usePriceCutover"
 import { useSalesEntry } from "../hooks/useSalesEntry"
 import { usePageTitle } from "../hooks/usePageTitle"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
    have collected dips for a tank that does not exist. */
-import { tanksFor, pumpsFor } from "../config/stations"
+import { tanksFor, pumpsFor, getStation } from "../config/stations"
 import { activeStation } from "../utils/station"
 
 function todayISO() {
@@ -35,6 +37,13 @@ function SalesInner() {
   const auth = useAuth({ requireAuth: true })
   const [date, setDate] = useState(todayISO())
 
+  /* A price change sends the supervisor here with ?cutover=pms (or ago). That
+     opens the cutover sheet for exactly those pumps — the ones whose price
+     actually moved. */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const cutoverProduct = (searchParams.get("cutover") || "").toUpperCase()
+  const { runCutover, saving: cuttingOver } = usePriceCutover(auth.username)
+
   const {
     status, readings, hasOpening, hasClosing, existingPhotos,
     updateReading, submit, savePhoto, saving: submitting, refresh,
@@ -42,9 +51,29 @@ function SalesInner() {
   } = useSalesEntry(auth.username, auth.name, date)
   const { prices } = usePrices()
 
+  /* Run the cutover: one reading per pump closes the old-price session and
+     opens the new-price one. On success we clear the ?cutover flag and reload,
+     so the page reflects the freshly-opened session. */
+  const handleCutover = async readings => {
+    const res = await runCutover({
+      date,
+      product: cutoverProduct,
+      newPrice: cutoverProduct === "AGO" ? prices.ago : prices.pms,
+      readings,
+    })
+    if (res.ok) {
+      toast.showToast("Pumps reopened", res.message || "Cutover complete", "ok")
+      searchParams.delete("cutover")
+      setSearchParams(searchParams, { replace: true })
+      refresh()
+    } else {
+      toast.showToast("Cutover failed", res.error || "Try again", "err")
+    }
+  }
+
   const navigate = useNavigate()
   const toast = useToast()
-  usePageTitle("Pump Metres — MSO Limpid")
+  usePageTitle(`Pump Metres — ${getStation(activeStation()).name}`)
 
   const [mode, setMode] = useState("open")
   const [current, setCurrent] = useState(0)
@@ -228,6 +257,15 @@ function SalesInner() {
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #F5F3FF 0%, #F1F5FB 220px)" }}>
+      <PriceCutoverModal
+        open={cutoverProduct === "PMS" || cutoverProduct === "AGO"}
+        product={cutoverProduct}
+        newPrice={cutoverProduct === "AGO" ? prices.ago : prices.pms}
+        oldPrice={0}
+        saving={cuttingOver}
+        onClose={() => { searchParams.delete("cutover"); setSearchParams(searchParams, { replace: true }) }}
+        onConfirm={handleCutover}
+      />
       <SafeAreaDebug />
       <div
         className="sticky top-0 z-[200] px-4 pb-4 text-white shadow-lg"

@@ -1,4 +1,5 @@
 import React from "react"
+import { useNavigate } from "react-router-dom"
 import { getStation } from "../../config/stations"
 import { activeStation } from "../../utils/station"
 import { useClock } from "../../hooks/useClock"
@@ -6,7 +7,21 @@ import { useClock } from "../../hooks/useClock"
 export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefresh, title = "Dashboard" }) {
   const { time, date } = useClock()
 
+  const navigate = useNavigate()
   const stationName = getStation(activeStation()).name
+
+  /* Only people with access to more than one station see a switcher. A
+     supervisor tied to MSO has nothing to switch to. */
+  let canSwitchStation = false
+  try {
+    const raw = localStorage.getItem("mso_session")
+    if (raw) {
+      const u = JSON.parse(raw).user || {}
+      const st = String(u.station || "").toLowerCase()
+      const role = String(u.role || "").toLowerCase()
+      canSwitchStation = st === "both" || role === "owner" || role === "ceo"
+    }
+  } catch { /* no session — no switcher */ }
 
   return (
     <header
@@ -43,9 +58,24 @@ export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefres
               className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
               style={{ background: "var(--brand-accent)" }}
             />
-            <span className="truncate text-[9.5px] font-bold text-brand md:text-[10.5px]">
-              {stationName}
-            </span>
+            {/* Owners and anyone on `both` get a one-tap way back to the station
+                picker — no digging through a menu to move between MSO and M&M. */}
+            {canSwitchStation ? (
+              <button
+                type="button"
+                onClick={() => navigate("/select")}
+                title="Switch station"
+                aria-label={`Viewing ${stationName}. Tap to switch station.`}
+                className="flex items-center gap-1 truncate rounded-full px-1.5 py-px text-[9.5px] font-bold text-brand transition-colors hover:bg-surface active:scale-95 md:text-[10.5px]"
+              >
+                {stationName}
+                <i className="bi bi-chevron-expand text-[8px] opacity-60" />
+              </button>
+            ) : (
+              <span className="truncate text-[9.5px] font-bold text-brand md:text-[10.5px]">
+                {stationName}
+              </span>
+            )}
             <span className="text-border">·</span>
             <span className="truncate text-[9.5px] text-ink-4 md:text-[10.5px]">{date}</span>
           </div>

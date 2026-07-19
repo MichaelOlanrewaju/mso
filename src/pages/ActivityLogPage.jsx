@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -45,7 +46,7 @@ function timeLabel(iso) {
 export default function ActivityLogPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Activity Log — MSO Limpid")
+  usePageTitle(`Activity Log — ${getStation(activeStation()).name}`)
   const [entries, setEntries] = useState([])
   const [actions, setActions] = useState([])
   const [loading, setLoading] = useState(true)

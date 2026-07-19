@@ -7,7 +7,9 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 import { activeStation } from "../utils/station"
 
 export function usePrices() {
-  const [prices, setPrices] = useState({ pms: 1272, ago: 1819, lpg: 1250 })
+  /* 0 means "no price recorded" — the UI renders that as "—". Seeding real-
+     looking numbers made stale prices indistinguishable from current ones. */
+  const [prices, setPrices] = useState({ pms: 0, ago: 0, lpg: 0 })
   const [since, setSince] = useState({ pms: "default", ago: "default", lpg: "default" })
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,7 +36,7 @@ export function usePrices() {
       .then(res => res.json())
       .then(d => {
         if (!isMounted.current || !d.ok) return
-        setPrices({ pms: d.pmsPrice ? Number(d.pmsPrice) : 1272, ago: d.agoPrice ? Number(d.agoPrice) : 1819, lpg: d.lpgPrice ? Number(d.lpgPrice) : 1250 })
+        setPrices({ pms: Number(d.pmsPrice) || 0, ago: Number(d.agoPrice) || 0, lpg: Number(d.lpgPrice) || 0 })
         setSince({ pms: d.pmsSince || "default", ago: d.agoSince || "default", lpg: d.lpgSince || "default" })
         setHistory(Array.isArray(d.history) ? d.history : [])
         setLoading(false)

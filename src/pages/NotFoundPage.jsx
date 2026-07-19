@@ -1,10 +1,12 @@
 import React from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { Link } from "react-router-dom"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 
 export default function NotFoundPage() {
-  usePageTitle("Page not found — MSO Limpid")
+  usePageTitle("Page not found")
   const auth = useAuth({ requireAuth: false })
 
   const backTo = auth.user ? dashboardPathFor({ role: auth.role, station: auth.station }) : "/"

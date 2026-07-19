@@ -1,4 +1,6 @@
 import React, { useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -21,7 +23,7 @@ export default function PricePage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
   const { prices, since, history, loading, saving, savePrice } = usePrices()
-  usePageTitle("Fuel Prices — MSO Limpid")
+  usePageTitle(`Fuel Prices — ${getStation(activeStation()).name}`)
 
   const [product, setProduct] = useState("PMS")
   const [price, setPrice] = useState("")

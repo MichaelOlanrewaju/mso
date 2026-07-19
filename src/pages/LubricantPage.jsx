@@ -1,4 +1,6 @@
 import React, { useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
@@ -45,7 +47,7 @@ function StockPill({ stock, flag }) {
 
 export default function LubricantPage() {
   const auth = useAuth({ requireAuth: true })
-  usePageTitle("Oil — MSO Limpid")
+  usePageTitle(`Oil — ${getStation(activeStation()).name}`)
 
   const canPrice = auth.role === "supervisor" || auth.isGM || auth.isOwner || auth.role === "ceo"
   const canCost = auth.isGM || auth.isOwner || auth.role === "ceo"

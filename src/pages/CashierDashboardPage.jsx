@@ -1,4 +1,6 @@
 import React, { useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -29,7 +31,7 @@ function CashierInner() {
   const { data, loading, refresh } = useDashboardData(auth.username)
   const { lpgKg, setLpgKg, lpgPrice, setLpgPrice, lpgRemitted, setLpgRemitted, lpgSales, lpgVariance } = useCashupData(auth.username)
   const navigate = useNavigate()
-  usePageTitle("Cashier — MSO Limpid")
+  usePageTitle(`Cashier — ${getStation(activeStation()).name}`)
 
   if (auth.loading || !auth.user) {
     return <div className="min-h-screen bg-pagebg" />

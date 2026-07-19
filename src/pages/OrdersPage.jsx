@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -26,7 +27,7 @@ const STATUS_STYLE = { PENDING:"bg-surface text-ink-4", ORDERED:"bg-cyan-light t
 export default function OrdersPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Orders — MSO Limpid")
+  usePageTitle(`Orders — ${getStation(activeStation()).name}`)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -72,7 +73,7 @@ export default function OrdersPage() {
           </button>
           <div className="flex-1">
             <div className="text-[16px] font-extrabold text-ink">Stock Orders</div>
-            <div className="text-[10px] text-ink-4">Order tracking — MSO Limpid</div>
+            <div className="text-[10px] text-ink-4">Order tracking — {getStation(activeStation()).name}</div>
           </div>
         </div>
         <div className="flex border-t border-border">

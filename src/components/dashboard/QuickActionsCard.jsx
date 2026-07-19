@@ -15,6 +15,7 @@ const ACTIONS = [
   { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Summary",            href: `/summary/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: `/shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
   { icon: "bi-arrow-left-right",        iconBg: "#F5EBEF", iconColor: "#5f1f33", label: "Station Assign.",     href: "/station-assignments",          roles: ["ceo","owner","gm"] },
+  { icon: "bi-tag",                     iconBg: "#FEF3C7", iconColor: "#B45309", label: "Correct Prices",      href: "/correct-prices",               roles: ["ceo","owner"] },
 ]
 
 export default function QuickActionsCard({ role }) {

@@ -1,4 +1,6 @@
 import React, { useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -39,7 +41,7 @@ export default function AddStaffPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
   const { staff, saving, saveStaffMember, inviteStaff } = useStaff(auth.username)
-  usePageTitle("Add Staff — MSO Limpid")
+  usePageTitle(`Add Staff — ${getStation(activeStation()).name}`)
 
   const [username, setUsername]       = useState("")
   const [name, setName]               = useState("")
@@ -111,7 +113,7 @@ export default function AddStaffPage() {
         </button>
         <div className="flex-1">
           <div className="text-[16px] font-extrabold text-ink">Add Staff</div>
-          <div className="text-[10px] text-ink-4">MSO Limpid Co. Ltd</div>
+          <div className="text-[10px] text-ink-4">{getStation(activeStation()).legalName}</div>
         </div>
       </div>
 

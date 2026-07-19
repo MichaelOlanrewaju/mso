@@ -1,5 +1,6 @@
 import React from "react"
 import { activeStation } from "../../utils/station"
+import { getStation } from "../../config/stations"
 import { useNavigate } from "react-router-dom"
 
 // NOTE: MobileDrawer is only ever rendered for owner/gm (supervisor and
@@ -23,6 +24,7 @@ const buildLinks = () => [
 ]
 
 export default function MobileDrawer({ open, onClose, onLogout }) {
+  const station = getStation(activeStation())
   /* Per-render, so links track the active station rather than freezing to
      whatever was active at first import. */
   const LINKS = buildLinks()
@@ -38,8 +40,8 @@ export default function MobileDrawer({ open, onClose, onLogout }) {
         <div className="flex items-center justify-between border-b border-border px-5 py-4"
           style={{ paddingTop: "max(16px,var(--sat))" }}>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-navy">
-              <span className="text-[10px] font-extrabold text-white">MSO</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-[8px]" style={{ background: "var(--brand-primary)" }}>
+              <span className="text-[10px] font-extrabold text-white">{station.short}</span>
             </div>
             <span className="text-[14px] font-extrabold text-ink">Menu</span>
           </div>

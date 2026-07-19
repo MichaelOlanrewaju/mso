@@ -2,7 +2,7 @@ import React from "react"
 import { useNavigate } from "react-router-dom"
 import { activeStation } from "../../utils/station"
 
-function buildCashupAlerts(pendingCashups, onApprove, onReject) {
+function buildCashupAlerts(pendingCashups, onApprove, onReject, onView) {
   if (!pendingCashups || !pendingCashups.length) return []
   return pendingCashups.map(c => ({
     key: `cashup-${c.date}`,
@@ -11,8 +11,12 @@ function buildCashupAlerts(pendingCashups, onApprove, onReject) {
     iconColor: "var(--brand-accent)",
     title: `Cash Reconciliation — ${c.date}`,
     text: `${c.submittedBy || "Cashier"}: Expected ₦${Math.round(c.grandTotal).toLocaleString("en-NG")} · To Bank ₦${Math.round(c.toBank).toLocaleString("en-NG")}${c.remarks ? ` — "${c.remarks}"` : ""}`,
+    /* View comes FIRST and is the neutral option. Approving money without
+       seeing the underlying figures is exactly the habit this app should not
+       encourage — the summary shows the full breakdown for that day. */
     actions: onApprove
       ? [
+          { label: "View", onClick: () => onView(c.date), tone: "neutral" },
           { label: "Approve", onClick: () => onApprove(c.date), tone: "green" },
           { label: "Reject", onClick: () => onReject(c.date), tone: "red" },
         ]
@@ -43,7 +47,7 @@ function typeLabel(type) {
   return "a record"
 }
 
-function buildEditAlerts(editRequests, onApprove, onReject) {
+function buildEditAlerts(editRequests, onApprove, onReject, onView) {
   if (!editRequests || !editRequests.length) return []
   return editRequests.map(r => ({
     key: `edit-${r.rowIndex}`,
@@ -54,6 +58,7 @@ function buildEditAlerts(editRequests, onApprove, onReject) {
     text: `${r.name || r.requestedBy}: ${r.message || "Requesting permission to edit a submitted entry."}`,
     actions: onApprove
       ? [
+          { label: "View", onClick: () => onView(r.date), tone: "neutral" },
           { label: "Approve", onClick: () => onApprove(r.rowIndex), tone: "green" },
           { label: "Reject", onClick: () => onReject(r.rowIndex), tone: "red" },
         ]
@@ -111,15 +116,21 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
      made per item. */
   const [dismissed, setDismissed] = React.useState(false)
 
+  /* Open the full record for a date so the approver can actually read it
+     before deciding. */
+  const handleViewDate = date => {
+    navigate(`/summary/${activeStation()}?date=${date}`)
+  }
+
   const handlePayrollNavigate = month => {
     navigate(`/payroll/${activeStation()}?month=${month}`)
   }
 
   const alerts = [
     ...buildPayrollAlerts(pendingPayroll, payrollReadOnly ? null : handlePayrollNavigate),
-    ...buildCashupAlerts(pendingCashups, onApproveCashup, onRejectCashup),
+    ...buildCashupAlerts(pendingCashups, onApproveCashup, onRejectCashup, handleViewDate),
     ...buildShortageAlerts(shortages, onReviewShortage),
-    ...buildEditAlerts(editRequests, onApproveEdit, onRejectEdit),
+    ...buildEditAlerts(editRequests, onApproveEdit, onRejectEdit, handleViewDate),
     ...buildTankAlerts(tankLevels),
   ]
 
@@ -239,6 +250,8 @@ export default function AlertsCard({ tankLevels, editRequests, onApproveEdit, on
                         className={`rounded-[9px] px-3.5 py-1.5 text-[11px] font-bold transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 ${
                           act.tone === "green"
                             ? "text-white hover:brightness-110 focus-visible:outline-green"
+                            : act.tone === "neutral"
+                            ? "border border-border bg-white text-ink-2 hover:bg-surface focus-visible:outline-ink-3"
                             : "border border-[#FECACA] bg-white text-red hover:bg-red-light focus-visible:outline-red"
                         }`}
                         style={

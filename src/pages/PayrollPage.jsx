@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -132,7 +134,7 @@ function GMView({ auth, navigate }) {
   const [remarks, setRemarks] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
   const seededKey = useRef("")
-  usePageTitle("Payroll — MSO Limpid")
+  usePageTitle(`Payroll — ${getStation(activeStation()).name}`)
 
   // Seed draft ONLY for fresh months (no existing record)
   useEffect(() => {
@@ -253,7 +255,7 @@ function GMView({ auth, navigate }) {
             </button>
             <div className="flex-1">
               <div className="text-[17px] font-extrabold tracking-[-0.02em] text-white">Payroll</div>
-              <div className="text-[10px] text-white/40">MSO Limpid Co. Ltd</div>
+              <div className="text-[10px] text-white/40">{getStation(activeStation()).legalName}</div>
             </div>
             <button type="button" onClick={() => navigate(`/add-staff/${auth.station}`)}
               className="flex h-9 items-center gap-1.5 rounded-[9px] border border-white/10 bg-white/10 px-3 text-[11.5px] font-bold text-white">
@@ -596,7 +598,7 @@ function OwnerView({ auth, navigate }) {
   const [feedback, setFeedback] = useState(null)
   const [processing, setProcessing] = useState(null) // "approve" | "reject" | null
   const autoPicked = useRef(false)
-  usePageTitle("Payroll Approval — MSO Limpid")
+  usePageTitle(`Payroll Approval — ${getStation(activeStation()).name}`)
 
   useEffect(() => {
     if (autoPicked.current || searchParams.get("month")) return
@@ -848,7 +850,7 @@ function OwnerView({ auth, navigate }) {
 export default function PayrollPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Payroll — MSO Limpid")
+  usePageTitle(`Payroll — ${getStation(activeStation()).name}`)
 
   const isGM    = auth.isGM
   const isOwner = auth.isOwner || auth.role === "ceo" || auth.role === "owner" || auth.username === "owner"

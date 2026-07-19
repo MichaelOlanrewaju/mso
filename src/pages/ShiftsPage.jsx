@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -22,7 +23,7 @@ function getAPI(action, extra = {}) {
 export default function ShiftsPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  usePageTitle("Shifts — MSO Limpid")
+  usePageTitle(`Shifts — ${getStation(activeStation()).name}`)
   const [shifts, setShifts] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -69,7 +70,7 @@ export default function ShiftsPage() {
           </button>
           <div className="flex-1">
             <div className="text-[16px] font-extrabold text-ink">Shifts</div>
-            <div className="text-[10px] text-ink-4">{isSupervisor ? "Shift management — MSO Limpid" : "Shift log — view only"}</div>
+            <div className="text-[10px] text-ink-4">{isSupervisor ? `Shift management — ${getStation(activeStation()).name}` : "Shift log — view only"}</div>
           </div>
         </div>
         {isSupervisor && (

@@ -1,4 +1,6 @@
 import React from "react"
+import { activeStation } from "../utils/station"
+import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -11,7 +13,7 @@ function ExpensesInner() {
   const auth = useAuth({ requireAuth: true })
   const toast = useToast()
   const navigate = useNavigate()
-  usePageTitle("Expenses — MSO Limpid")
+  usePageTitle(`Expenses — ${getStation(activeStation()).name}`)
 
   const { status, items, total, refresh, desc, setDesc, amt, setAmt, addExpense, saving } = useExpensesData(auth.username)
 

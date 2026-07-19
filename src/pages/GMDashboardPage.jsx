@@ -17,6 +17,7 @@ import TankLevelsCard from "../components/dashboard/TankLevelsCard"
 import SalesTrendCard from "../components/dashboard/SalesTrendCard"
 import TransactionsCard from "../components/dashboard/TransactionsCard"
 import AlertsCard from "../components/dashboard/AlertsCard"
+import StationSwitcherCard from "../components/dashboard/StationSwitcherCard"
 import QuickActionsCard from "../components/dashboard/QuickActionsCard"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePWA, useLiveNotifications } from "../hooks/usePWA"
@@ -125,6 +126,12 @@ function GMInner() {
 
         <div className="flex-1 p-3.5 pb-[100px] md:p-6 md:pb-6">
           <div className="mx-auto w-full max-w-[1400px]">
+            {/* Only for people who oversee both sites — a GM tied to one station
+                has nothing to switch to and never sees this. */}
+            <div className="enter" style={delay(0)}>
+              <StationSwitcherCard show={auth.station === "both" || auth.role === "gm" || auth.role === "owner" || auth.role === "ceo"} />
+            </div>
+
             {notifPermission === "granted" && (
               <div className="enter mb-3 flex justify-end" style={delay(0)}>
                 <TestNotificationButton />

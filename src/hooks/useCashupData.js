@@ -15,7 +15,10 @@ export function useCashupData(username, name, initialDate) {
   const [date, setDate] = useState(initialDate || todayISO())
   const [expected, setExpected] = useState({
     grandTotal: 0, pmsLitres: 0, agoLitres: 0,
-    pmsPrice: 1269, agoPrice: 1799, pmsRevenue: 0, agoRevenue: 0,
+    /* 0, not a made-up price. A fabricated default here doesn't just show a
+       wrong number — it gets SUBMITTED into DailySales at cash-up and becomes
+       stored "real" data that the Summary and Records pages then report. */
+    pmsPrice: 0, agoPrice: 0, pmsRevenue: 0, agoRevenue: 0,
     lpgKg: 0, lpgPrice: 0, lpgRevenue: 0,
     hasData: false, closingDipDone: false,
   })
@@ -75,8 +78,8 @@ export function useCashupData(username, name, initialDate) {
           grandTotal: Number(r.grand_total) || 0,
           pmsLitres: Number(r.pms_litres) || 0,
           agoLitres: Number(r.ago_litres) || 0,
-          pmsPrice: Number(r.pms_price) || 1269,
-          agoPrice: Number(r.ago_price) || 1799,
+          pmsPrice: Number(r.pms_price) || 0,
+          agoPrice: Number(r.ago_price) || 0,
           pmsRevenue: Number(r.pms_revenue) || 0,
           agoRevenue: Number(r.ago_revenue) || 0,
           lpgKg: Number(r.lpg_kg) || 0,
@@ -252,8 +255,8 @@ export function useCashupData(username, name, initialDate) {
       pos_mp_charge: mpCharge + trfMPCharge, pos_zm_charge: zmCharge,
       emtl_counts: emtlAmount,
       grand_total: expected.grandTotal || 0,
-      pms_litres: expected.pmsLitres || 0, pms_price: expected.pmsPrice || 1269, pms_revenue: expected.pmsRevenue || 0,
-      ago_litres: expected.agoLitres || 0, ago_price: expected.agoPrice || 1799, ago_revenue: expected.agoRevenue || 0,
+      pms_litres: expected.pmsLitres || 0, pms_price: expected.pmsPrice || 0, pms_revenue: expected.pmsRevenue || 0,
+      ago_litres: expected.agoLitres || 0, ago_price: expected.agoPrice || 0, ago_revenue: expected.agoRevenue || 0,
       lpg_remitted: lpgRemittedNum,
       lubricant_rev: Math.round(lubricantTotal),
       pms_cash_summary: cashSummary.pms, oil_cash_summary: cashSummary.oil,

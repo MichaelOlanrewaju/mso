@@ -17,7 +17,7 @@ function DataBox({ label, value, bg, border, color }) {
 export default function AgoCard({ status, ago, agoPrice }) {
   const loading = status === "loading" || status === "idle"
   const hasData = Boolean(ago)
-  const price = Number(agoPrice) || 1819
+  const price = Number(agoPrice) || 0
 
   const pct = hasData && ago.capacity > 0 ? Math.round((ago.closing / ago.capacity) * 100) : 0
   const revenue = hasData ? ago.diff * price : 0

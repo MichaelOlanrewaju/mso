@@ -10,7 +10,7 @@ import { naira, numberNG, initials, roleLabel } from "../utils/format"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
    have collected dips for a tank that does not exist. */
-import { tanksFor, pumpsFor } from "../config/stations"
+import { tanksFor, pumpsFor, getStation } from "../config/stations"
 import { activeStation } from "../utils/station"
 /* The station comes from the signed-in user's session, not a build-time env
    var — one deployment serves both MSO and M&M. */
@@ -103,7 +103,7 @@ function RecordsInner() {
   const [exportTo, setExportTo] = useState(todayISO())
   const [exporting, setExporting] = useState(false)
 
-  usePageTitle("Records — MSO Limpid")
+  usePageTitle(`Records — ${getStation(activeStation()).name}`)
 
   if (auth.loading || !auth.user) {
     return <div className="min-h-screen bg-pagebg" />
@@ -435,6 +435,7 @@ function RecordsInner() {
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.pms_revenue)}</td>
                           <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.pms_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.pms_margin).toFixed(2)}L</td>
                         </tr>
+                        <PriceTierRows tiers={report.priceTiers?.PMS} tone="text-cyan-dark" />
                         <tr>
                           <td className="px-3.5 py-2.5">
                             <span className="inline-flex items-center rounded-full border border-amber/25 bg-amber-light px-2.5 py-[3px] text-[10.5px] font-bold text-amber">AGO</span>
@@ -444,11 +445,18 @@ function RecordsInner() {
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.ago_revenue)}</td>
                           <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.ago_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.ago_margin).toFixed(2)}L</td>
                         </tr>
+                        <PriceTierRows tiers={report.priceTiers?.AGO} tone="text-amber" />
                       </tbody>
                     </table>
                   </div>
                   <div className="border-t border-surface bg-surface/40 px-3.5 py-2.5 text-[10px] leading-relaxed text-ink-4">
                     <strong className="text-ink-3">Dip vs Pump</strong> is a stock check in litres, not money — the gap between what the tank dip lost and what the pumps sold. Near zero is healthy; a large figure means fuel left the tank without a matching sale, and is worth investigating.
+                    {(report.priceTiers?.PMS?.length > 1 || report.priceTiers?.AGO?.length > 1) && (
+                      <>
+                        {" "}<br />
+                        <strong className="text-ink-3">Price/L</strong> is the weighted average for the day because the price changed — each band is listed beneath its product.
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -526,6 +534,35 @@ function RecordsInner() {
 
       <BottomNav homePath={dashboardPathFor({ role: auth.role, station: auth.station })} />
     </div>
+  )
+}
+
+/* When a price changes mid-day the single "Price/L" figure is a weighted
+   average — true, but it hides that (say) 12,000L sold at ₦940 and 3,000L at
+   ₦1,100. Those bands are the actual record, so they're listed underneath.
+   Only rendered when there's more than one, since a normal day needs no
+   breakdown. */
+function PriceTierRows({ tiers, tone }) {
+  if (!tiers || tiers.length < 2) return null
+  return (
+    <>
+      {tiers.map((t, i) => (
+        <tr key={i} className="border-b border-surface bg-surface/30">
+          <td className="py-1.5 pl-7 pr-3.5">
+            <span className="text-[10px] text-ink-4">
+              <i className="bi bi-arrow-return-right mr-1 text-[8px] opacity-50" />
+              Price {i + 1}
+            </span>
+          </td>
+          <td className="mono px-3.5 py-1.5 text-[11px] text-ink-3">
+            {numberNG(t.litres, { maximumFractionDigits: 2 })}L
+          </td>
+          <td className={`mono px-3.5 py-1.5 text-[11px] font-semibold ${tone}`}>{naira(t.price)}</td>
+          <td className="mono px-3.5 py-1.5 text-[11px] text-ink-3">{naira(t.amount)}</td>
+          <td className="px-3.5 py-1.5" />
+        </tr>
+      ))}
+    </>
   )
 }
 
