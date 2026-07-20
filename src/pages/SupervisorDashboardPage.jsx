@@ -160,10 +160,13 @@ export default function SupervisorDashboardPage() {
         <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Actions</div>
         <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {[
-            { icon: "bi-water", bg: "#EEF0FF", color: "var(--brand-primary)", label: "Dip Entry", to: "/dip/mso" },
-            { icon: "bi-speedometer2", bg: "#F5F3FF", color: "#7C3AED", label: "Pump", to: "/sales/mso" },
-            { icon: "bi-chat-dots", bg: "var(--brand-accent-light)", color: "var(--brand-accent)", label: "Staff Chat", to: "/chat/mso" },
-            { icon: "bi-truck", bg: "#FFF1F2", color: "#DC2626", label: "Discharge", to: "/discharge/mso" },
+            /* These must follow the signed-in user's station. Hardcoded /mso
+               sent an M&M supervisor to MSO's pages — and worse, any reading
+               they entered there would have been written to MSO's spreadsheet. */
+            { icon: "bi-water", bg: "#EEF0FF", color: "var(--brand-primary)", label: "Dip Entry", to: `/dip/${auth.station}` },
+            { icon: "bi-speedometer2", bg: "#F5F3FF", color: "#7C3AED", label: "Pump", to: `/sales/${auth.station}` },
+            { icon: "bi-chat-dots", bg: "var(--brand-accent-light)", color: "var(--brand-accent)", label: "Staff Chat", to: `/chat/${auth.station}` },
+            { icon: "bi-truck", bg: "#FFF1F2", color: "#DC2626", label: "Discharge", to: `/discharge/${auth.station}` },
           ].map(qa => (
             <button
               key={qa.label}

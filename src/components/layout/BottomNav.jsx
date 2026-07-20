@@ -13,14 +13,17 @@ function itemClass({ isActive }) {
 // cashier have their own dedicated bottom nav built into their dashboard
 // pages) — so nothing here should be a floor-operations task like Record
 // Sales, Tank Dip, or Expenses entry. Those belong to supervisor/cashier only.
-export default function BottomNav({ homePath = "/dashboard/mso" }) {
+export default function BottomNav({ homePath }) {
+  /* Default to the ACTIVE station, not a hardcoded /mso — otherwise an M&M user
+     tapping Home lands on MSO's dashboard. */
+  const home = homePath || `/dashboard/${activeStation()}`
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-[500] flex px-1 py-1.5 shadow-[0_-4px_20px_rgba(19,6,86,.35)] lg:hidden"
       style={{ paddingBottom: "calc(6px + var(--sab))", background: "var(--brand-gradient)" }}
     >
       <div className="flex w-full justify-around">
-        <NavLink to={homePath} end className={itemClass}>
+        <NavLink to={home} end className={itemClass}>
           <i className="bi bi-grid-1x2-fill" />
           <span>Home</span>
         </NavLink>

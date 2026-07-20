@@ -18,12 +18,16 @@ const HERO_STYLES = {
   over: { bg: "linear-gradient(135deg, #1188B5, var(--brand-accent))", label: "OVER", sub: "Collection exceeds expected" },
 }
 
-const QUICK_ACTIONS = [
-  { icon: "bi-check2-all", bg: "#F0FDF4", color: "#16A34A", label: "Enter Reconciliation", to: "/cashup/mso" },
-  { icon: "bi-receipt-cutoff", bg: "#FEF2F2", color: "#DC2626", label: "Add Expense", to: "/expenses/mso" },
-  { icon: "bi-exclamation-triangle", bg: "#FFF1F2", color: "#DC2626", label: "Report Shortage", to: "/shortage/mso" },
-  { icon: "bi-chat-dots", bg: "#F5F3FF", color: "#6D28D9", label: "Staff Chat", to: "/chat/mso" },
-  { icon: "bi-printer", bg: "#F8FAFC", color: "#64748B", label: "Daily Summary", to: "/summary/mso" },
+/* Built per-render from the signed-in cashier's station. As a module constant
+   these were hardcoded to /mso, so an M&M cashier tapping "Enter Reconciliation"
+   landed on MSO's page — and anything submitted there would have gone into MSO's
+   spreadsheet. */
+const buildQuickActions = station => [
+  { icon: "bi-check2-all", bg: "#F0FDF4", color: "#16A34A", label: "Enter Reconciliation", to: `/cashup/${station}` },
+  { icon: "bi-receipt-cutoff", bg: "#FEF2F2", color: "#DC2626", label: "Add Expense", to: `/expenses/${station}` },
+  { icon: "bi-exclamation-triangle", bg: "#FFF1F2", color: "#DC2626", label: "Report Shortage", to: `/shortage/${station}` },
+  { icon: "bi-chat-dots", bg: "#F5F3FF", color: "#6D28D9", label: "Staff Chat", to: `/chat/${station}` },
+  { icon: "bi-printer", bg: "#F8FAFC", color: "#64748B", label: "Daily Summary", to: `/summary/${station}` },
 ]
 
 function CashierInner() {
@@ -246,7 +250,7 @@ function CashierInner() {
 
         <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Actions</div>
         <div className="mb-5 grid grid-cols-2 gap-2.5">
-          {QUICK_ACTIONS.map(qa => (
+          {buildQuickActions(auth.station).map(qa => (
             <button
               key={qa.label}
               type="button"
