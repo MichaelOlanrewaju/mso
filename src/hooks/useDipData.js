@@ -19,9 +19,12 @@ const LOCK_POLL_MS = 15000
 /* Built from the station's real tank list. Hardcoding TK1..TK5 would create a
    TK3 entry at M&M — a tank that doesn't exist — and every `tankState[t.id]`
    lookup elsewhere would then quietly read and write a phantom reading. */
+/* Fields start BLANK ("") rather than 0. Seeding 0 meant every tank arrived
+   already claiming to have been measured as empty, so a supervisor typing a
+   genuine 0 changed nothing and had no way to tell whether it registered. */
 function emptyTankState() {
   const state = {}
-  tanksFor(activeStation()).forEach(t => { state[t.id] = { open: 0, close: 0 } })
+  tanksFor(activeStation()).forEach(t => { state[t.id] = { open: "", close: "" } })
   return state
 }
 
@@ -161,15 +164,21 @@ export function useDipData(username, selectedDate) {
           const next = emptyTankState()
           tanksFor(activeStation()).forEach(t => {
             const k = fieldPrefix(t.id)
+            const rawOpen = r[`${k}_opening`]
+            const rawClose = r[`${k}_closing`]
             next[t.id] = {
-              open: Number(r[`${k}_opening`]) || 0,
-              close: Number(r[`${k}_closing`]) || 0,
+              open: rawOpen === "" || rawOpen === null || rawOpen === undefined ? "" : Number(rawOpen),
+              close: rawClose === "" || rawClose === null || rawClose === undefined ? "" : Number(rawClose),
             }
           })
           setTankState(next)
 
-          const openDone = Number(next.TK1.open) > 0 || Number(next.TK2.open) > 0
-          const closeDone = Number(next.TK1.close) > 0 || Number(next.TK2.close) > 0
+          /* Any tank with a reading means that dip was done — TK1/TK2 alone
+             was a single-station assumption and would throw at M&M, which has
+             no TK3 and may leave TK1 empty. */
+          const _tk = tanksFor(activeStation())
+          const openDone = _tk.some(t => Number(next[t.id]?.open) > 0)
+          const closeDone = _tk.some(t => Number(next[t.id]?.close) > 0)
           const cashDone = Number(r.to_bank || 0) > 0
           setHasOpening(openDone)
           setHasClosing(closeDone)

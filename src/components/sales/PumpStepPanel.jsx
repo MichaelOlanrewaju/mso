@@ -1,6 +1,15 @@
 import React from "react"
 import { litresValue, naira } from "../../utils/format"
 
+/* type="text" accepts anything, so keep it numeric: digits plus at most one
+   decimal point. Returning "" for an empty box preserves the blank-vs-zero
+   distinction the rest of the dip logic depends on. */
+function sanitiseNumeric(raw) {
+  const cleaned = String(raw).replace(/[^\d.]/g, "")
+  const parts = cleaned.split(".")
+  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : cleaned
+}
+
 export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
   const isAgo = pump.product === "AGO"
   const isLpg = pump.product === "LPG"
@@ -44,13 +53,16 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
 
       <input
         id="mainInp"
-        type="number"
+        /* type="text" with inputMode="decimal": still shows the numeric
+           keypad on mobile, but avoids the Android/Chrome behaviour where a
+           controlled type="number" silently rejects keystrokes mid-edit. */
+        type="text"
         inputMode="decimal"
         /* Same fix as the dip panel: `|| ""` erased a typed 0 on render, so a
            pump meter genuinely reading 0 could not be recorded. */
         value={value === 0 || value ? String(value) : ""}
-        onChange={e => onChange(pump.id, mode === "open" ? "open" : "close", e.target.value)}
-        placeholder="0"
+        onChange={e => onChange(pump.id, mode === "open" ? "open" : "close", sanitiseNumeric(e.target.value))}
+        placeholder="Enter reading"
         className={`w-full rounded-[16px] border-2 bg-surface px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
           errClose ? "border-red focus:ring-red/10" : "border-border focus:border-cyan focus:ring-cyan/10"
         }`}

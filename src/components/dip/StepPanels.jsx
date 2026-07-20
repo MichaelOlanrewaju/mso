@@ -1,6 +1,15 @@
 import React from "react"
 import { litresValue, naira } from "../../utils/format"
 
+/* type="text" accepts anything, so keep it numeric: digits plus at most one
+   decimal point. Returning "" for an empty box preserves the blank-vs-zero
+   distinction the rest of the dip logic depends on. */
+function sanitiseNumeric(raw) {
+  const cleaned = String(raw).replace(/[^\d.]/g, "")
+  const parts = cleaned.split(".")
+  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : cleaned
+}
+
 const DOT_COLOR = { PMS: "var(--brand-accent)", AGO: "var(--brand-accent)", LPG: "#7C3AED" }
 
 export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
@@ -49,13 +58,16 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
 
       <input
         id="mainInp"
-        type="number"
+        /* type="text" with inputMode="decimal": still shows the numeric
+           keypad on mobile, but avoids the Android/Chrome behaviour where a
+           controlled type="number" silently rejects keystrokes mid-edit. */
+        type="text"
         inputMode="decimal"
         /* `value || ""` blanked a typed 0 the moment it rendered, so an empty
            tank could never be entered — the digit vanished as you typed it. */
         value={value === 0 || value ? String(value) : ""}
-        onChange={e => onTankChange(cfg.id, mode === "open" ? "open" : "close", e.target.value)}
-        placeholder="0"
+        onChange={e => onTankChange(cfg.id, mode === "open" ? "open" : "close", sanitiseNumeric(e.target.value))}
+        placeholder="Enter reading"
         className={`w-full rounded-[16px] border-2 bg-surface px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
           errClose ? "border-red focus:ring-red/10" : "border-border focus:border-cyan focus:ring-cyan/10"
         }`}
