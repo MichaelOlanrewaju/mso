@@ -248,23 +248,43 @@ export function useDipData(username, selectedDate) {
     }
   }, [selectedDate, refreshLocks])
 
+  /* An empty box and a typed 0 are different facts, and `Number(value) || 0`
+     erased that distinction — which is why a genuinely empty tank could not be
+     recorded. "" means not entered; 0 means measured as empty. */
   const updateTank = useCallback((tankId, field, value) => {
-    setTankState(prev => ({ ...prev, [tankId]: { ...prev[tankId], [field]: Number(value) || 0 } }))
+    const v = value === "" || value === null || value === undefined ? "" : Number(value)
+    setTankState(prev => ({ ...prev, [tankId]: { ...prev[tankId], [field]: Number.isNaN(v) ? "" : v } }))
   }, [])
+
+  /* Was this reading actually entered? 0 counts; blank does not. */
+  const isEntered = v => v !== "" && v !== null && v !== undefined && !Number.isNaN(Number(v))
 
   const saveOpening = useCallback(
     date => {
-      const hasAny = tanksFor(activeStation()).some(t => tankState[t.id].open > 0)
+      /* A tank measured at 0 has been read. Requiring > 0 meant an empty tank
+         could never be recorded, and the whole submission was refused. */
+      const hasAny = tanksFor(activeStation()).some(t => isEntered(tankState[t.id]?.open))
       if (!hasAny) return Promise.resolve({ ok: false, error: "Enter at least one opening stock reading" })
 
-      const data = {
-        tk1_opening: tankState.TK1.open, tk2_opening: tankState.TK2.open, tk3_opening: tankState.TK3.open, tk4_opening: tankState.TK4.open,
-        tk1_closing: 0, tk2_closing: 0, tk3_closing: 0, tk4_closing: 0,
-        tk1_diff: 0, tk2_diff: 0, tk3_diff: 0, tk4_diff: 0,
-        tk1_margin: 0, tk2_margin: 0, tk3_margin: 0, tk4_margin: 0,
-        lpg_tank_opening: tankState.TK5.open, lpg_tank_closing: 0, lpg_tank_diff: 0, lpg_tank_margin: 0,
-        ...preservedFields(rawReportRef.current),
-      }
+      /* Built from the station's actual tanks. Hardcoding TK1..TK4 crashed at
+         M&M, which has no TK3 — tankState.TK3 is undefined there. */
+      const data = { ...preservedFields(rawReportRef.current) }
+      tanksFor(activeStation()).forEach(t => {
+        const val = tankState[t.id]?.open
+        const num = isEntered(val) ? Number(val) : 0
+        if (t.id === "TK5") {
+          data.lpg_tank_opening = num
+          data.lpg_tank_closing = 0
+          data.lpg_tank_diff = 0
+          data.lpg_tank_margin = 0
+        } else {
+          const k = t.id.toLowerCase()
+          data[`${k}_opening`] = num
+          data[`${k}_closing`] = 0
+          data[`${k}_diff`] = 0
+          data[`${k}_margin`] = 0
+        }
+      })
 
       return post({ action: "saveDailyReport", station: activeStation(), username, date, data }).then(d => {
         if (!d.ok) return d
@@ -283,14 +303,27 @@ export function useDipData(username, selectedDate) {
       const tankDiffs = {}
       let anyDiff = false
 
+      /* A tank that sold everything closes at 0 — and the old `s.close > 0`
+         test scored that as no sale at all, quietly dropping a full tank's
+         worth of litres from the day. What matters is whether both readings
+         were ENTERED, not whether they're above zero. */
+      let anyClosingEntered = false
       tanksFor(activeStation()).forEach(tk => {
-        const s = tankState[tk.id]
-        const diff = s.open > 0 && s.close > 0 && s.open > s.close ? s.open - s.close : 0
+        const st = tankState[tk.id] || {}
+        const openEntered = isEntered(st.open)
+        const closeEntered = isEntered(st.close)
+        if (closeEntered) anyClosingEntered = true
+        const o = Number(st.open) || 0
+        const c = Number(st.close) || 0
+        const diff = openEntered && closeEntered && o > c ? o - c : 0
         tankDiffs[tk.id] = diff
         if (diff > 0) anyDiff = true
       })
 
-      if (!anyDiff) {
+      /* Gate on a closing reading being entered, not on it producing a
+         positive difference — a day with genuinely no movement is still a day
+         that was measured and should be recordable. */
+      if (!anyClosingEntered) {
         return Promise.resolve({ ok: false, error: "Enter closing stock readings first" })
       }
 
@@ -299,14 +332,24 @@ export function useDipData(username, selectedDate) {
       // The Records page is responsible for writing fresh margin
       // figures once pump readings are also in for this date.
       const prevReport = rawReportRef.current || {}
-      const data = {
-        tk1_opening: tankState.TK1.open, tk1_closing: tankState.TK1.close, tk1_diff: tankDiffs.TK1, tk1_margin: prevReport.tk1_margin || 0,
-        tk2_opening: tankState.TK2.open, tk2_closing: tankState.TK2.close, tk2_diff: tankDiffs.TK2, tk2_margin: prevReport.tk2_margin || 0,
-        tk3_opening: tankState.TK3.open, tk3_closing: tankState.TK3.close, tk3_diff: tankDiffs.TK3, tk3_margin: prevReport.tk3_margin || 0,
-        tk4_opening: tankState.TK4.open, tk4_closing: tankState.TK4.close, tk4_diff: tankDiffs.TK4, tk4_margin: prevReport.tk4_margin || 0,
-        lpg_tank_opening: tankState.TK5.open, lpg_tank_closing: tankState.TK5.close, lpg_tank_diff: tankDiffs.TK5, lpg_tank_margin: prevReport.lpg_tank_margin || 0,
-        ...preservedFields(rawReportRef.current),
-      }
+      const data = { ...preservedFields(rawReportRef.current) }
+      tanksFor(activeStation()).forEach(t => {
+        const st = tankState[t.id] || {}
+        const o = isEntered(st.open) ? Number(st.open) : 0
+        const c = isEntered(st.close) ? Number(st.close) : 0
+        if (t.id === "TK5") {
+          data.lpg_tank_opening = o
+          data.lpg_tank_closing = c
+          data.lpg_tank_diff = tankDiffs.TK5 || 0
+          data.lpg_tank_margin = prevReport.lpg_tank_margin || 0
+        } else {
+          const k = t.id.toLowerCase()
+          data[`${k}_opening`] = o
+          data[`${k}_closing`] = c
+          data[`${k}_diff`] = tankDiffs[t.id] || 0
+          data[`${k}_margin`] = prevReport[`${k}_margin`] || 0
+        }
+      })
 
       return post({ action: "saveDailyReport", station: activeStation(), username, date, data }).then(d => {
         if (!d.ok) return d

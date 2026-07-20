@@ -13,9 +13,10 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
   // day for that tank, not an error; only closing being HIGHER than
   // opening (which would mean the tank refilled itself) is a real
   // mistake worth flagging.
-  const dipDiff = mode === "close" && s.open > 0 && s.close > 0 && s.open >= s.close ? s.open - s.close : 0
-  const errClose = mode === "close" && s.close > 0 && s.open > 0 && s.close > s.open
-  const pct = s.open > 0 ? Math.round((s.open / cfg.cap) * 100) : 0
+  const entered = v => v !== "" && v !== null && v !== undefined && !Number.isNaN(Number(v))
+  const dipDiff = mode === "close" && entered(s.open) && entered(s.close) && Number(s.open) >= Number(s.close) ? Number(s.open) - Number(s.close) : 0
+  const errClose = mode === "close" && entered(s.close) && entered(s.open) && Number(s.close) > Number(s.open)
+  const pct = Number(s.open) > 0 ? Math.round((Number(s.open) / cfg.cap) * 100) : 0
 
   return (
     <div>
@@ -50,7 +51,9 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
         id="mainInp"
         type="number"
         inputMode="decimal"
-        value={value || ""}
+        /* `value || ""` blanked a typed 0 the moment it rendered, so an empty
+           tank could never be entered — the digit vanished as you typed it. */
+        value={value === 0 || value ? String(value) : ""}
         onChange={e => onTankChange(cfg.id, mode === "open" ? "open" : "close", e.target.value)}
         placeholder="0"
         className={`w-full rounded-[16px] border-2 bg-surface px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
@@ -63,12 +66,12 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
           <i className="bi bi-exclamation-circle" /> Closing cannot be higher than opening
         </div>
       )}
-      {!errClose && s.close > 0 && mode === "close" && s.close === s.open && (
+      {!errClose && entered(s.close) && mode === "close" && Number(s.close) === Number(s.open) && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-ink-3">
           <i className="bi bi-info-circle" /> No change from opening — nothing sold from this tank today
         </div>
       )}
-      {!errClose && s.close > 0 && mode === "close" && s.close < s.open && (
+      {!errClose && entered(s.close) && mode === "close" && Number(s.close) < Number(s.open) && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-green">
           <i className="bi bi-check-circle" /> Valid · Diff: {litresValue(dipDiff)}{unit}
         </div>

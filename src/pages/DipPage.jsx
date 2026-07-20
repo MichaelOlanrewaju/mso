@@ -162,23 +162,35 @@ function DipInner() {
   // (Opening/Closing) is being submitted right now, plus flags for
   // anything that looks like it might be a mistake rather than a hard
   // block, since a genuinely unusual reading can still be correct.
+  /* A tank measured at 0 is a real reading — an empty tank. Only a BLANK box
+     means nothing was entered. Treating 0 as "not entered" made an empty tank
+     impossible to record and warned about a perfectly good measurement. */
+  const entered = v => v !== "" && v !== null && v !== undefined && !Number.isNaN(Number(v))
+
   const reviewRows = tanksFor(activeStation()).map(t => {
-    const val = mode === "open" ? tankState[t.id].open : tankState[t.id].close
-    const openVal = tankState[t.id].open
-    const isSuspicious = mode === "close" && val > 0 && openVal > 0 && val < openVal * 0.3
+    const st = tankState[t.id] || {}
+    const val = mode === "open" ? st.open : st.close
+    const openVal = st.open
+    const isSuspicious = mode === "close" && entered(val) && Number(val) > 0
+      && Number(openVal) > 0 && Number(val) < Number(openVal) * 0.3
     return {
       label: `${t.id} — ${t.product} ${mode === "open" ? "Opening" : "Closing"}`,
-      value: val > 0 ? `${litres(val)}` : "Not entered",
-      warn: val === 0 || isSuspicious,
+      value: entered(val) ? litres(Number(val)) : "Not entered",
+      warn: !entered(val) || isSuspicious,
     }
   })
   const reviewWarnings = []
   tanksFor(activeStation()).forEach(t => {
-    const val = mode === "open" ? tankState[t.id].open : tankState[t.id].close
-    const openVal = tankState[t.id].open
-    if (val === 0) reviewWarnings.push(`${t.id} has no ${mode === "open" ? "opening" : "closing"} reading entered.`)
-    if (mode === "close" && val > 0 && openVal > 0 && val < openVal * 0.3) {
-      reviewWarnings.push(`${t.id} closing (${litres(val)}) is unusually far below opening (${litres(openVal)}) — double-check this reading.`)
+    const st = tankState[t.id] || {}
+    const val = mode === "open" ? st.open : st.close
+    const openVal = st.open
+    if (!entered(val)) {
+      reviewWarnings.push(`${t.id} has no ${mode === "open" ? "opening" : "closing"} reading entered.`)
+    } else if (Number(val) === 0) {
+      reviewWarnings.push(`${t.id} is recorded as empty (0${t.unit || "L"}) — confirm the tank is genuinely dry.`)
+    }
+    if (mode === "close" && entered(val) && Number(val) > 0 && Number(openVal) > 0 && Number(val) < Number(openVal) * 0.3) {
+      reviewWarnings.push(`${t.id} closing (${litres(Number(val))}) is unusually far below opening (${litres(Number(openVal))}) — double-check this reading.`)
     }
   })
 

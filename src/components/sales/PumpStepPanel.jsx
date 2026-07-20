@@ -46,7 +46,9 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
         id="mainInp"
         type="number"
         inputMode="decimal"
-        value={value || ""}
+        /* Same fix as the dip panel: `|| ""` erased a typed 0 on render, so a
+           pump meter genuinely reading 0 could not be recorded. */
+        value={value === 0 || value ? String(value) : ""}
         onChange={e => onChange(pump.id, mode === "open" ? "open" : "close", e.target.value)}
         placeholder="0"
         className={`w-full rounded-[16px] border-2 bg-surface px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
