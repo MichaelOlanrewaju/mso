@@ -26,18 +26,21 @@ export default function UpdateBanner() {
 
   const refresh = () => {
     setRefreshing(true)
-    /* Tell the waiting worker to take over; main.jsx's controllerchange
-       handler does the single reload once it does. If for any reason the
-       worker message doesn't land, reload anyway after a short beat. */
+    /* Tell the waiting worker to take over → controllerchange in main.jsx
+       reloads. If no worker message lands, the timeout hard-reloads anyway,
+       which also clears any stuck waiting state. */
     try {
-      if (navigator.serviceWorker?.controller) {
-        navigator.serviceWorker.ready.then(reg => {
-          if (reg.waiting) reg.waiting.postMessage("SKIP_WAITING")
-        })
-      }
+      navigator.serviceWorker?.ready.then(reg => {
+        if (reg.waiting) reg.waiting.postMessage("SKIP_WAITING")
+      })
     } catch { /* fall through to the hard reload */ }
-    setTimeout(() => window.location.reload(), 600)
+    setTimeout(() => window.location.reload(), 800)
   }
+
+  /* Hide until the next new version. We DON'T persist this — a fresh deploy
+     dispatches the event again and the banner returns. Dismiss just clears it
+     for now so it isn't nagging. */
+  const dismiss = () => setReady(false)
 
   return (
     <div
@@ -64,6 +67,16 @@ export default function UpdateBanner() {
         >
           {refreshing ? "Updating…" : "Refresh"}
         </button>
+        {!refreshing && (
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-white/70 active:bg-white/15"
+          >
+            <i className="bi bi-x-lg text-[12px]" />
+          </button>
+        )}
       </div>
     </div>
   )

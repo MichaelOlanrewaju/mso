@@ -402,7 +402,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             </button>
           </div>
         )}
-        <div className="flex items-end gap-2 rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
+        <div className="flex w-full items-end gap-2 overflow-hidden rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
           {/* Image button */}
           <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
             className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-ink-4 disabled:opacity-50 active:bg-surface" style={{ background: "#F0F4F8" }}>
@@ -415,8 +415,8 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
           <textarea ref={inputRef} rows={1} value={draft}
             onChange={e => setDraft(e.target.value)} onKeyDown={handleKey}
             placeholder="Type a message…"
-            className="max-h-32 flex-1 resize-none bg-transparent px-1 py-2.5 text-[14.5px] text-ink outline-none placeholder:text-ink-4"
-            style={{ lineHeight:"1.5" }} />
+            className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-[14.5px] text-ink outline-none placeholder:text-ink-4"
+            style={{ lineHeight:"1.5", wordBreak:"break-word", overflowWrap:"anywhere" }} />
           {/* Send button */}
           <button type="button" onClick={handleSend}
             disabled={!draft.trim() || sending}
