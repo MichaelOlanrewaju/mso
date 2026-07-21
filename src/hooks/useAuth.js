@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { setActiveStation, clearActiveStation } from "../utils/station"
 
 const SESSION_KEY = "mso_session"
 const LEGACY_KEY = "mso_u"
@@ -97,6 +98,15 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
     setUser(session)
     setLoading(false)
 
+    /* Keep sessionStorage's active station in step with the signed-in user.
+       A single-station user (e.g. an M&M supervisor) never picks at /select, so
+       nothing used to write their station here — activeStation() fell back to
+       its "mso" default and the whole app, including brand colours, stayed MSO
+       even though they'd logged into M&M. Their own station is authoritative. */
+    if (session && session.station && session.station !== "both") {
+      setActiveStation(session.station)
+    }
+
     if (requireAuth && !session) {
       navigate("/", { replace: true })
       return
@@ -112,9 +122,81 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /* Re-check role and station against the server, so an admin change reaches
+     the user without a manual logout. Runs once on mount and whenever the tab
+     regains focus — the moments a stale session actually matters. If the person
+     was reassigned, we update the stored session, repoint the active station
+     (which repaints the brand colours), and if their role changed, route them to
+     the correct dashboard. If the account was removed or deactivated, we sign
+     them out cleanly rather than leaving them in a broken state. */
+  useEffect(() => {
+    const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
+    if (!SCRIPT_URL) return
+
+    const sync = () => {
+      const current = readSession()
+      if (!current || !current.username) return
+
+      const url = new URL(SCRIPT_URL)
+      url.searchParams.set("action", "refreshSession")
+      url.searchParams.set("username", current.username)
+      url.searchParams.set("token", current.token || "")
+
+      fetch(url.toString(), { method: "GET", redirect: "follow" })
+        .then(r => r.json())
+        .then(d => {
+          if (!d) return
+          if (d.accountGone || d.inactive) { clearSession(); setUser(null); navigate("/", { replace: true }); return }
+          if (!d.ok || !d.user) return
+
+          const roleChanged = String(d.user.role || "") !== String(current.role || "")
+          const stationChanged = String(d.user.station || "") !== String(current.station || "")
+          if (!roleChanged && !stationChanged) return
+
+          /* Persist the server's version and apply it live. */
+          const merged = { ...current, role: d.user.role, station: d.user.station, name: d.user.name || current.name }
+          try {
+            const raw = window.localStorage.getItem(SESSION_KEY) || window.sessionStorage.getItem(SESSION_KEY)
+            const rec = raw ? JSON.parse(raw) : { savedAt: Date.now() }
+            rec.user = merged; rec.savedAt = Date.now()
+            const store = window.localStorage.getItem(SESSION_KEY) ? window.localStorage : window.sessionStorage
+            store.setItem(SESSION_KEY, JSON.stringify(rec))
+          } catch (e) { /* storage unavailable */ }
+
+          if (merged.station && merged.station !== "both") setActiveStation(merged.station)
+          setUser(merged)
+
+          /* A role or station change usually means a different dashboard. Send
+             them there so they're not sitting on a page they can no longer use. */
+          if (roleChanged || stationChanged) {
+            navigate(dashboardPathFor(merged), { replace: true })
+            /* Repaint brand colours immediately — the station theme is applied
+               from auth on next render, and the reassign may need a clean slate. */
+            if (stationChanged) {
+              /* One reload only — a sessionStorage flag stops a detected change
+                 from reloading again on the fresh page load. */
+              const flag = "mso.stationSynced"
+              if (!sessionStorage.getItem(flag)) {
+                sessionStorage.setItem(flag, merged.station)
+                window.location.reload()
+              }
+            }
+          }
+        })
+        .catch(() => { /* offline — keep the existing session */ })
+    }
+
+    sync()
+    const onFocus = () => { if (document.visibilityState === "visible") sync() }
+    document.addEventListener("visibilitychange", onFocus)
+    return () => document.removeEventListener("visibilitychange", onFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const login = useCallback(
     sessionUser => {
       try {
+        sessionStorage.removeItem("mso.stationSynced")
         window.localStorage.setItem(SESSION_KEY, JSON.stringify({ user: sessionUser, savedAt: Date.now() }))
       } catch (e) {
         // localStorage may be unavailable — fall back to sessionStorage
@@ -123,6 +205,14 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
         } catch (e2) {}
       }
       setUser(sessionUser)
+
+      /* Sync the active station on fresh login too, so the first painted screen
+         is already in the right brand. */
+      if (sessionUser.station && sessionUser.station !== "both") {
+        setActiveStation(sessionUser.station)
+      } else {
+        clearActiveStation()
+      }
 
       // Route exactly like mso-auth.js route(): multi-station users
       // (pick:true) or users with no fixed station go to /select;
@@ -137,6 +227,7 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
   )
 
   const logout = useCallback(() => {
+      clearActiveStation()
     // Revoke the server-side session token too (fire-and-forget — local
     // logout must never be blocked by a slow/failed network call).
     try {

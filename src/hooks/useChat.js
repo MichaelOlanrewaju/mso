@@ -214,7 +214,7 @@ export function useChat({ username, name, conversationId }) {
     markRead()
   }, [status, messages.length, markRead])
 
-  const sendMessage = useCallback(async ({ text = "", imageFileId = "" } = {}) => {
+  const sendMessage = useCallback(async ({ text = "", imageFileId = "", replyToId = "" } = {}) => {
     const trimmed = text.trim()
     if (!trimmed && !imageFileId) return { ok: false }
     if (!SCRIPT_URL) return { ok: false }
@@ -222,7 +222,7 @@ export function useChat({ username, name, conversationId }) {
     const tempId = `temp-${Date.now()}`
     const optimistic = {
       messageId: tempId, senderUsername: username, senderName: name,
-      text: trimmed, imageFileId, timestamp: new Date().toISOString(), pending: true,
+      text: trimmed, imageFileId, replyToId, timestamp: new Date().toISOString(), pending: true,
     }
     setMessages(prev => [...prev, optimistic])
     setSending(true)
@@ -231,7 +231,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId }),
+        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId, replyToId }),
       })
       const d = await res.json()
       if (d.ok) {

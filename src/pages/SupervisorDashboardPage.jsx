@@ -294,6 +294,7 @@ export default function SupervisorDashboardPage() {
               backend already allows it (saveDailyReport has no role gate); this
               is just the way in. */}
           <MenuRow icon="bi-cash-stack" iconBg="#F0FDF4" iconColor="#16A34A" title="Cash Reconciliation" sub="Close out the day's takings" onClick={() => navigate(`/cashup/${auth.station}`)} />
+          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
           <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
           <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate(`/discharge/${auth.station}`)} />
           <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate(`/expenses/${auth.station}`)} />
@@ -303,7 +304,6 @@ export default function SupervisorDashboardPage() {
               page lived only in the owner/GM sidebar, which supervisors never
               see. This is their way in. */}
           <MenuRow icon="bi-droplet-fill" iconBg="#FEF3C7" iconColor="#D97706" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate(`/lubricant/${auth.station}`)} />
-          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
           <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate(`/shortage/${auth.station}`)} />
           <MenuRow icon="bi-person-circle" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="My Profile" sub="Update your details & password" onClick={() => navigate(`/profile`)} />
           <MenuRow icon="bi-box-arrow-right" iconBg="#FFF1F2" iconColor="#DC2626" title="Sign Out" sub="End your session" onClick={auth.logout} danger />

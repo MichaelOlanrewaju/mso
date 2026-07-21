@@ -79,7 +79,7 @@ function ImageBubble({ fileId, isMine }) {
 }
 
 /* Message bubble with long-press actions */
-function Bubble({ msg, isMine, onEdit, onDelete }) {
+function Bubble({ msg, isMine, onEdit, onDelete, onReply, quoted }) {
   const [showActions, setShowActions] = useState(false)
   const pressTimer = useRef(null)
 
@@ -102,6 +102,18 @@ function Bubble({ msg, isMine, onEdit, onDelete }) {
           {msg.imageFileId && (
             <div className="overflow-hidden rounded-[18px] p-1">
               <ImageBubble fileId={msg.imageFileId} isMine={isMine} />
+            </div>
+          )}
+          {/* Quoted message being replied to */}
+          {quoted && (
+            <div className={`mx-1 mt-1 rounded-[13px] px-3 py-2 ${isMine ? "bg-white/15" : "bg-surface"}`}
+              style={{ borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.6)" : avatarColor(quoted.senderName)}` }}>
+              <div className="text-[10.5px] font-extrabold" style={{ color: isMine ? "rgba(255,255,255,0.9)" : avatarColor(quoted.senderName) }}>
+                {quoted.senderName}
+              </div>
+              <div className={`truncate text-[12px] ${isMine ? "text-white/70" : "text-ink-4"}`}>
+                {quoted.text || (quoted.imageFileId ? "Photo" : "")}
+              </div>
             </div>
           )}
           {/* Text */}
@@ -137,8 +149,12 @@ function Bubble({ msg, isMine, onEdit, onDelete }) {
             <div className="border-b border-surface px-4 py-3 text-center text-[11.5px] text-ink-4 truncate">
               {msg.text || "Image"}
             </div>
+            <button type="button" className="flex w-full items-center gap-3 px-5 py-4 text-[14.5px] font-medium text-ink active:bg-surface"
+              onClick={() => { setShowActions(false); onReply(msg) }}>
+              <i className="bi bi-reply text-ink-4 w-5" /> Reply
+            </button>
             {isMine && (
-              <button type="button" className="flex w-full items-center gap-3 px-5 py-4 text-[14.5px] font-medium text-ink active:bg-surface"
+              <button type="button" className="flex w-full items-center gap-3 border-t border-surface px-5 py-4 text-[14.5px] font-medium text-ink active:bg-surface"
                 onClick={() => { setShowActions(false); onEdit(msg) }}>
                 <i className="bi bi-pencil text-ink-4 w-5" /> Edit Message
               </button>
@@ -212,6 +228,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
     username: auth.username, name: auth.name, conversationId,
   })
   const [draft, setDraft] = useState("")
+  const [replyTo, setReplyTo] = useState(null)   // the message being replied to
   const [editingMsg, setEditingMsg] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [showDeleteConv, setShowDeleteConv] = useState(false)
@@ -231,7 +248,14 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
     const text = draft.trim()
     if (!text || sending) return
     setDraft("")
-    await sendMessage({ text })
+    const replyToId = replyTo?.messageId || ""
+    setReplyTo(null)
+    await sendMessage({ text, replyToId })
+    inputRef.current?.focus()
+  }
+
+  const handleReply = msg => {
+    setReplyTo(msg)
     inputRef.current?.focus()
   }
 
@@ -354,7 +378,8 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             ? <DateSep key={`sep-${item.day}`} iso={item.day} />
             : <Bubble key={item.msg.messageId || i} msg={item.msg}
                 isMine={item.msg.senderUsername === auth.username}
-                onEdit={handleEdit} onDelete={handleDeleteMsg} />
+                onEdit={handleEdit} onDelete={handleDeleteMsg} onReply={handleReply}
+                quoted={item.msg.replyToId ? messages.find(mm => mm.messageId === item.msg.replyToId) : null} />
           )}
         </div>
         <div ref={bottomRef} />
@@ -363,6 +388,20 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
       {/* Composer — floating pill, elevated off the message background */}
       <div className="flex-shrink-0 px-3.5 pt-3" style={{ background:"#F4F7FC", paddingBottom:"max(14px, env(safe-area-inset-bottom))" }}>
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+        {replyTo && (
+          <div className="mb-2 flex items-center gap-2 rounded-[13px] bg-white px-3 py-2" style={{ boxShadow: "0 2px 10px rgba(19,6,86,.07)", borderLeft: `3px solid ${avatarColor(replyTo.senderName)}` }}>
+            <i className="bi bi-reply text-ink-4 text-[14px]" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-extrabold" style={{ color: avatarColor(replyTo.senderName) }}>
+                Replying to {replyTo.senderName}
+              </div>
+              <div className="truncate text-[12px] text-ink-4">{replyTo.text || (replyTo.imageFileId ? "Photo" : "")}</div>
+            </div>
+            <button type="button" onClick={() => setReplyTo(null)} className="flex h-7 w-7 items-center justify-center rounded-full text-ink-4 active:bg-surface">
+              <i className="bi bi-x-lg text-[12px]" />
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-2 rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
           {/* Image button */}
           <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
