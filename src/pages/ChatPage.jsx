@@ -13,6 +13,19 @@ import ChatSidebar from "../components/chat/ChatSidebar"
 /* The station comes from the signed-in user's session, not a build-time env
    var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
+import VoiceNote from "../components/chat/VoiceNote"
+import { useVoiceRecorder } from "../hooks/useVoiceRecorder"
+
+/* Bold @mentions in message text so a call-out stands out. */
+function renderWithMentions(text, isMine) {
+  if (!text) return text
+  const parts = text.split(/(@[\w.\-@]+)/g)
+  return parts.map((part, i) =>
+    part.startsWith("@")
+      ? <span key={i} className="font-extrabold" style={{ color: isMine ? "#fff" : "var(--brand-accent)" }}>{part}</span>
+      : part
+  )
+}
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 
@@ -79,7 +92,7 @@ function ImageBubble({ fileId, isMine }) {
 }
 
 /* Message bubble with long-press actions */
-function Bubble({ msg, isMine, onEdit, onDelete, onReply, quoted }) {
+function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onPin, quoted, myUsername }) {
   const [showActions, setShowActions] = useState(false)
   const pressTimer = useRef(null)
 
@@ -97,16 +110,19 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, quoted }) {
         onTouchStart={startPress} onTouchEnd={endPress}>
         {!isMine && <Avatar name={msg.senderName} size={30} />}
         <div style={{ maxWidth:"80%", background: isMine ? BRAND_GRADIENT : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
-          className={`rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
+          className={`min-w-0 rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
           {/* Image */}
           {msg.imageFileId && (
             <div className="overflow-hidden rounded-[18px] p-1">
               <ImageBubble fileId={msg.imageFileId} isMine={isMine} />
             </div>
           )}
+          {/* Voice note */}
+          {msg.audioFileId && <VoiceNote fileId={msg.audioFileId} isMine={isMine} />}
           {/* Quoted message being replied to */}
           {quoted && (
-            <div className={`mx-1 mt-1 rounded-[13px] px-3 py-2 ${isMine ? "bg-white/15" : "bg-surface"}`}
+            <div onClick={() => onJumpTo && onJumpTo(quoted.messageId)}
+              className={`mx-1 mt-1 cursor-pointer rounded-[13px] px-3 py-2 ${isMine ? "bg-white/15" : "bg-surface"}`}
               style={{ borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.6)" : avatarColor(quoted.senderName)}` }}>
               <div className="text-[10.5px] font-extrabold" style={{ color: isMine ? "rgba(255,255,255,0.9)" : avatarColor(quoted.senderName) }}>
                 {quoted.senderName}
@@ -124,7 +140,19 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, quoted }) {
                   {msg.senderName}
                 </div>
               )}
-              <div className="whitespace-pre-wrap text-[14.5px] leading-relaxed">{msg.text}</div>
+              <div className="whitespace-pre-wrap text-[14.5px] leading-relaxed" style={{ wordBreak:"break-word", overflowWrap:"anywhere" }}>{renderWithMentions(msg.text, isMine)}</div>
+            </div>
+          )}
+          {/* Reaction chips */}
+          {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+            <div className="flex flex-wrap gap-1 px-3 pb-2">
+              {Object.entries(msg.reactions).map(([emo, users]) => (
+                <button key={emo} type="button" onClick={() => onReact(msg.messageId, emo)}
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] ${users.includes(myUsername) ? (isMine ? "bg-white/30" : "bg-cyan/15") : (isMine ? "bg-white/12" : "bg-surface")}`}>
+                  <span>{emo}</span>
+                  <span className={`text-[10.5px] font-bold ${isMine ? "text-white/80" : "text-ink-4"}`}>{users.length}</span>
+                </button>
+              ))}
             </div>
           )}
           {/* Footer */}
@@ -149,6 +177,15 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, quoted }) {
             <div className="border-b border-surface px-4 py-3 text-center text-[11.5px] text-ink-4 truncate">
               {msg.text || "Image"}
             </div>
+            {/* Quick reactions */}
+            <div className="flex items-center justify-around border-b border-surface px-3 py-2.5">
+              {["👍","❤️","😂","😮","🙏","✅"].map(emo => (
+                <button key={emo} type="button" className="rounded-full px-2 py-1 text-[22px] active:bg-surface"
+                  onClick={() => { setShowActions(false); onReact(msg.messageId, emo) }}>
+                  {emo}
+                </button>
+              ))}
+            </div>
             <button type="button" className="flex w-full items-center gap-3 px-5 py-4 text-[14.5px] font-medium text-ink active:bg-surface"
               onClick={() => { setShowActions(false); onReply(msg) }}>
               <i className="bi bi-reply text-ink-4 w-5" /> Reply
@@ -159,6 +196,12 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, quoted }) {
                 <i className="bi bi-pencil text-ink-4 w-5" /> Edit Message
               </button>
             )}
+            <button type="button"
+              className="flex w-full items-center gap-3 border-t border-surface px-5 py-4 text-[14.5px] font-medium text-ink active:bg-surface"
+              onClick={() => { setShowActions(false); onPin(msg.messageId, !msg.pinned) }}>
+              <i className={`bi ${msg.pinned ? "bi-pin-angle-fill" : "bi-pin-angle"} text-ink-4 w-5`} />
+              {msg.pinned ? "Unpin message" : "Pin message"}
+            </button>
             <button type="button"
               className="flex w-full items-center gap-3 border-t border-surface px-5 py-4 text-[14.5px] font-medium text-red active:bg-red-light"
               onClick={() => { setShowActions(false); onDelete(msg.messageId) }}>
@@ -224,7 +267,7 @@ function EditModal({ message, onSave, onClose }) {
 /* ── Conversation window ────────────────────────────────── */
 function ConversationView({ auth, conversationId, conversationName, isGeneral, onBack, onConversationDeleted }) {
   const toast = useToast()
-  const { status, messages, sending, sendMessage, editMessage, deleteMessage, hideConversation } = useChat({
+  const { status, messages, sending, sendMessage, uploadAudio, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation } = useChat({
     username: auth.username, name: auth.name, conversationId,
   })
   const [draft, setDraft] = useState("")
@@ -252,6 +295,42 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
     setReplyTo(null)
     await sendMessage({ text, replyToId })
     inputRef.current?.focus()
+  }
+
+  const msgRefs = useRef({})
+  const handleJumpTo = messageId => {
+    const el = msgRefs.current[messageId]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      /* brief highlight so the eye lands on it */
+      el.style.transition = "background 0.3s"
+      el.style.background = "rgba(23,157,208,0.12)"
+      setTimeout(() => { el.style.background = "" }, 1200)
+    }
+  }
+  const handleReact = (messageId, emoji) => reactToMessage(messageId, emoji)
+  const handlePin = (messageId, pin) => pinMessage(messageId, pin)
+
+  const rec = useVoiceRecorder()
+  const [sendingVoice, setSendingVoice] = useState(false)
+
+  const startVoice = async () => { await rec.start() }
+  const cancelVoice = () => rec.cancel()
+  const finishVoice = async () => {
+    const result = await rec.stop()
+    if (!result || !result.blob || result.blob.size < 1000) return   // too short / empty
+    setSendingVoice(true)
+    try {
+      const up = await uploadAudio(result.blob, result.mimeType)
+      if (up.ok && up.audioFileId) {
+        await sendMessage({ audioFileId: up.audioFileId, replyToId: replyTo?.messageId || "" })
+        setReplyTo(null)
+      } else {
+        toast.showToast("Couldn't send voice note", up.error || "Please try again", "err")
+      }
+    } finally {
+      setSendingVoice(false)
+    }
   }
 
   const handleReply = msg => {
@@ -320,16 +399,33 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
     onConversationDeleted()
   }
 
+  /* Remember where the user was when they opened this chat, so we can draw a
+     "new messages" divider. Captured once per mount from the last message that
+     already existed; messages arriving afterwards fall below the divider. */
+  const lastSeenRef = useRef(null)
+  if (lastSeenRef.current === null && messages.length > 0) {
+    /* the newest message that isn't mine and existed at open time */
+    const theirs = messages.filter(m => m.senderUsername !== auth.username)
+    lastSeenRef.current = theirs.length ? theirs[theirs.length - 1].timestamp : ""
+  }
+
   const grouped = []
   let lastDay = ""
+  let unreadDrawn = false
   messages.forEach(m => {
     const day = m.timestamp ? m.timestamp.slice(0,10) : ""
     if (day && day !== lastDay) { grouped.push({ type:"sep", day }); lastDay = day }
+    /* First message newer than last-seen, from someone else → divider. */
+    if (!unreadDrawn && lastSeenRef.current && m.timestamp > lastSeenRef.current
+        && m.senderUsername !== auth.username) {
+      grouped.push({ type:"unread" })
+      unreadDrawn = true
+    }
     grouped.push({ type:"msg", msg:m })
   })
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-t-[22px] md:rounded-[22px]" style={{ boxShadow: "0 8px 30px rgba(15,23,42,.10)" }}>
+    <div className="flex h-full w-full max-w-full flex-col overflow-hidden rounded-t-[22px] md:rounded-[22px]" style={{ boxShadow: "0 8px 30px rgba(15,23,42,.10)" }}>
       {/* Header — brand gradient with a rounded lower edge, so Chat reads as
           part of the same product as the rest of the console */}
       <div className="flex flex-shrink-0 items-center gap-3 rounded-b-[22px] px-4 pb-4" style={{ paddingTop: "max(var(--sat), 52px)", background: BRAND_GRADIENT }}>
@@ -356,7 +452,26 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-5" style={{ background:"#F4F7FC" }}>
+      {(() => {
+        const pinned = messages.filter(m => m.pinned)
+        if (!pinned.length) return null
+        const p = pinned[pinned.length - 1]
+        return (
+          <div onClick={() => handleJumpTo(p.messageId)}
+            className="flex flex-shrink-0 cursor-pointer items-center gap-2 border-b border-surface bg-white px-4 py-2.5"
+            style={{ borderLeft: "3px solid var(--brand-accent)" }}>
+            <i className="bi bi-pin-angle-fill text-[13px]" style={{ color: "var(--brand-accent)" }} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[10.5px] font-extrabold" style={{ color: "var(--brand-accent)" }}>
+                Pinned{pinned.length > 1 ? ` · ${pinned.length}` : ""}
+              </div>
+              <div className="truncate text-[12.5px] text-ink-3">{p.text || (p.imageFileId ? "📷 Photo" : "")}</div>
+            </div>
+            <i className="bi bi-chevron-right text-ink-4 text-[12px]" />
+          </div>
+        )
+      })()}
+      <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5" style={{ background:"#F4F7FC" }}>
         {status === "loading" && (
           <div className="flex justify-center py-10">
             <span className="h-5 w-5 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
@@ -376,17 +491,27 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
         <div className="flex flex-col gap-3">
           {grouped.map((item, i) => item.type === "sep"
             ? <DateSep key={`sep-${item.day}`} iso={item.day} />
-            : <Bubble key={item.msg.messageId || i} msg={item.msg}
-                isMine={item.msg.senderUsername === auth.username}
-                onEdit={handleEdit} onDelete={handleDeleteMsg} onReply={handleReply}
-                quoted={item.msg.replyToId ? messages.find(mm => mm.messageId === item.msg.replyToId) : null} />
+            : item.type === "unread"
+            ? <div key="unread" className="my-2 flex items-center gap-2">
+                <div className="h-px flex-1" style={{ background: "var(--brand-accent)" }} />
+                <span className="rounded-full px-3 py-0.5 text-[10.5px] font-bold text-white" style={{ background: "var(--brand-accent)" }}>New messages</span>
+                <div className="h-px flex-1" style={{ background: "var(--brand-accent)" }} />
+              </div>
+            : <div key={item.msg.messageId || i} ref={el => { if (el) msgRefs.current[item.msg.messageId] = el }} className="rounded-[18px]">
+                <Bubble msg={item.msg}
+                  isMine={item.msg.senderUsername === auth.username}
+                  myUsername={auth.username}
+                  onEdit={handleEdit} onDelete={handleDeleteMsg} onReply={handleReply}
+                  onReact={handleReact} onJumpTo={handleJumpTo} onPin={handlePin}
+                  quoted={item.msg.replyToId ? messages.find(mm => mm.messageId === item.msg.replyToId) : null} />
+              </div>
           )}
         </div>
         <div ref={bottomRef} />
       </div>
 
       {/* Composer — floating pill, elevated off the message background */}
-      <div className="flex-shrink-0 px-3.5 pt-3" style={{ background:"#F4F7FC", paddingBottom:"max(14px, env(safe-area-inset-bottom))" }}>
+      <div className="w-full flex-shrink-0 overflow-hidden px-3.5 pt-3" style={{ background:"#F4F7FC", paddingBottom:"max(14px, env(safe-area-inset-bottom))" }}>
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
         {replyTo && (
           <div className="mb-2 flex w-full items-center gap-2 overflow-hidden rounded-[13px] bg-white px-3 py-2" style={{ boxShadow: "0 2px 10px rgba(19,6,86,.07)", borderLeft: `3px solid ${avatarColor(replyTo.senderName)}` }}>
@@ -402,6 +527,22 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             </button>
           </div>
         )}
+        {rec.recording ? (
+          <div className="flex w-full items-center gap-3 rounded-[18px] bg-white p-2 pl-4" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
+            <span className="h-2.5 w-2.5 flex-shrink-0 animate-pulse rounded-full bg-red" />
+            <span className="text-[13px] font-bold text-ink">Recording… {Math.floor(rec.seconds/60)}:{String(rec.seconds%60).padStart(2,"0")}</span>
+            <div className="flex-1" />
+            <button type="button" onClick={cancelVoice}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-ink-4 active:bg-surface">
+              <i className="bi bi-trash text-[16px]" />
+            </button>
+            <button type="button" onClick={finishVoice}
+              className="mb-0 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white"
+              style={{ background: BRAND_GRADIENT }}>
+              <i className="bi bi-send-fill text-[14px]" />
+            </button>
+          </div>
+        ) : (
         <div className="flex w-full items-end gap-2 overflow-hidden rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
           {/* Image button */}
           <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
@@ -417,14 +558,22 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             placeholder="Type a message…"
             className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-[14.5px] text-ink outline-none placeholder:text-ink-4"
             style={{ lineHeight:"1.5", wordBreak:"break-word", overflowWrap:"anywhere" }} />
-          {/* Send button */}
-          <button type="button" onClick={handleSend}
-            disabled={!draft.trim() || sending}
-            className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-30"
-            style={{ background: BRAND_GRADIENT }}>
-            <i className="bi bi-send-fill text-[14px]" />
-          </button>
+          {/* Send / mic toggle */}
+          {draft.trim()
+            ? <button type="button" onClick={handleSend} disabled={sending}
+                className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-30"
+                style={{ background: BRAND_GRADIENT }}>
+                <i className="bi bi-send-fill text-[14px]" />
+              </button>
+            : <button type="button" onClick={startVoice} disabled={sendingVoice}
+                className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-40"
+                style={{ background: BRAND_GRADIENT }}>
+                {sendingVoice
+                  ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
+                  : <i className="bi bi-mic-fill text-[15px]" />}
+              </button>}
         </div>
+        )}
       </div>
 
       {/* Edit modal */}

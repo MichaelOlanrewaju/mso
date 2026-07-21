@@ -214,15 +214,15 @@ export function useChat({ username, name, conversationId }) {
     markRead()
   }, [status, messages.length, markRead])
 
-  const sendMessage = useCallback(async ({ text = "", imageFileId = "", replyToId = "" } = {}) => {
+  const sendMessage = useCallback(async ({ text = "", imageFileId = "", audioFileId = "", replyToId = "" } = {}) => {
     const trimmed = text.trim()
-    if (!trimmed && !imageFileId) return { ok: false }
+    if (!trimmed && !imageFileId && !audioFileId) return { ok: false }
     if (!SCRIPT_URL) return { ok: false }
 
     const tempId = `temp-${Date.now()}`
     const optimistic = {
       messageId: tempId, senderUsername: username, senderName: name,
-      text: trimmed, imageFileId, replyToId, timestamp: new Date().toISOString(), pending: true,
+      text: trimmed, imageFileId, audioFileId, replyToId, timestamp: new Date().toISOString(), pending: true,
     }
     setMessages(prev => [...prev, optimistic])
     setSending(true)
@@ -231,7 +231,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId, replyToId }),
+        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId, audioFileId, replyToId }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -283,6 +283,60 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [username])
 
+  const uploadAudio = useCallback(async (blob, mimeType) => {
+    if (!SCRIPT_URL) return { ok: false }
+    /* blob → base64 (strip the data: prefix) */
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader()
+      r.onload = () => res(String(r.result).split(",")[1])
+      r.onerror = rej
+      r.readAsDataURL(blob)
+    })
+    try {
+      const resp = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "uploadChatAudio", token: getToken(), station: activeStation(), base64, mimeType, username }),
+      })
+      return await resp.json()
+    } catch { return { ok: false, error: "Upload failed" } }
+  }, [username])
+
+  const reactToMessage = useCallback(async (messageId, emoji) => {
+    if (!SCRIPT_URL) return { ok: false }
+    /* Optimistic toggle so the tap feels instant. */
+    setMessages(prev => prev.map(m => {
+      if (m.messageId !== messageId) return m
+      const reactions = { ...(m.reactions || {}) }
+      const list = [...(reactions[emoji] || [])]
+      const i = list.indexOf(username)
+      if (i >= 0) { list.splice(i, 1); if (list.length) reactions[emoji] = list; else delete reactions[emoji] }
+      else { list.push(username); reactions[emoji] = list }
+      return { ...m, reactions }
+    }))
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "reactToMessage", token: getToken(), station: activeStation(), messageId, emoji, username }),
+      })
+      return await res.json()
+    } catch { return { ok: false, error: "Network error" } }
+  }, [username])
+
+  const pinMessage = useCallback(async (messageId, pin = true) => {
+    if (!SCRIPT_URL) return { ok: false }
+    setMessages(prev => prev.map(m => m.messageId === messageId ? { ...m, pinned: pin } : m))
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "pinMessage", token: getToken(), station: activeStation(), messageId, pin, username }),
+      })
+      return await res.json()
+    } catch { return { ok: false, error: "Network error" } }
+  }, [username])
+
   const hideConversation = useCallback(async () => {
     if (!SCRIPT_URL || !conversationId) return { ok: false }
     setMessages([])
@@ -296,5 +350,5 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [conversationId, username])
 
-  return { status, messages, sending, sendMessage, editMessage, deleteMessage, hideConversation, markRead }
+  return { status, messages, sending, sendMessage, uploadAudio, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation, markRead }
 }
