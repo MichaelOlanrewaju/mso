@@ -45,7 +45,7 @@ export function useVoiceRecorder() {
         if (resolveRef.current) { resolveRef.current({ blob, mimeType: type }); resolveRef.current = null }
       }
 
-      mr.start()
+      mr.start(250)   // flush a chunk every 250ms so data is never empty at stop
       setRecording(true)
       setSeconds(0)
       timerRef.current = setInterval(() => setSeconds(s => {

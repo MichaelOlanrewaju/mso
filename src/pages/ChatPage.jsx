@@ -109,7 +109,7 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
         onMouseDown={startPress} onMouseUp={endPress} onMouseLeave={endPress}
         onTouchStart={startPress} onTouchEnd={endPress}>
         {!isMine && <Avatar name={msg.senderName} size={30} />}
-        <div style={{ maxWidth:"80%", background: isMine ? BRAND_GRADIENT : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
+        <div style={{ maxWidth:"78vw", background: isMine ? BRAND_GRADIENT : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
           className={`min-w-0 flex-shrink rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
           {/* Image */}
           {msg.imageFileId && (
@@ -323,16 +323,32 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
   const cancelVoice = () => rec.cancel()
   const finishVoice = async () => {
     const result = await rec.stop()
-    if (!result || !result.blob || result.blob.size < 1000) return   // too short / empty
+    /* Tell the user WHY nothing sent instead of failing silently. */
+    if (!result || !result.blob) {
+      toast.showToast("Nothing recorded", "The recording came back empty. Try holding the mic a moment longer.", "err")
+      return
+    }
+    if (result.blob.size < 1000) {
+      toast.showToast("Recording too short", `Only ${result.blob.size} bytes captured — hold the mic and speak, then send.`, "err")
+      return
+    }
+    if (typeof uploadAudio !== "function") {
+      toast.showToast("Update needed", "Please fully close and reopen the app to finish updating, then try again.", "err")
+      return
+    }
     setSendingVoice(true)
     try {
       const up = await uploadAudio(result.blob, result.mimeType)
       if (up.ok && up.audioFileId) {
         await sendMessage({ audioFileId: up.audioFileId, replyToId: replyTo?.messageId || "" })
         setReplyTo(null)
+      } else if (up.authExpired) {
+        toast.showToast("Session expired", "Please log out and back in, then try the voice note again.", "err")
       } else {
-        toast.showToast("Couldn't send voice note", up.error || "Please try again", "err")
+        toast.showToast("Couldn't send voice note", up.error || "Upload failed — check your connection.", "err")
       }
+    } catch (e) {
+      toast.showToast("Voice note failed", String(e.message || e), "err")
     } finally {
       setSendingVoice(false)
     }
@@ -430,7 +446,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
   })
 
   return (
-    <div className="flex h-full w-full max-w-full flex-col overflow-hidden rounded-t-[22px] md:rounded-[22px]" style={{ boxShadow: "0 8px 30px rgba(15,23,42,.10)" }}>
+    <div className="flex h-full w-full max-w-full flex-col overflow-hidden rounded-t-[22px] md:rounded-[22px]" style={{ boxShadow: "0 8px 30px rgba(15,23,42,.10)", maxWidth: "100vw" }}>
       {/* Header — brand gradient with a rounded lower edge, so Chat reads as
           part of the same product as the rest of the console */}
       <div className="flex flex-shrink-0 items-center gap-3 rounded-b-[22px] px-4 pb-4" style={{ paddingTop: "max(var(--sat), 52px)", background: BRAND_GRADIENT }}>
@@ -476,7 +492,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
           </div>
         )
       })()}
-      <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5" style={{ background:"#F4F7FC" }}>
+      <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5" style={{ background:"#F4F7FC", width:"100%", maxWidth:"100%" }}>
         {status === "loading" && (
           <div className="flex justify-center py-10">
             <span className="h-5 w-5 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
@@ -493,7 +509,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             </div>
           </div>
         )}
-        <div className="flex flex-col gap-3">
+        <div className="flex w-full max-w-full flex-col gap-3 overflow-hidden">
           {grouped.map((item, i) => item.type === "sep"
             ? <DateSep key={`sep-${item.day}`} iso={item.day} />
             : item.type === "unread"
@@ -516,7 +532,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
       </div>
 
       {/* Composer — floating pill, elevated off the message background */}
-      <div className="w-full flex-shrink-0 overflow-hidden px-3.5 pt-3" style={{ background:"#F4F7FC", paddingBottom:"max(14px, env(safe-area-inset-bottom))" }}>
+      <div className="w-full flex-shrink-0 overflow-hidden px-3.5 pt-3" style={{ background:"#F4F7FC", paddingBottom:"max(14px, env(safe-area-inset-bottom))", maxWidth:"100vw" }}>
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
         {replyTo && (
           <div className="mb-2 flex w-full items-center gap-2 overflow-hidden rounded-[13px] bg-white px-3 py-2" style={{ boxShadow: "0 2px 10px rgba(19,6,86,.07)", borderLeft: `3px solid ${avatarColor(replyTo.senderName)}` }}>
