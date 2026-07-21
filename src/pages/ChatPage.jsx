@@ -105,12 +105,12 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
 
   return (
     <>
-      <div className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
+      <div className={`flex w-full min-w-0 items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}
         onMouseDown={startPress} onMouseUp={endPress} onMouseLeave={endPress}
         onTouchStart={startPress} onTouchEnd={endPress}>
         {!isMine && <Avatar name={msg.senderName} size={30} />}
         <div style={{ maxWidth:"80%", background: isMine ? BRAND_GRADIENT : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
-          className={`min-w-0 rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
+          className={`min-w-0 flex-shrink rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
           {/* Image */}
           {msg.imageFileId && (
             <div className="overflow-hidden rounded-[18px] p-1">
@@ -122,9 +122,9 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
           {/* Quoted message being replied to */}
           {quoted && (
             <div onClick={() => onJumpTo && onJumpTo(quoted.messageId)}
-              className={`mx-1 mt-1 cursor-pointer rounded-[13px] px-3 py-2 ${isMine ? "bg-white/15" : "bg-surface"}`}
+              className={`mx-1 mt-1 max-w-full cursor-pointer overflow-hidden rounded-[13px] px-3 py-2 ${isMine ? "bg-white/15" : "bg-surface"}`}
               style={{ borderLeft: `3px solid ${isMine ? "rgba(255,255,255,0.6)" : avatarColor(quoted.senderName)}` }}>
-              <div className="text-[10.5px] font-extrabold" style={{ color: isMine ? "rgba(255,255,255,0.9)" : avatarColor(quoted.senderName) }}>
+              <div className="truncate text-[10.5px] font-extrabold" style={{ color: isMine ? "rgba(255,255,255,0.9)" : avatarColor(quoted.senderName) }}>
                 {quoted.senderName}
               </div>
               <div className={`truncate text-[12px] ${isMine ? "text-white/70" : "text-ink-4"}`}>
@@ -314,7 +314,12 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
   const rec = useVoiceRecorder()
   const [sendingVoice, setSendingVoice] = useState(false)
 
-  const startVoice = async () => { await rec.start() }
+  const startVoice = async () => {
+    const ok = await rec.start()
+    if (!ok) {
+      toast.showToast("Can't record", rec.error || "Microphone unavailable or permission denied.", "err")
+    }
+  }
   const cancelVoice = () => rec.cancel()
   const finishVoice = async () => {
     const result = await rec.stop()
@@ -497,7 +502,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
                 <span className="rounded-full px-3 py-0.5 text-[10.5px] font-bold text-white" style={{ background: "var(--brand-accent)" }}>New messages</span>
                 <div className="h-px flex-1" style={{ background: "var(--brand-accent)" }} />
               </div>
-            : <div key={item.msg.messageId || i} ref={el => { if (el) msgRefs.current[item.msg.messageId] = el }} className="rounded-[18px]">
+            : <div key={item.msg.messageId || i} ref={el => { if (el) msgRefs.current[item.msg.messageId] = el }} className="w-full min-w-0 rounded-[18px]">
                 <Bubble msg={item.msg}
                   isMine={item.msg.senderUsername === auth.username}
                   myUsername={auth.username}
@@ -528,10 +533,9 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
           </div>
         )}
         {rec.recording ? (
-          <div className="flex w-full items-center gap-3 rounded-[18px] bg-white p-2 pl-4" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
+          <div className="flex w-full items-center gap-3 overflow-hidden rounded-[18px] bg-white p-2 pl-4" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)", minHeight: "56px" }}>
             <span className="h-2.5 w-2.5 flex-shrink-0 animate-pulse rounded-full bg-red" />
-            <span className="text-[13px] font-bold text-ink">Recording… {Math.floor(rec.seconds/60)}:{String(rec.seconds%60).padStart(2,"0")}</span>
-            <div className="flex-1" />
+            <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">Recording… {Math.floor(rec.seconds/60)}:{String(rec.seconds%60).padStart(2,"0")}</span>
             <button type="button" onClick={cancelVoice}
               className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-ink-4 active:bg-surface">
               <i className="bi bi-trash text-[16px]" />
@@ -543,7 +547,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             </button>
           </div>
         ) : (
-        <div className="flex w-full items-end gap-2 overflow-hidden rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)" }}>
+        <div className="flex w-full items-end gap-2 overflow-hidden rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)", minHeight: "56px" }}>
           {/* Image button */}
           <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
             className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-ink-4 disabled:opacity-50 active:bg-surface" style={{ background: "#F0F4F8" }}>

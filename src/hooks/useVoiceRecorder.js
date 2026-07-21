@@ -21,8 +21,8 @@ export function useVoiceRecorder() {
 
   const start = useCallback(async () => {
     setError("")
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Recording isn't supported on this device.")
+    if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
+      setError("Recording isn't supported on this device or browser.")
       return false
     }
     try {
@@ -55,7 +55,14 @@ export function useVoiceRecorder() {
       }), 1000)
       return true
     } catch (e) {
-      setError("Microphone permission denied.")
+      /* Clean up any partial stream so the mic light doesn't stay on. */
+      streamRef.current?.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+      setRecording(false)
+      const name = e && e.name
+      setError(name === "NotAllowedError" ? "Microphone permission denied."
+             : name === "NotFoundError" ? "No microphone found on this device."
+             : "Couldn't start recording.")
       return false
     }
   }, [])
