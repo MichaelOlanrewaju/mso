@@ -21,21 +21,22 @@ if ('serviceWorker' in navigator) {
            the root cause of the app running stale code). */
         setInterval(() => reg.update(), 60000)
 
-        /* If a worker is already waiting when we register (user opened the
-           app after a deploy), activate it right away. */
-        if (reg.waiting && navigator.serviceWorker.controller) {
-          reg.waiting.postMessage('SKIP_WAITING')
-        }
+        /* When a new worker finishes installing, DON'T force it to take over.
+           A silent reload can throw away whatever the user was typing (a dip
+           reading, a chat message). Instead announce that an update is ready;
+           the UpdateBanner shows a "Refresh" button and the user chooses when.
+           Tapping it posts SKIP_WAITING, which triggers controllerchange below
+           and the single reload. */
+        const announce = () => window.dispatchEvent(new Event('mso-update-ready'))
 
-        /* When a new worker is found, tell it to skip waiting the moment
-           it finishes installing, so the fresh bundle takes over without
-           the user having to close and reopen the app. */
+        if (reg.waiting && navigator.serviceWorker.controller) announce()
+
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing
           if (!newWorker) return
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              newWorker.postMessage('SKIP_WAITING')
+              announce()
             }
           })
         })

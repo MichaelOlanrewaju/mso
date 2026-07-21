@@ -389,15 +389,15 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
       <div className="flex-shrink-0 px-3.5 pt-3" style={{ background:"#F4F7FC", paddingBottom:"max(14px, env(safe-area-inset-bottom))" }}>
         <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
         {replyTo && (
-          <div className="mb-2 flex items-center gap-2 rounded-[13px] bg-white px-3 py-2" style={{ boxShadow: "0 2px 10px rgba(19,6,86,.07)", borderLeft: `3px solid ${avatarColor(replyTo.senderName)}` }}>
-            <i className="bi bi-reply text-ink-4 text-[14px]" />
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-extrabold" style={{ color: avatarColor(replyTo.senderName) }}>
+          <div className="mb-2 flex w-full items-center gap-2 overflow-hidden rounded-[13px] bg-white px-3 py-2" style={{ boxShadow: "0 2px 10px rgba(19,6,86,.07)", borderLeft: `3px solid ${avatarColor(replyTo.senderName)}` }}>
+            <i className="bi bi-reply text-ink-4 text-[14px] flex-shrink-0" />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="truncate text-[11px] font-extrabold" style={{ color: avatarColor(replyTo.senderName) }}>
                 Replying to {replyTo.senderName}
               </div>
               <div className="truncate text-[12px] text-ink-4">{replyTo.text || (replyTo.imageFileId ? "Photo" : "")}</div>
             </div>
-            <button type="button" onClick={() => setReplyTo(null)} className="flex h-7 w-7 items-center justify-center rounded-full text-ink-4 active:bg-surface">
+            <button type="button" onClick={() => setReplyTo(null)} className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-4 active:bg-surface">
               <i className="bi bi-x-lg text-[12px]" />
             </button>
           </div>

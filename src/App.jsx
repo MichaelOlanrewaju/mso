@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from "react"
+import UpdateBanner from "./components/layout/UpdateBanner"
 import { Routes, Route } from "react-router-dom"
 import { OfflineBanner } from "./components/pwa/PWABanners"
 import StationGuard from "./components/layout/StationGuard"
@@ -77,6 +78,7 @@ export default function App() {
   return (
     <>
       <OfflineBanner />
+      <UpdateBanner />
       {isSupervisor && <PriceChangeAlert change={pendingChange} onDismissForNow={acknowledge} />}
       <Suspense fallback={<RouteLoading />}>
         <Routes>
