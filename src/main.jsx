@@ -29,12 +29,6 @@ if ('serviceWorker' in navigator) {
            and the single reload. */
         const announce = () => window.dispatchEvent(new Event('mso-update-ready'))
 
-        /* Announce a waiting worker on load ONLY if the page is currently
-           controlled by an OLDER worker — i.e. there's a genuinely newer
-           version parked and waiting. Without the controller check this fired
-           on every load and the banner became permanent. */
-        if (reg.waiting && navigator.serviceWorker.controller) announce()
-
         /* A newly-INSTALLING worker: announce once it's installed and there's
            already an active controller (so it's an update, not first install). */
         reg.addEventListener('updatefound', () => {
@@ -62,10 +56,17 @@ if ('serviceWorker' in navigator) {
      one-shot behaviour we want. The previous sessionStorage guard PERSISTED
      across the reload, which meant on a later genuine update controllerchange
      was ignored and the page never refreshed, leaving the banner stuck. */
-  let reloading = false
+  /* Reload once when a new worker takes control — but the guard MUST survive
+     the reload, or it cannot prevent the next one (a plain variable resets to
+     false on every load, so it can never break the loop; that was the cause of
+     the app refreshing over and over). sessionStorage persists across reloads
+     within this tab. A fresh tab starts clean, so a genuinely new deploy later
+     still reloads. */
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloading) return
-    reloading = true
+    try {
+      if (sessionStorage.getItem('mso_sw_reloaded') === '1') return
+      sessionStorage.setItem('mso_sw_reloaded', '1')
+    } catch (e) { /* storage blocked — skip the reload rather than risk a loop */ return }
     window.location.reload()
   })
 }
