@@ -1,4 +1,5 @@
 import React from "react"
+import TodayStepper from "../components/dashboard/TodayStepper"
 import { canLogBankDeposit } from "../hooks/useBankDeposits"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
@@ -14,16 +15,6 @@ function fmt(n) {
   return Number(n || 0).toLocaleString("en-NG")
 }
 
-function StatusPill({ label, value, state }) {
-  const stateCls =
-    state === "done" ? "border-green/25 bg-green-light text-green" : state === "warn" ? "border-amber/30 bg-amber-light text-amber" : "border-border bg-surface text-ink-4"
-  return (
-    <div className={`flex flex-1 flex-col items-center gap-0.5 rounded-[10px] border px-2 py-2 text-center ${stateCls}`}>
-      <span className="text-[9px] font-bold uppercase tracking-[0.6px] opacity-70">{label}</span>
-      <span className="text-[11.5px] font-extrabold">{value}</span>
-    </div>
-  )
-}
 
 function MenuRow({ icon, iconBg, iconColor, title, sub, onClick, danger }) {
   return (
@@ -84,20 +75,22 @@ export default function SupervisorDashboardPage() {
     })
     .sort((a, b) => a.pump.localeCompare(b.pump))
 
+  // The day's real workflow, in order. "Pump Readings" counts as done once
+  // ANY reading has been saved — same heuristic the old badge used, kept
+  // consistent rather than inventing a stricter rule the rest of the page
+  // doesn't share.
+  const steps = [
+    { key: "open",  icon: "bi-moisture",     label: "Opening Dip",  cta: "Enter Opening Dip Readings",  to: `/dip/${auth.station}`,    done: hasOpen },
+    { key: "pump",  icon: "bi-speedometer2", label: "Pump Readings", cta: "Enter Pump Readings",         to: `/sales/${auth.station}`,  done: pumpRows.length > 0 },
+    { key: "close", icon: "bi-water",        label: "Closing Dip",  cta: "Enter Closing Dip Readings",  to: `/dip/${auth.station}`,    done: hasClose },
+    { key: "cash",  icon: "bi-cash-stack",   label: "Cash Recon.",  cta: "Do Cash Reconciliation",      to: `/cashup/${auth.station}`, done: hasCash },
+  ]
+
   const alerts = levels.filter(t => t.cap > 0 && t.vol > 0 && Math.round((t.vol / t.cap) * 100) <= 20)
 
   const pmsRev = Math.round(Number((data && data.pmsLitres) || 0) * Number((data && data.pmsPrice) || 0))
   const agoRev = Math.round(Number((data && data.agoLitres) || 0) * Number((data && data.agoPrice) || 1819))
 
-  let ctaLabel = "Enter Opening Dip Readings"
-  let ctaBg = "var(--brand-gradient-btn)"
-  if (hasClose) {
-    ctaLabel = "Both readings submitted today ✓"
-    ctaBg = "#3F3F46"
-  } else if (hasOpen) {
-    ctaLabel = "Enter Closing Dip Readings"
-    ctaBg = "linear-gradient(135deg, #1a0875, var(--brand-accent))"
-  }
 
   return (
     <div className="min-h-screen bg-pagebg pb-[90px]">
@@ -124,25 +117,11 @@ export default function SupervisorDashboardPage() {
           </button>
         </div>
 
-        <div className="mx-auto mt-3 flex max-w-[640px] gap-2">
-          <StatusPill label="Opening" value={hasOpen ? "Done ✓" : "Pending"} state={hasOpen ? "done" : "muted"} />
-          <StatusPill label="Closing" value={hasClose ? "Done ✓" : hasOpen ? "Pending" : "Later"} state={hasClose ? "done" : hasOpen ? "warn" : "muted"} />
-          <StatusPill label="Cashier" value={hasCash ? "Done ✓" : "Pending"} state={hasCash ? "done" : "muted"} />
-        </div>
       </div>
 
       <div className="mx-auto max-w-[640px] px-4 py-4">
         <StaffNotifications username={auth.username} role={auth.role} station="mso" />
-        <button
-          type="button"
-          onClick={() => (hasClose ? null : navigate(`/dip/${auth.station}`))}
-          className="mb-5 flex h-[50px] w-full items-center gap-2.5 rounded-[12px] px-4 text-[14px] font-bold text-white shadow-lift"
-          style={{ background: ctaBg }}
-        >
-          <i className="bi bi-clock-history" />
-          <span className="flex-1 text-left">{ctaLabel}</span>
-          {!hasClose && <i className="bi bi-arrow-right" />}
-        </button>
+        <TodayStepper steps={steps} onStepClick={step => navigate(step.to)} />
 
         {alerts.length > 0 && (
           <div className="mb-4 flex flex-col gap-2">
@@ -286,8 +265,8 @@ export default function SupervisorDashboardPage() {
           </div>
         </div>
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Menu</div>
-        <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
+        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Daily Tasks</div>
+        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
           <MenuRow icon="bi-water" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="Dip Entry" sub="Enter opening & closing readings" onClick={() => navigate(`/dip/${auth.station}`)} />
           <MenuRow icon="bi-speedometer2" iconBg="#F5F3FF" iconColor="#7C3AED" title="Pump Metres" sub="Today's pump sales data" onClick={() => navigate(`/sales/${auth.station}`)} />
           {/* Supervisors can run cash reconciliation too — on weekends the cashier
@@ -298,17 +277,29 @@ export default function SupervisorDashboardPage() {
           {canLogBankDeposit(auth.username, auth.role) && (
             <MenuRow icon="bi-bank" iconBg="var(--brand-accent-light)" iconColor="var(--brand-accent)" title="Bank Deposits" sub="Log a deposit · view Cash At Hand" onClick={() => navigate(`/bank-deposits/${auth.station}`)} />
           )}
-          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
-          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
           <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate(`/discharge/${auth.station}`)} />
           <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate(`/expenses/${auth.station}`)} />
+          <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate(`/shortage/${auth.station}`)} />
+        </div>
+
+        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Reports</div>
+        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
+          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
+          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
+        </div>
+
+        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Station</div>
+        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
           <MenuRow icon="bi-tag" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate(`/price/${auth.station}`)} />
           {/* The supervisor is the one who sets oil selling prices and records
               deliveries — the backend has always allowed it, but until now the
               page lived only in the owner/GM sidebar, which supervisors never
               see. This is their way in. */}
           <MenuRow icon="bi-droplet-fill" iconBg="#FEF3C7" iconColor="#D97706" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate(`/lubricant/${auth.station}`)} />
-          <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate(`/shortage/${auth.station}`)} />
+        </div>
+
+        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Account</div>
+        <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
           <MenuRow icon="bi-person-circle" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="My Profile" sub="Update your details & password" onClick={() => navigate(`/profile`)} />
           <MenuRow icon="bi-box-arrow-right" iconBg="#FFF1F2" iconColor="#DC2626" title="Sign Out" sub="End your session" onClick={auth.logout} danger />
         </div>
