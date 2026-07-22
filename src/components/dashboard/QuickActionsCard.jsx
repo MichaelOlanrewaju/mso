@@ -1,6 +1,7 @@
 import React from "react"
 import { activeStation } from "../../utils/station"
 import { useNavigate } from "react-router-dom"
+import { canViewBankDeposits } from "../../hooks/useBankDeposits"
 
 const ACTIONS = [
   { icon: "bi-pencil-square",          iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Record Sales",       href: `/sales/${activeStation()}`,    roles: ["supervisor","cashier"] },
@@ -16,11 +17,20 @@ const ACTIONS = [
   { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: `/shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
   { icon: "bi-arrow-left-right",        iconBg: "#F5EBEF", iconColor: "#5f1f33", label: "Station Assign.",     href: "/station-assignments",          roles: ["ceo","owner","gm"] },
   { icon: "bi-tag",                     iconBg: "#FEF3C7", iconColor: "#B45309", label: "Correct Prices",      href: "/correct-prices",               roles: ["ceo","owner"] },
+  /* Bank Deposits doesn't fit a plain role list — Joseph and Lanre need it
+     regardless of their account role, and CEO/owner need it too (view-only).
+     Handled with its own dynamic check below, not the static roles array. */
 ]
 
-export default function QuickActionsCard({ role }) {
+export default function QuickActionsCard({ role, username }) {
   const navigate = useNavigate()
   const filtered = ACTIONS.filter(a => a.roles.includes(role))
+  if (canViewBankDeposits(username, role)) {
+    filtered.push({
+      icon: "bi-bank", iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)",
+      label: "Bank Deposits", href: `/bank-deposits/${activeStation()}`,
+    })
+  }
   if (!filtered.length) return null
 
   return (

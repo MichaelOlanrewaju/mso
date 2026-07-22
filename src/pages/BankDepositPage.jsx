@@ -7,7 +7,7 @@ import { useToast } from "../components/layout/ToastProvider"
 import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { useBankDeposits, canLogBankDeposit } from "../hooks/useBankDeposits"
+import { useBankDeposits, canLogBankDeposit, canViewBankDeposits } from "../hooks/useBankDeposits"
 import { getStation } from "../config/stations"
 import { activeStation } from "../utils/station"
 import { STATION_KEYS } from "../config/stations"
@@ -35,7 +35,10 @@ export default function BankDepositPage() {
   )
   usePageTitle(`Bank Deposits — ${getStation(station).name}`)
 
-  const { cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting, submitDeposit } = useBankDeposits(station)
+  const { needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting, submitDeposit, submitStartPoint } = useBankDeposits(station)
+  const [settingUp, setSettingUp] = useState(false)
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [startingBalance, setStartingBalance] = useState("")
 
   const [amount, setAmount] = useState("")
   const [notes, setNotes] = useState("")
@@ -44,11 +47,12 @@ export default function BankDepositPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const inputRef = useRef(null)
 
-  const allowed = canLogBankDeposit(auth.username, auth.role)
+  const canSubmit = canLogBankDeposit(auth.username, auth.role)
+  const canView = canViewBankDeposits(auth.username, auth.role)
 
-  // Not one of the two people who do the bank run — this page has nothing
-  // for them. Redirect rather than show a locked/empty screen.
-  if (!auth.loading && !allowed) {
+  // Neither able to log a deposit nor view the history — nothing here for
+  // them. Redirect rather than show a locked/empty screen.
+  if (!auth.loading && !canView) {
     navigate(dashboardPathFor({ role: auth.role, station: auth.station }), { replace: true })
     return null
   }
@@ -75,9 +79,18 @@ export default function BankDepositPage() {
     }
   }
 
+  const handleSetup = async () => {
+    setSettingUp(true)
+    const res = await submitStartPoint({ startDate, startingBalance: Number(startingBalance) || 0 })
+    setSettingUp(false)
+    if (res.ok) toast.showToast("Tracking started", `Cash At Hand now tracks from ${startDate}.`, "ok")
+    else toast.showToast("Couldn't set start point", res.error || "Please try again", "err")
+  }
+
+
   const homePath = dashboardPathFor({ role: auth.role, station: auth.station })
 
-  if (!allowed) return null   // avoids a flash of content before the redirect above fires
+  if (!canView) return null   // avoids a flash of content before the redirect above fires
 
   return (
     <div className="flex min-h-screen bg-pagebg">
@@ -111,6 +124,46 @@ export default function BankDepositPage() {
             ))}
           </div>
 
+          {needsSetup ? (
+            canSubmit ? (
+              <div className="rounded-card border-2 border-dashed p-4" style={{ borderColor: getStation(station).theme.accent, background: getStation(station).theme.accentLight }}>
+                <div className="mb-1 flex items-center gap-2 text-[13px] font-extrabold text-ink">
+                  <i className="bi bi-flag" style={{ color: getStation(station).theme.primary }} /> Set a starting point
+                </div>
+                <div className="mb-3 text-[11.5px] text-ink-3">
+                  Money has been going to the bank before this feature existed — we don't have that history. Pick a date and enter what was actually on hand THAT day, and tracking begins cleanly from there.
+                </div>
+
+                <label className="mb-1 block text-[11px] font-bold text-ink-3">Starting from</label>
+                <input
+                  type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                  className="mb-3 w-full rounded-[10px] border border-border bg-white px-3 py-2.5 text-[14px] font-semibold text-ink outline-none"
+                />
+
+                <label className="mb-1 block text-[11px] font-bold text-ink-3">Cash on hand as of that date</label>
+                <input
+                  type="text" inputMode="decimal" value={startingBalance}
+                  onChange={e => setStartingBalance(sanitiseNumeric(e.target.value))}
+                  placeholder="0 if the bank was fully caught up that day"
+                  className="mb-4 w-full rounded-[10px] border border-border bg-white px-3 py-2.5 text-[15px] font-bold text-ink outline-none"
+                />
+
+                <button
+                  type="button" onClick={handleSetup} disabled={settingUp}
+                  className="flex w-full items-center justify-center gap-2 rounded-[11px] py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                  style={{ background: getStation(station).theme.gradientBtn }}
+                >
+                  {settingUp ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-check-lg" />}
+                  {settingUp ? "Saving…" : "Start Tracking"}
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-card border border-border bg-surface p-5 text-center text-[12.5px] text-ink-4">
+                Cash At Hand hasn't been set up for {getStation(station).name} yet — a GM, Joseph, or Lanre needs to set a starting point first.
+              </div>
+            )
+          ) : (
+          <>
           {/* Running balance — the number that should match what's physically in the safe */}
           <div className="overflow-hidden rounded-card text-white shadow-card" style={{ background: getStation(station).theme.gradient }}>
             <div className="p-5">
@@ -136,8 +189,14 @@ export default function BankDepositPage() {
           {lastDepositDate && (
             <div className="mt-2 text-center text-[11px] text-ink-4">Last deposit: {lastDepositDate}</div>
           )}
+          </>
+          )}
 
-          {/* Log a new deposit */}
+          {/* Log a new deposit — only for GM / Joseph / Lanre. CEO and owner
+              can see everything below (balance, this page, full history and
+              proof photos) but never get a way to submit one. */}
+
+          {canSubmit ? (
           <div className="mt-5 rounded-card border border-border bg-white p-4 shadow-card">
             <div className="mb-3 text-[13px] font-extrabold text-ink">Log a bank deposit</div>
 
@@ -178,6 +237,12 @@ export default function BankDepositPage() {
               {submitting ? "Saving…" : "Log Deposit"}
             </button>
           </div>
+          ) : (
+            <div className="mt-5 flex items-center gap-2.5 rounded-card border border-border bg-surface p-4">
+              <i className="bi bi-eye text-[15px] text-ink-4" />
+              <div className="text-[12px] text-ink-3">You can view every deposit and its proof below — only Joseph, Lanre, or a GM can log a new one.</div>
+            </div>
+          )}
 
           {/* History */}
           <div className="mt-5">

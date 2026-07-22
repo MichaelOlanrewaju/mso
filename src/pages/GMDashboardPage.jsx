@@ -19,7 +19,6 @@ import TransactionsCard from "../components/dashboard/TransactionsCard"
 import AlertsCard from "../components/dashboard/AlertsCard"
 import StationSwitcherCard from "../components/dashboard/StationSwitcherCard"
 import QuickActionsCard from "../components/dashboard/QuickActionsCard"
-import BankDepositTile from "../components/dashboard/BankDepositTile"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePWA, useLiveNotifications } from "../hooks/usePWA"
 import { useEditRequests, useCashupApprovals } from "../hooks/useApprovals"
@@ -202,8 +201,7 @@ function GMInner() {
                   />
                 </div>
                 <div className="lg:col-span-4 space-y-3">
-                  <QuickActionsCard role={auth.role} />
-                  <BankDepositTile username={auth.username} role={auth.role} />
+                  <QuickActionsCard role={auth.role} username={auth.username} />
                 </div>
               </div>
             </div>

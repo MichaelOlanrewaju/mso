@@ -225,7 +225,7 @@ function DashboardInner() {
                   />
                 </div>
                 <div className="lg:col-span-4">
-                  <QuickActionsCard role={auth.role} />
+                  <QuickActionsCard role={auth.role} username={auth.username} />
                 </div>
               </div>
             </div>

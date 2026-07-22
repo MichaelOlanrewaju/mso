@@ -19,12 +19,23 @@ export function canLogBankDeposit(username, role) {
   return byRole || byName
 }
 
+/* Wider than canLogBankDeposit: CEO and owner can SEE the full deposit
+   history — every amount, who submitted it, and the proof photo — even
+   though they can't submit a new one. Without this, the CEO only ever saw a
+   single running number with no way to check the actual evidence behind it,
+   which defeats the point of asking for proof photos in the first place. */
+export function canViewBankDeposits(username, role) {
+  const r = String(role || "").toLowerCase()
+  return canLogBankDeposit(username, role) || r === "ceo" || r === "owner"
+}
+
 /* Takes an explicit station rather than reading activeStation() internally,
    so the Bank Deposits page can let Joseph/Lanre/a GM switch between MSO and
    M&M locally — without touching their global session station, which would
    otherwise also change every other page (Dip Entry, Sales, etc.) they use
    day to day for their OWN assigned station. */
 export function useBankDeposits(station) {
+  const [needsSetup, setNeedsSetup] = useState(false)
   const [cashAtHand, setCashAtHand] = useState(null)
   const [totalContributed, setTotalContributed] = useState(0)
   const [totalDeposited, setTotalDeposited] = useState(0)
@@ -42,6 +53,7 @@ export function useBankDeposits(station) {
       fetch(`${SCRIPT_URL}?action=getBankDeposits&station=${station}&_=${bust}`, { cache: "no-store" }).then(r => r.json()),
     ]).then(([cash, dep]) => {
       if (cash?.ok) {
+        setNeedsSetup(!!cash.needsSetup)
         setCashAtHand(cash.cashAtHand)
         setTotalContributed(cash.totalContributed)
         setTotalDeposited(cash.totalDeposited)
@@ -52,6 +64,22 @@ export function useBankDeposits(station) {
   }, [station])
 
   useEffect(() => { load() }, [load])
+
+  const submitStartPoint = useCallback(async ({ startDate, startingBalance }) => {
+    if (!SCRIPT_URL || !station) return { ok: false }
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "saveCashTrackingStart", token: getToken(), station, startDate, startingBalance }),
+      })
+      const d = await res.json()
+      if (d.ok) load()
+      return d
+    } catch {
+      return { ok: false, error: "Network error" }
+    }
+  }, [load, station])
 
   const submitDeposit = useCallback(async ({ amount, photoFile, notes }) => {
     if (!station) return { ok: false, error: "No station selected." }
@@ -91,5 +119,5 @@ export function useBankDeposits(station) {
     }
   }, [load, station])
 
-  return { cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting, submitDeposit, refresh: load }
+  return { needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting, submitDeposit, submitStartPoint, refresh: load }
 }
