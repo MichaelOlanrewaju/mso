@@ -281,3 +281,31 @@ input[type="date"]:not([class]):focus {
   background-color: #fff;
   box-shadow: 0 0 0 3px rgba(23, 157, 208, 0.14);
 }
+
+/* ── Dark fintech theme — scoped to .fintech-dark, doesn't touch anything
+   else in the app. Applied first to Supervisor Dashboard + Cash Reconciliation
+   as the initial rollout. ── */
+.fintech-dark {
+  --ftk-bg: #050214;
+  --ftk-bg-hero: radial-gradient(ellipse 140% 60% at 50% -10%, #1A1050 0%, #0F0A2E 45%, #0A0620 100%);
+  --ftk-card: rgba(255,255,255,0.055);
+  --ftk-card-border: rgba(255,255,255,0.09);
+  --ftk-ink: #F5F3FF;
+  --ftk-ink-dim: rgba(245,243,255,0.52);
+  --ftk-ink-faint: rgba(245,243,255,0.32);
+  --ftk-cyan: #22C5F0;
+  --ftk-violet: #7C5CFF;
+  --ftk-green: #34D399;
+  --ftk-amber: #FBBF67;
+  --ftk-red: #F26B6B;
+  font-family: 'Manrope', -apple-system, sans-serif;
+  background: var(--ftk-bg);
+  min-height: 100vh;
+  color: var(--ftk-ink);
+}
+.fintech-dark .ftk-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+.fintech-dark .ftk-glass {
+  background: var(--ftk-card);
+  border: 1px solid var(--ftk-card-border);
+  backdrop-filter: blur(20px);
+}

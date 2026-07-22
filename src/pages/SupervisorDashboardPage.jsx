@@ -1,48 +1,50 @@
 import React from "react"
-import TodayStepper from "../components/dashboard/TodayStepper"
+import TodayRing from "../components/dashboard/TodayRing"
 import { canLogBankDeposit } from "../hooks/useBankDeposits"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { useDashboardData } from "../hooks/useDashboardData"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { initials, litresValue, litres } from "../utils/format"
+import { getStation } from "../config/stations"
 import { StaffNotifications } from "../components/pwa/PWABanners"
 
-/* Money only — keeps thousands separators. Volumes go through litres()/
-   litresValue(), which deliberately omit them (readings are transcribed off a
-   physical counter, where commas are noise). */
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-NG")
 }
-
 
 function MenuRow({ icon, iconBg, iconColor, title, sub, onClick, danger }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 border-b border-surface px-4 py-3.5 text-left last:border-b-0 hover:bg-surface"
+      className="flex w-full items-center gap-3 border-b px-4 py-3.5 text-left last:border-b-0"
+      style={{ borderColor: "rgba(255,255,255,0.06)" }}
     >
       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]" style={{ background: iconBg }}>
         <i className={`bi ${icon}`} style={{ color: iconColor }} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className={`text-[13.5px] font-bold ${danger ? "text-red" : "text-ink"}`}>{title}</div>
-        <div className="text-[11px] text-ink-4">{sub}</div>
+        <div className="text-[13.5px] font-bold" style={{ color: danger ? "var(--ftk-red)" : "var(--ftk-ink)" }}>{title}</div>
+        <div className="text-[11px]" style={{ color: "var(--ftk-ink-faint)" }}>{sub}</div>
       </div>
-      <i className="bi bi-chevron-right text-[12px] text-ink-4" />
+      <i className="bi bi-chevron-right text-[12px]" style={{ color: "var(--ftk-ink-faint)" }} />
     </button>
   )
 }
 
 export default function SupervisorDashboardPage() {
-  const auth = useAuth({ requireAuth: true, stationFilter: "mso" })
+  /* No stationFilter here — this page serves BOTH stations via
+     /dashboard-supervisor/:station. Filtering to "mso" would bounce an M&M
+     supervisor straight back to their own dashboard route, which IS this
+     page — an infinite redirect loop. Left over from before M&M existed. */
+  const auth = useAuth({ requireAuth: true })
   const { status, data, refresh } = useDashboardData(auth.username)
   const navigate = useNavigate()
   usePageTitle("Dashboard — Supervisor")
 
   if (auth.loading || !auth.user) {
-    return <div className="min-h-screen bg-pagebg" />
+    return <div className="fintech-dark min-h-screen" />
   }
 
   const pms = (data && data.tanks && data.tanks.pms) || []
@@ -62,11 +64,6 @@ export default function SupervisorDashboardPage() {
         ]
       : [])
 
-  // Pump Readings — sourced from the actual PumpMetres data (what's really
-  // been entered so far), not from completed sales transactions. A
-  // completed sale only exists once Closing is in, so relying on
-  // recentTransactions alone showed "No pump data yet" even right after
-  // a supervisor correctly saved their Opening readings.
   const pumpMetresMap = (data && data.pumpMetres) || {}
   const pumpRows = Object.keys(pumpMetresMap)
     .map(key => {
@@ -75,15 +72,11 @@ export default function SupervisorDashboardPage() {
     })
     .sort((a, b) => a.pump.localeCompare(b.pump))
 
-  // The day's real workflow, in order. "Pump Readings" counts as done once
-  // ANY reading has been saved — same heuristic the old badge used, kept
-  // consistent rather than inventing a stricter rule the rest of the page
-  // doesn't share.
   const steps = [
-    { key: "open",  icon: "bi-moisture",     label: "Opening Dip",  cta: "Enter Opening Dip Readings",  to: `/dip/${auth.station}`,    done: hasOpen },
-    { key: "pump",  icon: "bi-speedometer2", label: "Pump Readings", cta: "Enter Pump Readings",         to: `/sales/${auth.station}`,  done: pumpRows.length > 0 },
-    { key: "close", icon: "bi-water",        label: "Closing Dip",  cta: "Enter Closing Dip Readings",  to: `/dip/${auth.station}`,    done: hasClose },
-    { key: "cash",  icon: "bi-cash-stack",   label: "Cash Recon.",  cta: "Do Cash Reconciliation",      to: `/cashup/${auth.station}`, done: hasCash },
+    { key: "open",  icon: "bi-moisture",     label: "Opening Dip",  to: `/dip/${auth.station}`,    done: hasOpen },
+    { key: "pump",  icon: "bi-speedometer2", label: "Pump Readings", to: `/sales/${auth.station}`,  done: pumpRows.length > 0 },
+    { key: "close", icon: "bi-water",        label: "Closing Dip",  to: `/dip/${auth.station}`,    done: hasClose },
+    { key: "cash",  icon: "bi-cash-stack",   label: "Cash Recon.",  to: `/cashup/${auth.station}`, done: hasCash },
   ]
 
   const alerts = levels.filter(t => t.cap > 0 && t.vol > 0 && Math.round((t.vol / t.cap) * 100) <= 20)
@@ -91,106 +84,106 @@ export default function SupervisorDashboardPage() {
   const pmsRev = Math.round(Number((data && data.pmsLitres) || 0) * Number((data && data.pmsPrice) || 0))
   const agoRev = Math.round(Number((data && data.agoLitres) || 0) * Number((data && data.agoPrice) || 1819))
 
+  /* The fintech accent colors swap per station — MSO keeps cyan/violet, M&M
+     gets gold/wine, matching each station's real brand rather than a single
+     fixed palette for both. Same dark glass system, different accent hues. */
+  const isMM = auth.station === "mrs"
+  const themeVars = isMM
+    ? { "--ftk-cyan": "#F2B84B", "--ftk-violet": "#B5487A" }
+    : {}
 
   return (
-    <div className="min-h-screen bg-pagebg pb-[90px]">
-      <div
-        className="px-4 pb-3 text-white"
-        style={{ paddingTop: "max(var(--sat), 52px)", background: "var(--brand-gradient-btn)" }}
-      >
-        <div className="mx-auto flex max-w-[640px] items-center justify-between">
+    <div className="fintech-dark relative overflow-hidden pb-[100px]" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
+      <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-30" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
+      <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-20" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
+
+      <div className="relative z-10 mx-auto max-w-[640px] px-5" style={{ paddingTop: "max(var(--sat), 26px)" }}>
+        <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-[12px] font-extrabold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[13px] text-[13px] font-extrabold text-white" style={{ background: "linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))" }}>
               {initials(auth.name || auth.username)}
             </div>
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.6px] text-white/50">Supervisor · MSO Station</div>
-              <div className="text-[15px] font-extrabold text-white">{auth.name || auth.username}</div>
+              <div className="text-[15px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{auth.name || auth.username}</div>
+              <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>Supervisor · {getStation(auth.station).name}</div>
             </div>
           </div>
           <button
-            type="button"
-            onClick={refresh}
-            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-white/15 bg-white/10 text-white"
+            type="button" onClick={refresh}
+            className="ftk-glass flex h-9 w-9 items-center justify-center rounded-[11px]"
+            style={{ color: "var(--ftk-ink-dim)" }}
           >
             <i className={`bi bi-arrow-clockwise ${status === "loading" ? "animate-spin-fast" : ""}`} />
           </button>
         </div>
 
-      </div>
-
-      <div className="mx-auto max-w-[640px] px-4 py-4">
         <StaffNotifications username={auth.username} role={auth.role} station="mso" />
-        <TodayStepper steps={steps} onStepClick={step => navigate(step.to)} />
+
+        <TodayRing steps={steps} onNext={step => navigate(step.to)} />
 
         {alerts.length > 0 && (
           <div className="mb-4 flex flex-col gap-2">
             {alerts.map(a => (
-              <div key={a.id} className="flex items-center gap-2.5 rounded-[12px] border border-red/20 bg-red-light px-3.5 py-3">
-                <i className="bi bi-exclamation-triangle-fill text-red" />
+              <div key={a.id} className="flex items-center gap-2.5 rounded-[14px] px-3.5 py-3" style={{ background: "rgba(242,107,107,0.1)", border: "1px solid rgba(242,107,107,0.25)" }}>
+                <i className="bi bi-exclamation-triangle-fill" style={{ color: "var(--ftk-red)" }} />
                 <div>
-                  <div className="text-[12.5px] font-bold text-red">{a.id} critically low</div>
-                  <div className="text-[11px] text-red/80">Only {litres(a.vol)} left ({Math.round((a.vol / a.cap) * 100)}%) — inform GM.</div>
+                  <div className="text-[12.5px] font-bold" style={{ color: "var(--ftk-red)" }}>{a.id} critically low</div>
+                  <div className="text-[11px]" style={{ color: "rgba(242,107,107,0.8)" }}>Only {litres(a.vol)} left ({Math.round((a.vol / a.cap) * 100)}%) — inform GM.</div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Actions</div>
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Actions</div>
         <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {[
-            /* These must follow the signed-in user's station. Hardcoded /mso
-               sent an M&M supervisor to MSO's pages — and worse, any reading
-               they entered there would have been written to MSO's spreadsheet. */
-            { icon: "bi-water", bg: "#EEF0FF", color: "var(--brand-primary)", label: "Dip Entry", to: `/dip/${auth.station}` },
-            { icon: "bi-speedometer2", bg: "#F5F3FF", color: "#7C3AED", label: "Pump", to: `/sales/${auth.station}` },
-            { icon: "bi-chat-dots", bg: "var(--brand-accent-light)", color: "var(--brand-accent)", label: "Staff Chat", to: `/chat/${auth.station}` },
-            { icon: "bi-truck", bg: "#FFF1F2", color: "#DC2626", label: "Discharge", to: `/discharge/${auth.station}` },
+            { icon: "bi-water", tint: "var(--ftk-cyan)", label: "Dip Entry", to: `/dip/${auth.station}` },
+            { icon: "bi-speedometer2", tint: "var(--ftk-violet)", label: "Pump", to: `/sales/${auth.station}` },
+            { icon: "bi-chat-dots", tint: "var(--ftk-green)", label: "Staff Chat", to: `/chat/${auth.station}` },
+            { icon: "bi-truck", tint: "var(--ftk-amber)", label: "Discharge", to: `/discharge/${auth.station}` },
           ].map(qa => (
             <button
-              key={qa.label}
-              type="button"
-              onClick={() => navigate(qa.to)}
-              className="flex flex-col items-center gap-2 rounded-card border border-border bg-white p-3.5 text-center shadow-card"
+              key={qa.label} type="button" onClick={() => navigate(qa.to)}
+              className="ftk-glass flex flex-col items-center gap-2 rounded-[16px] p-3.5 text-center"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: qa.bg }}>
-                <i className={`bi ${qa.icon}`} style={{ color: qa.color }} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-[10px]" style={{ background: `${qa.tint}26` }}>
+                <i className={`bi ${qa.icon}`} style={{ color: qa.tint }} />
               </div>
-              <span className="text-[11.5px] font-bold text-ink">{qa.label}</span>
+              <span className="text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{qa.label}</span>
             </button>
           ))}
         </div>
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Tank Levels</div>
-        <div className="mb-5 rounded-card border border-border bg-white p-4 shadow-card">
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Tank Levels</div>
+        <div className="ftk-glass mb-5 rounded-[18px] p-4">
           {levels.length === 0 ? (
-            <div className="py-3 text-center text-[13px] text-ink-4">Loading…</div>
+            <div className="py-3 text-center text-[13px]" style={{ color: "var(--ftk-ink-faint)" }}>Loading…</div>
           ) : (
-            <div className="flex flex-col divide-y divide-surface">
-              {levels.map(t => {
+            <div className="flex flex-col">
+              {levels.map((t, i) => {
                 const rawPct = t.cap > 0 ? (t.vol / t.cap) * 100 : 0
-                const overCapacity = rawPct > 105 // small tolerance for rounding, not a real overflow
+                const overCapacity = rawPct > 105
                 const pct = t.cap > 0 ? Math.min(100, Math.round(rawPct)) : 0
-                const col = overCapacity ? "#DC2626" : pct > 40 ? "#16A34A" : pct > 20 ? "#CA8A04" : "#DC2626"
+                const col = overCapacity ? "var(--ftk-red)" : pct > 40 ? "var(--ftk-green)" : pct > 20 ? "var(--ftk-amber)" : "var(--ftk-red)"
                 return (
-                  <div key={t.id} className="py-3 first:pt-0 last:pb-0">
+                  <div key={t.id} className="py-3 first:pt-0 last:pb-0" style={i > 0 ? { borderTop: "1px solid rgba(255,255,255,0.06)" } : {}}>
                     <div className="mb-1.5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full" style={{ background: col }} />
                         <div>
-                          <div className="text-[12.5px] font-bold text-ink">{t.id} — {t.product}</div>
-                          <div className="text-[10px] text-ink-4">Feeds {t.pumps}</div>
+                          <div className="text-[12.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{t.id} — {t.product}</div>
+                          <div className="text-[10px]" style={{ color: "var(--ftk-ink-faint)" }}>Feeds {t.pumps}</div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-[12px] font-extrabold" style={{ color: col }}>
                           {overCapacity ? "Check reading ⚠" : `${pct}%${pct <= 20 ? " ⚠" : ""}`}
                         </div>
-                        <div className="font-mono text-[10.5px] text-ink-4">{litres(t.vol)}</div>
+                        <div className="ftk-mono text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{litres(t.vol)}</div>
                       </div>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-surface">
+                    <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: col }} />
                     </div>
                   </div>
@@ -200,41 +193,40 @@ export default function SupervisorDashboardPage() {
           )}
         </div>
 
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Pump Readings</span>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Pump Readings</span>
           <span
-            className={`rounded-full px-2 py-[2px] text-[10px] font-bold ${
-              pumpRows.length ? "bg-green-light text-green" : "bg-surface text-ink-4"
-            }`}
+            className="rounded-full px-2 py-[2px] text-[10px] font-bold"
+            style={pumpRows.length ? { background: "rgba(52,211,153,0.15)", color: "var(--ftk-green)" } : { background: "rgba(255,255,255,0.06)", color: "var(--ftk-ink-faint)" }}
           >
             {pumpRows.length ? "Submitted" : "Pending"}
           </span>
         </div>
-        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
+        <div className="ftk-glass mb-5 overflow-hidden rounded-[18px]">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-surface">
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
                   {["Pump", "Tank", "Opening", "Closing", "Diff"].map(h => (
-                    <th key={h} className="px-3.5 py-2 text-left text-[9.5px] font-bold uppercase tracking-[0.6px] text-ink-4">{h}</th>
+                    <th key={h} className="px-3.5 py-2 text-left text-[9.5px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {pumpRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3.5 py-5 text-center text-[12.5px] text-ink-4">No pump data yet</td>
+                    <td colSpan={5} className="px-3.5 py-5 text-center text-[12.5px]" style={{ color: "var(--ftk-ink-faint)" }}>No pump data yet</td>
                   </tr>
                 ) : (
                   pumpRows.map(p => (
-                    <tr key={p.pump} className="border-b border-surface last:border-b-0">
+                    <tr key={p.pump} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                       <td className="px-3.5 py-2.5">
-                        <span className="rounded-full border border-cyan/20 bg-cyan-light px-2 py-[2px] text-[11px] font-bold text-cyan-dark">{p.pump}</span>
+                        <span className="rounded-full px-2 py-[2px] text-[11px] font-bold" style={{ background: "rgba(34,197,240,0.15)", color: "var(--ftk-cyan)", border: "1px solid rgba(34,197,240,0.3)" }}>{p.pump}</span>
                       </td>
-                      <td className="px-3.5 py-2.5 text-[11.5px] text-ink-4">{p.tank}</td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-[11.5px] text-ink-3">{p.open ? litresValue(p.open) : "—"}</td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-[11.5px] text-ink-3">{p.close ? litresValue(p.close) : "—"}</td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-[12.5px] font-extrabold text-cyan-dark">{p.diff > 0 ? litres(p.diff) : "—"}</td>
+                      <td className="px-3.5 py-2.5 text-[11.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{p.tank}</td>
+                      <td className="ftk-mono px-3.5 py-2.5 text-right text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{p.open ? litresValue(p.open) : "—"}</td>
+                      <td className="ftk-mono px-3.5 py-2.5 text-right text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{p.close ? litresValue(p.close) : "—"}</td>
+                      <td className="ftk-mono px-3.5 py-2.5 text-right text-[12.5px] font-extrabold" style={{ color: "var(--ftk-cyan)" }}>{p.diff > 0 ? litres(p.diff) : "—"}</td>
                     </tr>
                   ))
                 )}
@@ -243,84 +235,86 @@ export default function SupervisorDashboardPage() {
           </div>
         </div>
 
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Financial Snapshot</span>
-          <span className="text-[10.5px] text-ink-4">Est. only</span>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Financial Snapshot</span>
+          <span className="text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Est. only</span>
         </div>
-        <div className="mb-5 rounded-card border border-border bg-white p-4 shadow-card">
-          <div className="mb-2.5 text-[11px] text-ink-4">Based on today's dip readings</div>
+        <div className="ftk-glass mb-5 rounded-[18px] p-4">
+          <div className="mb-2.5 text-[11px]" style={{ color: "var(--ftk-ink-faint)" }}>Based on today's dip readings</div>
           <div className="grid grid-cols-3 gap-2.5">
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-[0.6px] text-ink-4">PMS Rev</div>
-              <div className="font-mono text-[14px] font-extrabold text-ink">{pmsRev > 0 ? `₦${fmt(pmsRev)}` : "—"}</div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>PMS Rev</div>
+              <div className="ftk-mono text-[14px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{pmsRev > 0 ? `₦${fmt(pmsRev)}` : "—"}</div>
             </div>
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-[0.6px] text-ink-4">AGO Rev</div>
-              <div className="font-mono text-[14px] font-extrabold text-ink">{agoRev > 0 ? `₦${fmt(agoRev)}` : "—"}</div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>AGO Rev</div>
+              <div className="ftk-mono text-[14px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{agoRev > 0 ? `₦${fmt(agoRev)}` : "—"}</div>
             </div>
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-[0.6px] text-ink-4">Total Est.</div>
-              <div className="font-mono text-[14px] font-extrabold text-ink">{pmsRev + agoRev > 0 ? `₦${fmt(pmsRev + agoRev)}` : "—"}</div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>Total Est.</div>
+              <div className="ftk-mono text-[14px] font-extrabold" style={{ color: "var(--ftk-green)" }}>{pmsRev + agoRev > 0 ? `₦${fmt(pmsRev + agoRev)}` : "—"}</div>
             </div>
           </div>
         </div>
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Daily Tasks</div>
-        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <MenuRow icon="bi-water" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="Dip Entry" sub="Enter opening & closing readings" onClick={() => navigate(`/dip/${auth.station}`)} />
-          <MenuRow icon="bi-speedometer2" iconBg="#F5F3FF" iconColor="#7C3AED" title="Pump Metres" sub="Today's pump sales data" onClick={() => navigate(`/sales/${auth.station}`)} />
-          {/* Supervisors can run cash reconciliation too — on weekends the cashier
-              sometimes isn't in, and someone still has to close the day out. The
-              backend already allows it (saveDailyReport has no role gate); this
-              is just the way in. */}
-          <MenuRow icon="bi-cash-stack" iconBg="#F0FDF4" iconColor="#16A34A" title="Cash Reconciliation" sub="Close out the day's takings" onClick={() => navigate(`/cashup/${auth.station}`)} />
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Daily Tasks</div>
+        <div className="ftk-glass mb-5 overflow-hidden rounded-[18px]">
+          <MenuRow icon="bi-water" iconBg="rgba(34,197,240,0.15)" iconColor="var(--ftk-cyan)" title="Dip Entry" sub="Enter opening & closing readings" onClick={() => navigate(`/dip/${auth.station}`)} />
+          <MenuRow icon="bi-speedometer2" iconBg="rgba(124,92,255,0.15)" iconColor="var(--ftk-violet)" title="Pump Metres" sub="Today's pump sales data" onClick={() => navigate(`/sales/${auth.station}`)} />
+          <MenuRow icon="bi-cash-stack" iconBg="rgba(52,211,153,0.15)" iconColor="var(--ftk-green)" title="Cash Reconciliation" sub="Close out the day's takings" onClick={() => navigate(`/cashup/${auth.station}`)} />
           {canLogBankDeposit(auth.username, auth.role) && (
-            <MenuRow icon="bi-bank" iconBg="var(--brand-accent-light)" iconColor="var(--brand-accent)" title="Bank Deposits" sub="Log a deposit · view Cash At Hand" onClick={() => navigate(`/bank-deposits/${auth.station}`)} />
+            <MenuRow icon="bi-bank" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Bank Deposits" sub="Log a deposit · view Cash At Hand" onClick={() => navigate(`/bank-deposits/${auth.station}`)} />
           )}
-          <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate(`/discharge/${auth.station}`)} />
-          <MenuRow icon="bi-receipt-cutoff" iconBg="#FFF1F2" iconColor="#DC2626" title="Expenses" sub="Log daily station expenses" onClick={() => navigate(`/expenses/${auth.station}`)} />
-          <MenuRow icon="bi-exclamation-triangle" iconBg="#FFF1F2" iconColor="#DC2626" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate(`/shortage/${auth.station}`)} />
+          <MenuRow icon="bi-truck" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate(`/discharge/${auth.station}`)} />
+          <MenuRow icon="bi-receipt-cutoff" iconBg="rgba(242,107,107,0.15)" iconColor="var(--ftk-red)" title="Expenses" sub="Log daily station expenses" onClick={() => navigate(`/expenses/${auth.station}`)} />
+          <MenuRow icon="bi-exclamation-triangle" iconBg="rgba(242,107,107,0.15)" iconColor="var(--ftk-red)" title="Shortage" sub="Report a shortage or cash gap" onClick={() => navigate(`/shortage/${auth.station}`)} />
         </div>
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Reports</div>
-        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
-          <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Reports</div>
+        <div className="ftk-glass mb-5 overflow-hidden rounded-[18px]">
+          <MenuRow icon="bi-file-earmark-bar-graph" iconBg="rgba(52,211,153,0.15)" iconColor="var(--ftk-green)" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
+          <MenuRow icon="bi-file-earmark-text" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
         </div>
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Station</div>
-        <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <MenuRow icon="bi-tag" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate(`/price/${auth.station}`)} />
-          {/* The supervisor is the one who sets oil selling prices and records
-              deliveries — the backend has always allowed it, but until now the
-              page lived only in the owner/GM sidebar, which supervisors never
-              see. This is their way in. */}
-          <MenuRow icon="bi-droplet-fill" iconBg="#FEF3C7" iconColor="#D97706" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate(`/lubricant/${auth.station}`)} />
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Station</div>
+        <div className="ftk-glass mb-5 overflow-hidden rounded-[18px]">
+          <MenuRow icon="bi-tag" iconBg="rgba(34,197,240,0.15)" iconColor="var(--ftk-cyan)" title="Fuel Prices" sub="Current PMS & AGO rates" onClick={() => navigate(`/price/${auth.station}`)} />
+          <MenuRow icon="bi-droplet-fill" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate(`/lubricant/${auth.station}`)} />
         </div>
 
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Account</div>
-        <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
-          <MenuRow icon="bi-person-circle" iconBg="#EEF0FF" iconColor="var(--brand-primary)" title="My Profile" sub="Update your details & password" onClick={() => navigate(`/profile`)} />
-          <MenuRow icon="bi-box-arrow-right" iconBg="#FFF1F2" iconColor="#DC2626" title="Sign Out" sub="End your session" onClick={auth.logout} danger />
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Account</div>
+        <div className="ftk-glass overflow-hidden rounded-[18px]">
+          <MenuRow icon="bi-person-circle" iconBg="rgba(124,92,255,0.15)" iconColor="var(--ftk-violet)" title="My Profile" sub="Update your details & password" onClick={() => navigate(`/profile`)} />
+          <MenuRow icon="bi-box-arrow-right" iconBg="rgba(242,107,107,0.15)" iconColor="var(--ftk-red)" title="Sign Out" sub="End your session" onClick={auth.logout} danger />
         </div>
       </div>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[500] flex justify-around px-1 py-1.5 shadow-[0_-4px_20px_rgba(19,6,86,.1)]"
-        style={{ paddingBottom: "calc(6px + var(--sab))", background: "var(--brand-gradient)" }}
+        className="fixed bottom-[18px] left-4 right-4 z-[500] mx-auto flex max-w-[600px] gap-1 rounded-[22px] p-2"
+        style={{
+          paddingBottom: "calc(8px + var(--sab))",
+          background: "rgba(15,10,46,0.75)",
+          backdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 20px 40px -10px rgba(0,0,0,0.5)",
+        }}
       >
-        <button type="button" onClick={() => navigate(`/dashboard-supervisor/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] border border-cyan/25 bg-white/10 px-2.5 py-[5px] text-[9.5px] font-semibold text-cyan">
-          <i className="bi bi-grid-1x2-fill text-xl" /> Home
-        </button>
-        <button type="button" onClick={() => navigate(`/dip/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
-          <i className="bi bi-water text-xl" /> Dip
-        </button>
-        <button type="button" onClick={() => navigate(`/sales/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
-          <i className="bi bi-speedometer2 text-xl" /> Pump
-        </button>
-        <button type="button" onClick={() => navigate(`/chat/${auth.station}`)} className="flex flex-1 flex-col items-center gap-[3px] rounded-[10px] px-2.5 py-[5px] text-[9.5px] font-semibold text-white/40">
-          <i className="bi bi-chat-dots text-xl" /> Chat
-        </button>
+        {[
+          { icon: "bi-grid-1x2-fill", label: "Home", to: `/dashboard-supervisor/${auth.station}`, active: true },
+          { icon: "bi-water", label: "Dip", to: `/dip/${auth.station}` },
+          { icon: "bi-speedometer2", label: "Pump", to: `/sales/${auth.station}` },
+          { icon: "bi-chat-dots", label: "Chat", to: `/chat/${auth.station}` },
+        ].map(n => (
+          <button
+            key={n.label} type="button" onClick={() => navigate(n.to)}
+            className="flex flex-1 flex-col items-center gap-[3px] rounded-[15px] px-2.5 py-2 text-[9.5px] font-bold"
+            style={n.active
+              ? { background: "linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))", color: "#fff" }
+              : { color: "var(--ftk-ink-faint)" }}
+          >
+            <i className={`bi ${n.icon} text-xl`} /> {n.label}
+          </button>
+        ))}
       </nav>
     </div>
   )
