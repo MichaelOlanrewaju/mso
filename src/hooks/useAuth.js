@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { setActiveStation, clearActiveStation } from "../utils/station"
 
@@ -90,6 +90,7 @@ function clearSession() {
 
 export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
   const [user, setUser] = useState(null)
+  const syncRef = useRef(null)   // lets callers (e.g. a "Sync now" button) trigger the same check on demand
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -187,9 +188,16 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
     }
 
     sync()
+    syncRef.current = sync
     const onFocus = () => { if (document.visibilityState === "visible") sync() }
     document.addEventListener("visibilitychange", onFocus)
-    return () => document.removeEventListener("visibilitychange", onFocus)
+    /* Also poll periodically while the app is open. A supervisor who leaves
+       the app open on one dashboard all shift would otherwise never trigger
+       the load/focus checks and could keep seeing their OLD station until they
+       happen to background the tab. Every 2 minutes is frequent enough that a
+       reassignment reaches them within a coffee break, not by accident. */
+    const interval = setInterval(() => { if (document.visibilityState === "visible") sync() }, 120000)
+    return () => { document.removeEventListener("visibilitychange", onFocus); clearInterval(interval) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -260,5 +268,6 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
     isOwner: user ? (user.role === "ceo" || user.role === "owner" || user.u === "owner") : false,
     isCeo: user ? (user.role === "ceo" || user.role === "owner" || user.u === "owner") : false,
     isGM: user ? user.role === "gm" : false,
+    syncNow: () => syncRef.current && syncRef.current(),
   }
 }

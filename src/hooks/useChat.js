@@ -214,15 +214,15 @@ export function useChat({ username, name, conversationId }) {
     markRead()
   }, [status, messages.length, markRead])
 
-  const sendMessage = useCallback(async ({ text = "", imageFileId = "", audioFileId = "", replyToId = "" } = {}) => {
+  const sendMessage = useCallback(async ({ text = "", imageFileId = "", replyToId = "" } = {}) => {
     const trimmed = text.trim()
-    if (!trimmed && !imageFileId && !audioFileId) return { ok: false }
+    if (!trimmed && !imageFileId) return { ok: false }
     if (!SCRIPT_URL) return { ok: false }
 
     const tempId = `temp-${Date.now()}`
     const optimistic = {
       messageId: tempId, senderUsername: username, senderName: name,
-      text: trimmed, imageFileId, audioFileId, replyToId, timestamp: new Date().toISOString(), pending: true,
+      text: trimmed, imageFileId, replyToId, timestamp: new Date().toISOString(), pending: true,
     }
     setMessages(prev => [...prev, optimistic])
     setSending(true)
@@ -231,7 +231,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId, audioFileId, replyToId }),
+        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId, replyToId }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -283,25 +283,6 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [username])
 
-  const uploadAudio = useCallback(async (blob, mimeType) => {
-    if (!SCRIPT_URL) return { ok: false }
-    /* blob → base64 (strip the data: prefix) */
-    const base64 = await new Promise((res, rej) => {
-      const r = new FileReader()
-      r.onload = () => res(String(r.result).split(",")[1])
-      r.onerror = rej
-      r.readAsDataURL(blob)
-    })
-    try {
-      const resp = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "uploadChatAudio", token: getToken(), station: activeStation(), base64, mimeType, username }),
-      })
-      return await resp.json()
-    } catch { return { ok: false, error: "Upload failed" } }
-  }, [username])
-
   const reactToMessage = useCallback(async (messageId, emoji) => {
     if (!SCRIPT_URL) return { ok: false }
     /* Optimistic toggle so the tap feels instant. */
@@ -350,5 +331,5 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [conversationId, username])
 
-  return { status, messages, sending, sendMessage, uploadAudio, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation, markRead }
+  return { status, messages, sending, sendMessage, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation, markRead }
 }

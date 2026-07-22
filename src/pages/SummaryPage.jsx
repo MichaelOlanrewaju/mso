@@ -88,6 +88,7 @@ function buildSummaryText(report, date) {
     ] : []),
     `Cash Collected: ${naira(report.cash)}`,
     `Expenses: ${naira(report.total_expenses)}`,
+    ...((report.expense_items || []).map(e => `  • ${e.description || "Expense"}: ${naira(Number(e.amount) || 0)}`)),
     `POS Charges (M.P): ${naira(report.pos_mp_charge)}`,
     `POS Charges (Z.M): ${naira(report.pos_zm_charge)}`,
     ...(report.emtl_amount ? [`EMTL: ${naira(report.emtl_amount)}`] : []),
@@ -405,6 +406,18 @@ function SummaryInner() {
                 <span>Expenses</span>
                 <span className="mono font-bold">−{naira(report.total_expenses)}</span>
               </div>
+
+              {/* What each expense was for — not just the total. */}
+              {report.expense_items && report.expense_items.length > 0 && (
+                <div className="ml-3 space-y-1 border-l-2 border-red/20 pl-3">
+                  {report.expense_items.map((e, i) => (
+                    <div key={i} className="flex items-start justify-between gap-3 text-[12px] text-ink-4">
+                      <span className="min-w-0 flex-1 break-words">{e.description || "Expense"}</span>
+                      <span className="mono flex-shrink-0 font-semibold">−{naira(Number(e.amount) || 0)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex items-center justify-between border-t border-surface pt-2.5 text-[12.5px]">
                 <span className="text-ink-3">POS Charges (MP 0.30% + ZM 0.30% + TRF M.P 0.30%)</span>

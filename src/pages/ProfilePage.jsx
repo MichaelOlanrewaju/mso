@@ -12,6 +12,7 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
+import { useToast } from "../components/layout/ToastProvider"
 
 const AVATAR_COLORS = ["var(--brand-accent)","#06091A","#16A34A","var(--brand-accent)","#DC2626","#7C3AED"]
 function avatarColor(name) {
@@ -37,6 +38,8 @@ export default function ProfilePage() {
   const navigate = useNavigate()
   usePageTitle(`Profile — ${getStation(activeStation()).name}`)
 
+  const toast = useToast()
+  const [syncing, setSyncing] = useState(false)
   const [profile, setProfile] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
 
@@ -300,13 +303,34 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[13px] font-semibold text-ink">@{auth.username}</div>
-                  <div className="text-[11px] text-ink-4">{roleLabel[auth.role] || auth.role}</div>
+                  <div className="text-[11px] text-ink-4">{roleLabel[auth.role] || auth.role} · {getStation(auth.station).name}</div>
                 </div>
                 <button type="button"
                   onClick={() => { auth.logout(); navigate("/login") }}
                   className="flex h-8 items-center gap-1.5 rounded-[8px] border border-red/20 bg-red-light px-3 text-[12px] font-bold text-red">
                   <i className="bi bi-box-arrow-right" /> Log out
                 </button>
+              </div>
+
+              {/* Was your role or station just changed by an admin? The app checks
+                  automatically every couple of minutes, but this applies it
+                  right now instead of waiting — no logout needed. */}
+              <button type="button"
+                onClick={async () => {
+                  setSyncing(true)
+                  await auth.syncNow()
+                  setSyncing(false)
+                  toast.showToast("Synced", "Your role and station are up to date.", "ok")
+                }}
+                disabled={syncing}
+                className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-[9px] border border-border bg-surface text-[12.5px] font-bold text-ink-2 disabled:opacity-60">
+                {syncing
+                  ? <span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-ink-4/30 border-t-ink-4" />
+                  : <i className="bi bi-arrow-repeat" />}
+                {syncing ? "Checking…" : "Sync my account"}
+              </button>
+              <div className="mt-1.5 text-center text-[10.5px] text-ink-4">
+                Just been reassigned to a different station or role? Tap this instead of logging out.
               </div>
             </div>
           </>

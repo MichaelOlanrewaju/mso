@@ -61,8 +61,14 @@ export const STATIONS = {
       accentDark: "#C88F0F",
       accentLight: "#FDF6E3",
       primaryLight: "#F5EBEF",
-      gradient: "linear-gradient(135deg,#5f1f33 0%,#7A2942 52%,#eaaa18 175%)",
-      gradientBtn: "linear-gradient(135deg,#5f1f33,#eaaa18)",
+      /* Wine and gold are kept SEPARATE. Blending them (as the old gradient did)
+         produced a muddy brown-orange where they met, dulling both. The primary
+         gradient now stays entirely within the wine family — deep wine to a
+         slightly lighter wine — so headers and buttons read as clean, rich wine.
+         Gold lives on its own as the accent (highlights, active states, small
+         touches), never mixed into the wine. */
+      gradient: "linear-gradient(135deg,#5f1f33 0%,#7A2942 100%)",
+      gradientBtn: "linear-gradient(135deg,#5f1f33,#6d2740)",
     },
     /* NOTE: there is deliberately no TK3 here. M&M has four tanks, numbered
        1, 2, 4 and 5 — the gap is real, not an oversight. Anything that loops

@@ -290,17 +290,26 @@ export function useSalesEntry(username, name, selectedDate) {
           const metreOk = !!(res && res.ok)
           if (!metreOk) return { ok: false, pumpLabel: label, error: res?.error, locked: res?.locked }
           if (diff <= 0) return { ok: metreOk, pumpLabel: label }
-          // saleSave failing doesn't lose the metre reading itself — it's
-          // the SalesLog/transactions feed, not the reading of record —
-          // so it's attempted but doesn't fail the whole pump save.
+          // A failed saleSave doesn't lose the metre reading (still the
+          // reading of record), so it doesn't block the pump save overall —
+          // but it MUST be visible, not swallowed. A silently-dropped SalesLog
+          // row undercounts Period Totals (Yesterday/Week/Month) without any
+          // sign anything went wrong, which is exactly what happened on
+          // 2026-07-21: P1's reading saved, its sale silently didn't, and the
+          // daily total was quietly short until someone noticed.
           return post({
             action: "saveSale", station: activeStation(), username, date,
             tank: p.tank, pump: label, product: p.product,
             litres: diff, pricePerL: price, amount: Math.round(diff * price),
             payMethod: "Mixed", attendant: name || username, notes: notes || "",
           })
-            .catch(() => null)
-            .then(() => ({ ok: metreOk, pumpLabel: label }))
+            .catch(() => ({ ok: false, error: "Network error" }))
+            .then(saleRes => ({
+              ok: metreOk,
+              pumpLabel: label,
+              saleFailed: !(saleRes && saleRes.ok),
+              saleError: saleRes && saleRes.error,
+            }))
         })
     },
     [readings, username, name]
@@ -373,9 +382,16 @@ export function useSalesEntry(username, name, selectedDate) {
           // a duplicate row) and acts as a safety net for anything that
           // failed to save along the way.
           const BATCH_SIZE = 3
+          const salesFailed = []
           const savePump = p =>
             saveOnePump(p, date, prices, notes).then(res => {
               if (!res.ok) failedPumps.push(res.pumpLabel || pumpId(p))
+              // The metre reading can succeed while its SalesLog entry fails —
+              // that's what happened on 2026-07-21 (P1's reading saved, its
+              // sale silently didn't, and Period Totals came up short with no
+              // sign anything was wrong). Track it separately so it's reported
+              // even when the pump save itself "succeeded".
+              else if (res.saleFailed) salesFailed.push(res.pumpLabel || pumpId(p))
               return res
             })
 
@@ -389,6 +405,13 @@ export function useSalesEntry(username, name, selectedDate) {
             setSaving(false)
             if (failedPumps.length > 0) {
               return { ok: false, error: `Reading didn't save for: ${failedPumps.join(", ")}. Please try those pumps again.` }
+            }
+            if (salesFailed.length > 0) {
+              // Meter readings are all fine — this is a heads-up, not a hard
+              // failure, but it must not be silent. Recommend re-submitting
+              // those pumps to backfill SalesLog (harmless: savePumpMetre
+              // updates in place, and it retries the saveSale alongside it).
+              return { ok: true, ...d, warning: `Readings saved, but the sales record for ${salesFailed.join(", ")} didn't — totals for today may be short. Re-submit ${salesFailed.length > 1 ? "those pumps" : "that pump"} to fix it.` }
             }
             return d
           })

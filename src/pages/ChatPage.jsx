@@ -13,8 +13,6 @@ import ChatSidebar from "../components/chat/ChatSidebar"
 /* The station comes from the signed-in user's session, not a build-time env
    var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
-import VoiceNote from "../components/chat/VoiceNote"
-import { useVoiceRecorder } from "../hooks/useVoiceRecorder"
 
 /* Bold @mentions in message text so a call-out stands out. */
 function renderWithMentions(text, isMine) {
@@ -117,8 +115,6 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
               <ImageBubble fileId={msg.imageFileId} isMine={isMine} />
             </div>
           )}
-          {/* Voice note */}
-          {msg.audioFileId && <VoiceNote fileId={msg.audioFileId} isMine={isMine} />}
           {/* Quoted message being replied to */}
           {quoted && (
             <div onClick={() => onJumpTo && onJumpTo(quoted.messageId)}
@@ -267,7 +263,7 @@ function EditModal({ message, onSave, onClose }) {
 /* ── Conversation window ────────────────────────────────── */
 function ConversationView({ auth, conversationId, conversationName, isGeneral, onBack, onConversationDeleted }) {
   const toast = useToast()
-  const { status, messages, sending, sendMessage, uploadAudio, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation } = useChat({
+  const { status, messages, sending, sendMessage, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation } = useChat({
     username: auth.username, name: auth.name, conversationId,
   })
   const [draft, setDraft] = useState("")
@@ -310,49 +306,6 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
   }
   const handleReact = (messageId, emoji) => reactToMessage(messageId, emoji)
   const handlePin = (messageId, pin) => pinMessage(messageId, pin)
-
-  const rec = useVoiceRecorder()
-  const [sendingVoice, setSendingVoice] = useState(false)
-
-  const startVoice = async () => {
-    const ok = await rec.start()
-    if (!ok) {
-      toast.showToast("Can't record", rec.error || "Microphone unavailable or permission denied.", "err")
-    }
-  }
-  const cancelVoice = () => rec.cancel()
-  const finishVoice = async () => {
-    const result = await rec.stop()
-    /* Tell the user WHY nothing sent instead of failing silently. */
-    if (!result || !result.blob) {
-      toast.showToast("Nothing recorded", "The recording came back empty. Try holding the mic a moment longer.", "err")
-      return
-    }
-    if (result.blob.size < 1000) {
-      toast.showToast("Recording too short", `Only ${result.blob.size} bytes captured — hold the mic and speak, then send.`, "err")
-      return
-    }
-    if (typeof uploadAudio !== "function") {
-      toast.showToast("Update needed", "Please fully close and reopen the app to finish updating, then try again.", "err")
-      return
-    }
-    setSendingVoice(true)
-    try {
-      const up = await uploadAudio(result.blob, result.mimeType)
-      if (up.ok && up.audioFileId) {
-        await sendMessage({ audioFileId: up.audioFileId, replyToId: replyTo?.messageId || "" })
-        setReplyTo(null)
-      } else if (up.authExpired) {
-        toast.showToast("Session expired", "Please log out and back in, then try the voice note again.", "err")
-      } else {
-        toast.showToast("Couldn't send voice note", up.error || "Upload failed — check your connection.", "err")
-      }
-    } catch (e) {
-      toast.showToast("Voice note failed", String(e.message || e), "err")
-    } finally {
-      setSendingVoice(false)
-    }
-  }
 
   const handleReply = msg => {
     setReplyTo(msg)
@@ -548,21 +501,6 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             </button>
           </div>
         )}
-        {rec.recording ? (
-          <div className="flex w-full items-center gap-3 overflow-hidden rounded-[18px] bg-white p-2 pl-4" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)", minHeight: "56px" }}>
-            <span className="h-2.5 w-2.5 flex-shrink-0 animate-pulse rounded-full bg-red" />
-            <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">Recording… {Math.floor(rec.seconds/60)}:{String(rec.seconds%60).padStart(2,"0")}</span>
-            <button type="button" onClick={cancelVoice}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-ink-4 active:bg-surface">
-              <i className="bi bi-trash text-[16px]" />
-            </button>
-            <button type="button" onClick={finishVoice}
-              className="mb-0 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white"
-              style={{ background: BRAND_GRADIENT }}>
-              <i className="bi bi-send-fill text-[14px]" />
-            </button>
-          </div>
-        ) : (
         <div className="flex w-full items-end gap-2 overflow-hidden rounded-[18px] bg-white p-2 pl-3" style={{ boxShadow: "0 4px 18px rgba(19,6,86,.09)", minHeight: "56px" }}>
           {/* Image button */}
           <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
@@ -578,22 +516,13 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             placeholder="Type a message…"
             className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-[14.5px] text-ink outline-none placeholder:text-ink-4"
             style={{ lineHeight:"1.5", wordBreak:"break-word", overflowWrap:"anywhere" }} />
-          {/* Send / mic toggle */}
-          {draft.trim()
-            ? <button type="button" onClick={handleSend} disabled={sending}
-                className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-30"
-                style={{ background: BRAND_GRADIENT }}>
-                <i className="bi bi-send-fill text-[14px]" />
-              </button>
-            : <button type="button" onClick={startVoice} disabled={sendingVoice}
-                className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-40"
-                style={{ background: BRAND_GRADIENT }}>
-                {sendingVoice
-                  ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
-                  : <i className="bi bi-mic-fill text-[15px]" />}
-              </button>}
+          {/* Send button */}
+          <button type="button" onClick={handleSend} disabled={!draft.trim() || sending}
+            className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-30"
+            style={{ background: BRAND_GRADIENT }}>
+            <i className="bi bi-send-fill text-[14px]" />
+          </button>
         </div>
-        )}
       </div>
 
       {/* Edit modal */}

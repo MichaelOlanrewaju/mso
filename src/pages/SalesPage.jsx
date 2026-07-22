@@ -170,7 +170,13 @@ function SalesInner() {
       return
     }
     if (navigator.vibrate) navigator.vibrate([50, 30, 80])
-    toast.showToast("Saved", mode === "open" ? "Opening metres saved — return at shift end for closing" : "All pump readings saved", "ok")
+    if (result.warning) {
+      // Meter readings are safe, but a sales record didn't save — surface it
+      // rather than a plain "Saved" that hides the gap.
+      toast.showToast("Saved with a warning", result.warning, "err")
+    } else {
+      toast.showToast("Saved", mode === "open" ? "Opening metres saved — return at shift end for closing" : "All pump readings saved", "ok")
+    }
     refresh()
     setTimeout(() => navigate(dashboardPathFor({ role: auth.role, station: auth.station })), 1200)
   }

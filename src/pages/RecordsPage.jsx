@@ -193,7 +193,14 @@ function RecordsInner() {
   const agoExpected = report ? agoLitresForRevenue * (report.ago_price || 0) : 0
   const expectedRevenue = pmsExpected + agoExpected
 
-  const actualCollected = report ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0) : 0
+  /* Money collected must include EVERY way a customer pays for fuel: cash, POS
+     (both terminals), AND bank transfers. Transfers were previously omitted,
+     which made the variance meaningless — on a transfer-heavy day like M&M's it
+     showed a huge false shortage/surplus even when the day actually balanced. */
+  const actualCollected = report
+    ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
+      + (report.trf_mp || 0) + (report.trf_zb || 0)
+    : 0
   const reconciliationVariance = actualCollected - expectedRevenue
 
   const expenseItems = (report && report.expense_items) || []
