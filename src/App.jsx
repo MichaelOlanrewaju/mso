@@ -14,6 +14,7 @@ const LoginPage              = lazy(() => import("./pages/LoginPage"))
 const SelectStationPage      = lazy(() => import("./pages/SelectStationPage"))
 const DashboardPage          = lazy(() => import("./pages/DashboardPage"))
 const GMDashboardPage        = lazy(() => import("./pages/GMDashboardPage"))
+const BankDepositPage        = lazy(() => import("./pages/BankDepositPage"))
 const SupervisorDashboardPage= lazy(() => import("./pages/SupervisorDashboardPage"))
 const CashierDashboardPage   = lazy(() => import("./pages/CashierDashboardPage"))
 const RecordsPage            = lazy(() => import("./pages/RecordsPage"))
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="/dashboard/:station" element={<StationGuard><DashboardPage /></StationGuard>} />
           <Route path="/dashboard-supervisor/:station" element={<StationGuard><SupervisorDashboardPage /></StationGuard>} />
           <Route path="/dashboard-gm/:station" element={<StationGuard><GMDashboardPage /></StationGuard>} />
+          <Route path="/bank-deposits/:station" element={<StationGuard><BankDepositPage /></StationGuard>} />
           <Route path="/records/:station" element={<StationGuard><RecordsPage /></StationGuard>} />
           <Route path="/dashboard-cashier/:station" element={<StationGuard><CashierDashboardPage /></StationGuard>} />
           <Route path="/cashup/:station" element={<StationGuard><CashupPage /></StationGuard>} />

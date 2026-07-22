@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
+import { compressImage } from "../utils/compressImage"
+import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -23,6 +25,12 @@ export function useCashupData(username, name, initialDate) {
     hasData: false, closingDipDone: false,
   })
   const [loadingExpected, setLoadingExpected] = useState(true)
+  // Proof photos — a photo of the Moniepoint settlement screen and, separately,
+  // of the bank deposit slip/alert. These don't auto-verify the typed figures,
+  // but they mean a supervisor/owner can glance at the real evidence instead of
+  // trusting a number blind — the whole point of adding them.
+  const [posProofFileId, setPosProofFileId] = useState("")
+  const [posProofUploading, setPosProofUploading] = useState(false)
   const [posMP, setPosMP] = useState("")
   const [posZM, setPosZM] = useState("")
   const [cashAmt, setCashAmt] = useState("")
@@ -238,6 +246,37 @@ export function useCashupData(username, name, initialDate) {
     [username, name, date]
   )
 
+  const uploadProof = useCallback(async (file, subject, setUploading, setFileId) => {
+    if (!file) return
+    setUploading(true)
+    try {
+      const dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader()
+        r.onload = () => res(r.result)
+        r.onerror = rej
+        r.readAsDataURL(file)
+      })
+      const compressed = await compressImage(dataUrl)
+      const base64 = compressed.split(",")[1]
+      const resp = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "savePhoto", token: getToken(), station: activeStation(), date, session: "Cashup", subject, mimeType: "image/jpeg", base64 }),
+      })
+      const d = await resp.json()
+      if (d.ok && d.fileId) setFileId(d.fileId)
+      else setFileId("")
+      return d
+    } catch {
+      setFileId("")
+      return { ok: false }
+    } finally {
+      setUploading(false)
+    }
+  }, [date])
+
+  const uploadPosProof = file => uploadProof(file, "moniepoint-settlement", setPosProofUploading, setPosProofFileId)
+
   const submit = useCallback(() => {
     if (mp === 0 && zm === 0 && cash === 0 && trfTotal === 0) {
       return Promise.resolve({ ok: false, error: "Enter at least one payment amount" })
@@ -250,6 +289,7 @@ export function useCashupData(username, name, initialDate) {
     }
     const data = {
       pos_mp: mp, pos_zm: zm, cash: cash,
+      pos_proof_file_id: posProofFileId,
       trf_mp: trfMPNum, trf_zb_amelia: trfZBNum, trf_fcmb_truck: trfTruckNum, trf_fcmb_md: trfMDNum,
       total_expenses: totalExpenses, to_bank: Math.round(cashToBank),
       pos_mp_charge: mpCharge + trfMPCharge, pos_zm_charge: zmCharge,
@@ -311,6 +351,7 @@ export function useCashupData(username, name, initialDate) {
 
   return {
     date, setDate,
+    posProofFileId, posProofUploading, uploadPosProof,
     expected, loadingExpected, refreshExpected: loadExpected,
     posMP, setPosMP, posZM, setPosZM, cashAmt, setCashAmt,
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,

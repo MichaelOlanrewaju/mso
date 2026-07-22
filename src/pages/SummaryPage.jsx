@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -63,6 +64,18 @@ function pumpRows(report) {
     })
 }
 
+/* Same formula as Records: expected revenue (fuel sold) vs everything the
+   customer could have paid with — cash, both POS terminals, both transfer
+   types. Transfers were originally left out here (as they briefly were on
+   Records too), which made the variance meaningless on a transfer-heavy day;
+   now both pages agree. */
+function reconciliationFor(report) {
+  const expected = (report.pms_revenue || 0) + (report.ago_revenue || 0)
+  const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
+    + (report.trf_mp || 0) + (report.trf_zb || 0)
+  return { variance: collected - expected, hasData: expected > 0 || collected > 0 }
+}
+
 function buildSummaryText(report, date) {
   const lines = [
     `${getStation(activeStation()).name} — Daily Summary`,
@@ -93,6 +106,7 @@ function buildSummaryText(report, date) {
     `POS Charges (Z.M): ${naira(report.pos_zm_charge)}`,
     ...(report.emtl_amount ? [`EMTL: ${naira(report.emtl_amount)}`] : []),
     `Cash to Bank: ${naira(report.to_bank)}`,
+    ...(reconciliationFor(report).hasData ? [`Variance: ${naira(reconciliationFor(report).variance)} (${reconciliationFor(report).variance < 0 ? "Shortage" : reconciliationFor(report).variance > 0 ? "Surplus" : "Balanced"})`] : []),
     ``,
     ...(report.lubricantItems?.length ? [
       `Lubricant (Oil) Report:`,
@@ -434,6 +448,31 @@ function SummaryInner() {
                 <span className="text-[13.5px] font-extrabold text-ink">Cash to Bank</span>
                 <span className="mono text-[18px] font-extrabold text-green">{naira(report.to_bank)}</span>
               </div>
+
+              {report.pos_proof_file_id && (
+                <div className="mt-2 flex flex-wrap gap-2 border-t border-border pt-3">
+                  <ProofPhotoViewer label="Moniepoint proof" fileId={report.pos_proof_file_id} />
+                </div>
+              )}
+
+              {/* Variance: fuel sold vs everything collected. Same formula and
+                  numbers as the Records page — this and Records should always
+                  agree, since a discrepancy between the two would itself be
+                  confusing. */}
+              {reconciliationFor(report).hasData && (() => {
+                const { variance } = reconciliationFor(report)
+                const label = Math.abs(variance) < 1 ? "Balanced" : variance < 0 ? "Shortage" : "Surplus"
+                const color = Math.abs(variance) < 1 ? "text-green" : variance < 0 ? "text-red" : "text-cyan"
+                return (
+                  <div className="mt-1 flex items-center justify-between border-t border-border pt-3">
+                    <span className="text-[13.5px] font-extrabold text-ink">Variance</span>
+                    <div className="text-right">
+                      <div className={`mono text-[15px] font-extrabold ${color}`}>{naira(variance)}</div>
+                      <div className={`text-[10.5px] font-bold uppercase tracking-[0.5px] ${color}`}>{label}</div>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             {report.lubricantItems?.length > 0 && (

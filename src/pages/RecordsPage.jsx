@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
@@ -343,6 +344,11 @@ function RecordsInner() {
                       </div>
                     </div>
                   </div>
+                  {report.pos_proof_file_id && (
+                    <div className="flex flex-wrap gap-2 border-t border-white/10 p-[18px]">
+                      <ProofPhotoViewer label="Moniepoint proof" fileId={report.pos_proof_file_id} />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">

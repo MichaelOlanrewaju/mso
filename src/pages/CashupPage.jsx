@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import ProofPhotoButton from "../components/cashup/ProofPhotoButton"
 import { activeStation } from "../utils/station"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
@@ -73,6 +74,7 @@ function CashupInner() {
 
   const {
     date, setDate,
+    posProofFileId, posProofUploading, uploadPosProof,
     expected, loadingExpected, refreshExpected,
     posMP, setPosMP, posZM, setPosZM, cashAmt, setCashAmt,
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,
@@ -284,6 +286,13 @@ function CashupInner() {
             <SectionCard title="POS Terminals">
               <MoneyRow label="MP Terminal" sub="Total POS (M.P)" value={posMP} onChange={setPosMP} charge={mpCharge} net={mpNet} />
               <MoneyRow label="ZM Terminal" sub="Total POS (Z.M)" value={posZM} onChange={setPosZM} charge={zmCharge} net={zmNet} />
+              <div className="border-t border-surface">
+                <ProofPhotoButton
+                  label="Moniepoint settlement proof"
+                  hint="Photo of today's settlement summary"
+                  fileId={posProofFileId} uploading={posProofUploading} onCapture={uploadPosProof}
+                />
+              </div>
             </SectionCard>
 
             <SectionCard title="Bank Transfers" sub="TRF (M.P) carries a 0.3% charge — the others don't">
@@ -533,6 +542,7 @@ function CashupInner() {
             <div className="mono text-[32px] font-black tracking-tight text-green">{naira(cashToBank)}</div>
             <div className="mt-1.5 text-[11.5px] text-ink-3">Physical cash − expenses. POS/Transfer charges don't touch physical cash, so they don't reduce this figure.</div>
           </div>
+
           <div className="border-t border-surface bg-surface/50 p-5">
             <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">Sales Cash Summary</div>
             {[

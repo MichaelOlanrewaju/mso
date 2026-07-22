@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import CashAtHandCard from "../components/dashboard/CashAtHandCard"
 import { getStation } from "../config/stations"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
@@ -151,6 +152,10 @@ function DashboardInner() {
                 user has nothing to switch to, so they never see it. */}
             <div className="enter" style={delay(0)}>
               <StationSwitcherCard show={auth.station === "both" || auth.isOwner || auth.role === "ceo" || auth.role === "gm"} />
+            </div>
+
+            <div className="enter mb-3" style={delay(0)}>
+              <CashAtHandCard />
             </div>
 
             {notifPermission === "granted" && (

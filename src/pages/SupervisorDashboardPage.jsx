@@ -1,4 +1,5 @@
 import React from "react"
+import { canLogBankDeposit } from "../hooks/useBankDeposits"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import { useDashboardData } from "../hooks/useDashboardData"
@@ -294,6 +295,9 @@ export default function SupervisorDashboardPage() {
               backend already allows it (saveDailyReport has no role gate); this
               is just the way in. */}
           <MenuRow icon="bi-cash-stack" iconBg="#F0FDF4" iconColor="#16A34A" title="Cash Reconciliation" sub="Close out the day's takings" onClick={() => navigate(`/cashup/${auth.station}`)} />
+          {canLogBankDeposit(auth.username, auth.role) && (
+            <MenuRow icon="bi-bank" iconBg="var(--brand-accent-light)" iconColor="var(--brand-accent)" title="Bank Deposits" sub="Log a deposit · view Cash At Hand" onClick={() => navigate(`/bank-deposits/${auth.station}`)} />
+          )}
           <MenuRow icon="bi-file-earmark-bar-graph" iconBg="#F0FDF4" iconColor="#16A34A" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
           <MenuRow icon="bi-file-earmark-text" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
           <MenuRow icon="bi-truck" iconBg="#FFF7ED" iconColor="var(--brand-accent)" title="Discharge" sub="Log tank discharge / delivery" onClick={() => navigate(`/discharge/${auth.station}`)} />

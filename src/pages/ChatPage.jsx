@@ -90,7 +90,7 @@ function ImageBubble({ fileId, isMine }) {
 }
 
 /* Message bubble with long-press actions */
-function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onPin, quoted, myUsername }) {
+function Bubble({ msg, isMine, onEdit, onDelete, onDeleteForAll, onReply, onReact, onJumpTo, onPin, quoted, myUsername, canModerate }) {
   const [showActions, setShowActions] = useState(false)
   const pressTimer = useRef(null)
 
@@ -109,6 +109,13 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
         {!isMine && <Avatar name={msg.senderName} size={30} />}
         <div style={{ maxWidth:"78vw", background: isMine ? BRAND_GRADIENT : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
           className={`min-w-0 flex-shrink rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
+          {msg.deletedForEveryone ? (
+            <div className="flex items-center gap-2 px-4 py-3">
+              <i className={`bi bi-slash-circle text-[13px] ${isMine ? "text-white/60" : "text-ink-4"}`} />
+              <span className={`text-[13.5px] italic ${isMine ? "text-white/70" : "text-ink-4"}`}>This message was deleted</span>
+            </div>
+          ) : (
+          <>
           {/* Image */}
           {msg.imageFileId && (
             <div className="overflow-hidden rounded-[18px] p-1">
@@ -161,6 +168,8 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
               : <i className="bi bi-check2-all" style={{ color: "#7fd4ff" }} />
             )}
           </div>
+          </>
+          )}
         </div>
       </div>
 
@@ -198,6 +207,17 @@ function Bubble({ msg, isMine, onEdit, onDelete, onReply, onReact, onJumpTo, onP
               <i className={`bi ${msg.pinned ? "bi-pin-angle-fill" : "bi-pin-angle"} text-ink-4 w-5`} />
               {msg.pinned ? "Unpin message" : "Pin message"}
             </button>
+            {(isMine || canModerate) && (
+              <button type="button"
+                className="flex w-full items-center gap-3 border-t border-surface px-5 py-4 text-[14.5px] font-medium text-red active:bg-red-light"
+                onClick={() => {
+                  setShowActions(false)
+                  if (window.confirm("Delete this message for everyone? This can't be undone.")) onDeleteForAll(msg.messageId)
+                }}>
+                <i className="bi bi-trash-fill text-red w-5" />
+                Delete for everyone
+              </button>
+            )}
             <button type="button"
               className="flex w-full items-center gap-3 border-t border-surface px-5 py-4 text-[14.5px] font-medium text-red active:bg-red-light"
               onClick={() => { setShowActions(false); onDelete(msg.messageId) }}>
@@ -263,7 +283,7 @@ function EditModal({ message, onSave, onClose }) {
 /* ── Conversation window ────────────────────────────────── */
 function ConversationView({ auth, conversationId, conversationName, isGeneral, onBack, onConversationDeleted }) {
   const toast = useToast()
-  const { status, messages, sending, sendMessage, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation } = useChat({
+  const { status, messages, sending, sendMessage, editMessage, deleteMessage, deleteMessageForEveryone, reactToMessage, pinMessage, hideConversation } = useChat({
     username: auth.username, name: auth.name, conversationId,
   })
   const [draft, setDraft] = useState("")
@@ -306,6 +326,8 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
   }
   const handleReact = (messageId, emoji) => reactToMessage(messageId, emoji)
   const handlePin = (messageId, pin) => pinMessage(messageId, pin)
+  const handleDeleteForAll = messageId => deleteMessageForEveryone(messageId)
+  const canModerate = ["supervisor", "gm", "owner", "ceo"].includes(String(auth.role || "").toLowerCase())
 
   const handleReply = msg => {
     setReplyTo(msg)
@@ -477,6 +499,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
                   myUsername={auth.username}
                   onEdit={handleEdit} onDelete={handleDeleteMsg} onReply={handleReply}
                   onReact={handleReact} onJumpTo={handleJumpTo} onPin={handlePin}
+                  onDeleteForAll={handleDeleteForAll} canModerate={canModerate}
                   quoted={item.msg.replyToId ? messages.find(mm => mm.messageId === item.msg.replyToId) : null} />
               </div>
           )}

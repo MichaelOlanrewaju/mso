@@ -318,6 +318,22 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [username])
 
+  const deleteMessageForEveryone = useCallback(async messageId => {
+    if (!SCRIPT_URL) return { ok: false }
+    /* Optimistic: show the tombstone immediately. */
+    setMessages(prev => prev.map(m => m.messageId === messageId
+      ? { ...m, text: "", imageFileId: "", audioFileId: "", reactions: {}, deletedForEveryone: true }
+      : m))
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "deleteMessageForEveryone", token: getToken(), station: activeStation(), messageId, username }),
+      })
+      return await res.json()
+    } catch { return { ok: false, error: "Network error" } }
+  }, [username])
+
   const hideConversation = useCallback(async () => {
     if (!SCRIPT_URL || !conversationId) return { ok: false }
     setMessages([])
@@ -331,5 +347,5 @@ export function useChat({ username, name, conversationId }) {
     } catch { return { ok: false, error: "Network error" } }
   }, [conversationId, username])
 
-  return { status, messages, sending, sendMessage, editMessage, deleteMessage, reactToMessage, pinMessage, hideConversation, markRead }
+  return { status, messages, sending, sendMessage, editMessage, deleteMessage, deleteMessageForEveryone, reactToMessage, pinMessage, hideConversation, markRead }
 }

@@ -60,7 +60,14 @@ const STATIC_EXTENSIONS = ['.js', '.css', '.woff', '.woff2', '.ttf', '.png', '.j
 
 /* ── Install ──────────────────────────────────────────── */
 self.addEventListener('install', event => {
-  self.skipWaiting()
+  /* NOT calling self.skipWaiting() here. Doing so made a new worker activate
+     itself the instant it finished installing — before the person ever saw or
+     tapped the "Refresh" banner — which forced a reload nobody asked for, and
+     the resulting cycle of reload → recheck → treat-as-new-again is what made
+     the banner reappear immediately and permanently, forcing repeat reloads.
+     A worker now genuinely WAITS until skipWaiting is requested from the
+     client's message handler below, triggered only by the person tapping
+     Refresh. That's the entire point of showing the banner at all. */
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(APP_SHELL).catch(() => {/* ignore individual failures */})
