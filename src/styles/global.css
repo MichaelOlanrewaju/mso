@@ -282,22 +282,26 @@ input[type="date"]:not([class]):focus {
   box-shadow: 0 0 0 3px rgba(23, 157, 208, 0.14);
 }
 
-/* ── Dark fintech theme — scoped to .fintech-dark, doesn't touch anything
-   else in the app. Applied first to Supervisor Dashboard + Cash Reconciliation
-   as the initial rollout. ── */
+/* ── Light fintech theme — scoped to .fintech-dark (name kept so nothing else
+   needs to change), doesn't touch anything else in the app. Applied first to
+   Supervisor Dashboard. Same layout system as the dark version — ring, glass
+   cards, mono numerals, pill nav — just a light palette, better for outdoor
+   daytime use on a phone. ── */
 .fintech-dark {
-  --ftk-bg: #050214;
-  --ftk-bg-hero: radial-gradient(ellipse 140% 60% at 50% -10%, #1A1050 0%, #0F0A2E 45%, #0A0620 100%);
-  --ftk-card: rgba(255,255,255,0.055);
-  --ftk-card-border: rgba(255,255,255,0.09);
-  --ftk-ink: #F5F3FF;
-  --ftk-ink-dim: rgba(245,243,255,0.52);
-  --ftk-ink-faint: rgba(245,243,255,0.32);
-  --ftk-cyan: #22C5F0;
-  --ftk-violet: #7C5CFF;
-  --ftk-green: #34D399;
-  --ftk-amber: #FBBF67;
-  --ftk-red: #F26B6B;
+  --ftk-bg: #F4F6FB;
+  --ftk-bg-hero: radial-gradient(ellipse 140% 60% at 50% -10%, #EAF6FC 0%, #F1F3FB 45%, #F6F7FC 100%);
+  --ftk-card: #FFFFFF;
+  --ftk-card-border: rgba(19,6,86,0.07);
+  --ftk-ink: #16123A;
+  --ftk-ink-dim: rgba(22,18,58,0.58);
+  --ftk-ink-faint: rgba(22,18,58,0.38);
+  --ftk-cyan: #0EA5D9;
+  --ftk-violet: #6D46E8;
+  --ftk-green: #16A34A;
+  --ftk-amber: #D97706;
+  --ftk-red: #DC2626;
+  --ftk-nav-bg: rgba(255,255,255,0.85);
+  --ftk-nav-border: rgba(19,6,86,0.08);
   font-family: 'Manrope', -apple-system, sans-serif;
   background: var(--ftk-bg);
   min-height: 100vh;
@@ -307,5 +311,5 @@ input[type="date"]:not([class]):focus {
 .fintech-dark .ftk-glass {
   background: var(--ftk-card);
   border: 1px solid var(--ftk-card-border);
-  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 14px rgba(19,6,86,0.06);
 }

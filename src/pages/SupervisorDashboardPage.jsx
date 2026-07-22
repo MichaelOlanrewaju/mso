@@ -88,14 +88,18 @@ export default function SupervisorDashboardPage() {
      gets gold/wine, matching each station's real brand rather than a single
      fixed palette for both. Same dark glass system, different accent hues. */
   const isMM = auth.station === "mrs"
+  /* These need to be deep enough to read as TEXT on a white background —
+     the dark-theme version used light, glowing gold/pink because it needed
+     to pop on black. Light theme needs the opposite: darker, saturated
+     colors that stay legible as small labels, not bright neon. */
   const themeVars = isMM
-    ? { "--ftk-cyan": "#F2B84B", "--ftk-violet": "#B5487A" }
+    ? { "--ftk-cyan": "#B8860B", "--ftk-violet": "#8F3A5C" }
     : {}
 
   return (
     <div className="fintech-dark relative overflow-hidden pb-[100px]" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
-      <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-30" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
-      <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-20" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
+      <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-[0.12]" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
+      <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-[0.10]" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
 
       <div className="relative z-10 mx-auto max-w-[640px] px-5" style={{ paddingTop: "max(var(--sat), 26px)" }}>
         <div className="mb-5 flex items-center justify-between">
@@ -293,10 +297,10 @@ export default function SupervisorDashboardPage() {
         className="fixed bottom-[18px] left-4 right-4 z-[500] mx-auto flex max-w-[600px] gap-1 rounded-[22px] p-2"
         style={{
           paddingBottom: "calc(8px + var(--sab))",
-          background: "rgba(15,10,46,0.75)",
+          background: "var(--ftk-nav-bg)",
           backdropFilter: "blur(24px)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          boxShadow: "0 20px 40px -10px rgba(0,0,0,0.5)",
+          border: "1px solid var(--ftk-nav-border)",
+          boxShadow: "0 20px 40px -10px rgba(19,6,86,0.15)",
         }}
       >
         {[
@@ -310,7 +314,7 @@ export default function SupervisorDashboardPage() {
             className="flex flex-1 flex-col items-center gap-[3px] rounded-[15px] px-2.5 py-2 text-[9.5px] font-bold"
             style={n.active
               ? { background: "linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))", color: "#fff" }
-              : { color: "var(--ftk-ink-faint)" }}
+              : { color: "var(--ftk-ink-dim)" }}
           >
             <i className={`bi ${n.icon} text-xl`} /> {n.label}
           </button>
