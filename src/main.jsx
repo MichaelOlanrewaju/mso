@@ -27,12 +27,7 @@ if ('serviceWorker' in navigator) {
            the UpdateBanner shows a "Refresh" button and the user chooses when.
            Tapping it posts SKIP_WAITING, which triggers controllerchange below
            and the single reload. */
-        let announced = false
-        const announce = () => {
-          if (announced) return
-          announced = true
-          window.dispatchEvent(new Event('mso-update-ready'))
-        }
+        const announce = () => window.dispatchEvent(new Event('mso-update-ready'))
 
         /* A newly-INSTALLING worker: announce once it's installed and there's
            already an active controller (so it's an update, not first install). */
