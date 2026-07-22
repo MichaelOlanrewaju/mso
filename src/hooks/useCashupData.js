@@ -281,9 +281,12 @@ export function useCashupData(username, name, initialDate) {
     if (mp === 0 && zm === 0 && cash === 0 && trfTotal === 0) {
       return Promise.resolve({ ok: false, error: "Enter at least one payment amount" })
     }
-    if (!expected.closingDipDone) {
-      return Promise.resolve({ ok: false, error: `Closing Dip hasn't been submitted yet for ${date}. Please complete Closing Dip before Cash Reconciliation.` })
-    }
+    /* No longer blocked on closing dip. What the cashier physically counted
+       doesn't depend on whether the supervisor has finished dip readings —
+       refusing to save her real numbers because someone else's task is late
+       serves no one. The comparison against expected fuel revenue completes
+       itself automatically once the dip is in; it isn't a reason to hold up
+       the save. */
     if (cashupLocked) {
       return Promise.resolve({ ok: false, error: `Cash Reconciliation for ${date} has already been approved. Request an edit and wait for GM/Owner approval before resubmitting.`, locked: true })
     }
