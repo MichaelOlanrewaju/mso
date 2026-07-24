@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#06091A" />
+    <meta name="background-color" content="#06091A" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Apple PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MSO Console" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144.png" />
+    <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128.png" />
+
+    <!-- Microsoft -->
+    <meta name="msapplication-TileColor" content="#06091A" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144.png" />
+
+    <!-- SEO / Social -->
+    <meta name="description" content="Real-time operations platform for MSO Limpid Co. Ltd and M&M Oil & Gas Ltd — Lagos." />
+    <meta property="og:title" content="MSO Digital Operations" />
+    <meta property="og:description" content="Real-time operations platform for MSO Limpid Co. Ltd and M&M Oil & Gas Ltd." />
+    <meta property="og:image" content="/images/KM1_1031.jpeg" />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-72.png" />
+
+    <!-- Preconnect for fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Preconnect to the Apps Script backend — overlaps DNS/TLS setup
+         with page load instead of paying that cost after the JS bundle
+         finally makes its first fetch call -->
+    <link rel="preconnect" href="https://script.google.com" />
+    <link rel="dns-prefetch" href="https://script.google.com" />
+
+    <title>MSO Limpid — Operations Console</title>
+
+    <style>
+      /* ── Boot splash — painted immediately by the browser, before the
+         React bundle downloads/parses, so the first thing anyone sees
+         (especially opening the installed PWA cold) is a branded animation
+         instead of a blank navy screen. React removes #mso-splash once it
+         mounts (see main.jsx), fading it out smoothly. ── */
+      #mso-splash {
+        position: fixed; inset: 0; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background:
+          radial-gradient(ellipse 70% 55% at 50% 42%, rgba(23,157,208,.16) 0%, transparent 60%),
+          #06091A;
+        transition: opacity .3s ease, visibility .3s ease;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      }
+      #mso-splash.mso-hide { opacity: 0; visibility: hidden; pointer-events: none; }
+
+      .mso-splash-badge {
+        position: relative;
+        width: 118px; height: 118px;
+        display: flex; align-items: center; justify-content: center;
+        animation: msoBadgeIn .5s cubic-bezier(.22,1,.36,1) both;
+      }
+      /* Rotating gradient ring */
+      .mso-splash-ring {
+        position: absolute; inset: 0;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, transparent 0deg, transparent 200deg, #179DD0 300deg, #6DE0FF 340deg, transparent 360deg);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+                mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+        animation: msoSpin 1.15s linear infinite;
+      }
+      /* Static faint track under the ring */
+      .mso-splash-track {
+        position: absolute; inset: 0; border-radius: 50%;
+        border: 3px solid rgba(255,255,255,.07);
+      }
+      .mso-splash-logo {
+        width: 62px; height: auto; display: block;
+        filter: brightness(0) invert(1);
+        animation: msoPulse 2.2s ease-in-out infinite;
+      }
+      /* Fallback monogram if the logo image is missing */
+      .mso-splash-mono {
+        font-size: 30px; font-weight: 800; letter-spacing: -.03em; color: #fff;
+        animation: msoPulse 2.2s ease-in-out infinite;
+      }
+
+      .mso-splash-word {
+        margin-top: 26px; text-align: center;
+        animation: msoWordIn .45s .12s cubic-bezier(.22,1,.36,1) both;
+      }
+      .mso-splash-title {
+        font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -.02em;
+      }
+      .mso-splash-sub {
+        margin-top: 5px; font-size: 10px; font-weight: 600; letter-spacing: 2.5px;
+        text-transform: uppercase; color: rgba(255,255,255,.32);
+      }
+      /* Loading dots */
+      .mso-splash-dots { margin-top: 22px; display: flex; gap: 6px; }
+      .mso-splash-dots span {
+        width: 6px; height: 6px; border-radius: 50%; background: #179DD0;
+        animation: msoDot 1.2s ease-in-out infinite;
+      }
+      .mso-splash-dots span:nth-child(2) { animation-delay: .18s; }
+      .mso-splash-dots span:nth-child(3) { animation-delay: .36s; }
+
+      @keyframes msoSpin { to { transform: rotate(360deg); } }
+      @keyframes msoPulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: .82; transform: scale(.96); }
+      }
+      @keyframes msoBadgeIn {
+        from { opacity: 0; transform: scale(.72); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+      @keyframes msoWordIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: none; }
+      }
+      @keyframes msoDot {
+        0%, 100% { opacity: .25; transform: translateY(0); }
+        50%      { opacity: 1;   transform: translateY(-5px); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #mso-splash * { animation: none !important; }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-CpbjDQHm.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-router-DUpos-iN.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-nkblqbbj.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Boot splash (removed by React on mount) -->
+    <div id="mso-splash">
+      <div class="mso-splash-badge">
+        <div class="mso-splash-track"></div>
+        <div class="mso-splash-ring"></div>
+        <img class="mso-splash-logo" src="/images/msolimpid.png" alt="MSO Limpid"
+             onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\'mso-splash-mono\'>MSO</span>')" />
+      </div>
+      <div class="mso-splash-word">
+        <div class="mso-splash-title">MSO Digital</div>
+        <div class="mso-splash-sub">Operations Portal</div>
+      </div>
+      <div class="mso-splash-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <!-- ── Boot resilience (runs before the app bundle) ─────────────
+         Two failsafes, both independent of the React bundle so they work
+         even if it never loads:
+         1. SW LOOP-BREAKER: if the page reloads several times within a few
+            seconds (the signature of a service-worker update loop), we
+            unregister all workers and clear caches, then load clean. This
+            self-heals the "stuck on splash, reloading forever" state
+            without anyone having to clear storage by hand.
+         2. SPLASH FAILSAFE: force-hide the splash after 8s no matter what,
+            so a boot problem shows the app (or a real error) instead of an
+            endless spinner. -->
+    <script>
+      (function () {
+        try {
+          var now = Date.now();
+          var KEY = 'mso_boot_reloads';
+          var hist = [];
+          try { hist = JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) {}
+          hist = hist.filter(function (t) { return now - t < 8000; });
+          hist.push(now);
+          sessionStorage.setItem(KEY, JSON.stringify(hist));
+
+          if (hist.length >= 4) {
+            // Loop detected — break it: drop the SW + caches and reload once clean.
+            sessionStorage.removeItem(KEY);
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                return Promise.all(regs.map(function (r) { return r.unregister(); }));
+              }).then(function () {
+                if (window.caches && caches.keys) {
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                  });
+                }
+              }).finally(function () {
+                // one clean load with SW gone; guard prevents re-looping
+                if (!sessionStorage.getItem('mso_boot_recovered')) {
+                  sessionStorage.setItem('mso_boot_recovered', '1');
+                  location.reload();
+                }
+              });
+            }
+          }
+        } catch (e) { /* never let the failsafe itself break boot */ }
+
+        // Splash failsafe — hide it after 8s even if the app never mounts.
+        window.addEventListener('load', function () {
+          setTimeout(function () {
+            var s = document.getElementById('mso-splash');
+            if (s) { s.classList.add('mso-hide'); setTimeout(function () { s.remove(); }, 600); }
+          }, 8000);
+        });
+      })();
+    </script>
+
+  </body>
+</html>

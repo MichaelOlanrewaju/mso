@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getCurrentCoords } from "../utils/geolocation"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
    have collected dips for a tank that does not exist. */
@@ -52,11 +53,18 @@ function diffFor(r) {
   return cl - op
 }
 
-function post(payload) {
+/* Attaches the device's GPS coordinates to every save — CEO policy requires
+   dip/pump/cash-up submissions to happen physically at the station, and the
+   backend verifies this using lat/lng from here. A location that can't be
+   obtained is sent as-is (null); the backend treats that as "not verified"
+   and rejects with a clear message, rather than this function silently
+   deciding what to do about it. */
+async function post(payload) {
+  const coords = await getCurrentCoords()
   return fetch(SCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
     redirect: "follow",
   }).then(res => res.json())
 }

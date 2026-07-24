@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { getCurrentCoords } from "../utils/geolocation"
 import { compressImage } from "../utils/compressImage"
 import { getToken } from "../utils/session"
 
@@ -82,14 +83,35 @@ export function useCashupData(username, name, initialDate) {
           setLoadingExpected(false)
           return
         }
+        /* Same fix as Records/Summary: r.pms_revenue/ago_revenue are stored
+           fields that only get written at specific save moments and can sit
+           stale at 0 even when real pump readings exist (confirmed directly
+           on 23 July — full pump sessions existed while these fields read
+           zero). Derive litres LIVE from the real pump sessions when they
+           exist; only fall back to the stored fields for older records with
+           no PumpMetres rows at all. */
+        const map = r.pumpMetres || {}
+        let pmsLitresLive = 0, agoLitresLive = 0, hasLive = false
+        Object.keys(map).forEach(pump => {
+          const sessions = map[pump].sessions || []
+          const diff = sessions.length
+            ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
+            : Number(map[pump].litres || 0)
+          if (sessions.some(s => Number(s.open) > 0 || Number(s.close) > 0) || diff > 0) hasLive = true
+          const isAgo = pump.toUpperCase().includes("AGO") || map[pump].product === "AGO"
+          if (isAgo) agoLitresLive += diff
+          else pmsLitresLive += diff
+        })
+        const pmsLitres = hasLive ? pmsLitresLive : (Number(r.pms_litres) || 0)
+        const agoLitres = hasLive ? agoLitresLive : (Number(r.ago_litres) || 0)
+        const pmsPrice = Number(r.pms_price) || 0
+        const agoPrice = Number(r.ago_price) || 0
+        const pmsRevenue = Math.round(pmsLitres * pmsPrice * 100) / 100
+        const agoRevenue = Math.round(agoLitres * agoPrice * 100) / 100
+
         setExpected({
-          grandTotal: Number(r.grand_total) || 0,
-          pmsLitres: Number(r.pms_litres) || 0,
-          agoLitres: Number(r.ago_litres) || 0,
-          pmsPrice: Number(r.pms_price) || 0,
-          agoPrice: Number(r.ago_price) || 0,
-          pmsRevenue: Number(r.pms_revenue) || 0,
-          agoRevenue: Number(r.ago_revenue) || 0,
+          grandTotal: hasLive ? Math.round((pmsRevenue + agoRevenue) * 100) / 100 : (Number(r.grand_total) || 0),
+          pmsLitres, agoLitres, pmsPrice, agoPrice, pmsRevenue, agoRevenue,
           lpgKg: Number(r.lpg_kg) || 0,
           lpgPrice: Number(r.lpg_price) || 0,
           lpgRevenue: Number(r.lpg_revenue) || 0,
@@ -165,7 +187,16 @@ export function useCashupData(username, name, initialDate) {
   const EMTL_RATE = 50 // Nigeria's standard flat EMTL charge per qualifying transfer
   const emtlAmount = emtlCountNum * EMTL_RATE
 
-  const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amt) || 0), 0)
+  /* An amount only counts if it has a description. Previously this summed
+     EVERY entered amount regardless — so an expense typed with a figure but
+     no description still reduced Cash to Bank, while silently vanishing from
+     the itemized record (the save step below has always required a
+     description, so that amount was never written anywhere). Money was
+     leaving the total with no trace of what it was for. */
+  const totalExpenses = expenses.reduce((s, e) => s + (e.desc && Number(e.amt) > 0 ? Number(e.amt) : 0), 0)
+  // An amount WITHOUT a description — money about to silently vanish from the
+  // record. Surfaced so the cashier fixes it before submitting, not after.
+  const expensesMissingDescription = expenses.some(e => Number(e.amt) > 0 && !e.desc)
   const mpCharge = Math.round(mp * MP_RATE)
   const zmCharge = Math.round(zm * ZM_RATE)
   // TRF (M.P) carries the same 0.3% charge as the MP terminal itself —
@@ -205,14 +236,23 @@ export function useCashupData(username, name, initialDate) {
   const lpgRemittedNum = Number(lpgRemitted) || 0
   const lpgVariance = lpgSales > 0 ? lpgRemittedNum - lpgSales : null
 
-  // Sales Cash Summary — PMS / OIL / GAS split, matching the station's
-  // paper daily report exactly (verified against real figures)
+  // Sales Cash Summary — PMS / AGO / OIL / GAS split, matching the station's
+  // paper daily report. Cash to Bank is one lump figure (payments aren't
+  // tagged by product at the point of sale — a customer just pays), so an
+  // exact split isn't possible. It's split proportionally by each product's
+  // share of the day's fuel REVENUE, which we do know from dip/pump readings.
+  // Previously the whole fuel total was labelled "PMS" even when a real
+  // chunk of it was AGO — this splits it out honestly instead of hiding it.
+  const fuelRevenue = (expected.pmsRevenue || 0) + (expected.agoRevenue || 0)
+  const pmsShare = fuelRevenue > 0 ? (expected.pmsRevenue || 0) / fuelRevenue : 1
+  const agoShare = fuelRevenue > 0 ? (expected.agoRevenue || 0) / fuelRevenue : 0
   const cashSummary = {
-    pms: Math.round(cashToBank * 100) / 100,
+    pms: Math.round(cashToBank * pmsShare * 100) / 100,
+    ago: Math.round(cashToBank * agoShare * 100) / 100,
     oil: Math.round(lubricantTotal * 100) / 100,
     gas: Math.round(lpgRemittedNum * 100) / 100,
   }
-  cashSummary.total = Math.round((cashSummary.pms + cashSummary.oil + cashSummary.gas) * 100) / 100
+  cashSummary.total = Math.round((cashSummary.pms + cashSummary.ago + cashSummary.oil + cashSummary.gas) * 100) / 100
 
   let reconStatus = "pending"
   if (variance !== null && expected.grandTotal > 0) {
@@ -281,6 +321,9 @@ export function useCashupData(username, name, initialDate) {
     if (mp === 0 && zm === 0 && cash === 0 && trfTotal === 0) {
       return Promise.resolve({ ok: false, error: "Enter at least one payment amount" })
     }
+    if (expensesMissingDescription) {
+      return Promise.resolve({ ok: false, error: "One of your expenses has an amount but no description — add what it was for before saving." })
+    }
     /* No longer blocked on closing dip. What the cashier physically counted
        doesn't depend on whether the supervisor has finished dip readings —
        refusing to save her real numbers because someone else's task is late
@@ -302,18 +345,20 @@ export function useCashupData(username, name, initialDate) {
       ago_litres: expected.agoLitres || 0, ago_price: expected.agoPrice || 0, ago_revenue: expected.agoRevenue || 0,
       lpg_remitted: lpgRemittedNum,
       lubricant_rev: Math.round(lubricantTotal),
-      pms_cash_summary: cashSummary.pms, oil_cash_summary: cashSummary.oil,
+      pms_cash_summary: cashSummary.pms, ago_cash_summary: cashSummary.ago, oil_cash_summary: cashSummary.oil,
       gas_cash_summary: cashSummary.gas, total_cash_summary: cashSummary.total,
       remarks: remarks || "",
     }
 
     setSaving(true)
-    return fetch(SCRIPT_URL, {
+    /* Attach GPS coordinates — cash-up must happen on-site per CEO policy,
+       and the backend verifies this before accepting the save. */
+    return getCurrentCoords().then(coords => fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "saveDailyReport", station: activeStation(), username, date, data }),
+      body: JSON.stringify({ action: "saveDailyReport", station: activeStation(), username, date, data, lat: coords?.lat, lng: coords?.lng }),
       redirect: "follow",
-    })
+    }))
       .then(res => res.json())
       .then(d => {
         if (!d.ok) {
@@ -359,7 +404,7 @@ export function useCashupData(username, name, initialDate) {
     posMP, setPosMP, posZM, setPosZM, cashAmt, setCashAmt,
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,
     emtlCount, setEmtlCount, emtlAmount,
-    expenses, addExpense, updateExpense, removeExpense,
+    expenses, addExpense, updateExpense, removeExpense, expensesMissingDescription,
     lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal, setLubricantPrices,
     mpCharge, zmCharge, trfMPCharge, mpNet, zmNet, trfMPNet, totalCharges, totalExpenses,
     grossTotal, collected, cashToBank, variance, reconStatus, cashSummary,

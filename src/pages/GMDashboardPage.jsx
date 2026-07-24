@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import CashupApprovalPreview from "../components/dashboard/CashupApprovalPreview"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
@@ -48,6 +49,10 @@ function GMInner() {
   const { pending: pendingPayroll } = usePendingPayroll(auth.username)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const toast = useToast()
+  /* Same fix as DashboardPage.jsx — must be declared unconditionally,
+     before the early return below, or React sees a different hook count
+     on the loading render vs. the resolved render and crashes. */
+  const [cashupPreviewDate, setCashupPreviewDate] = useState(null)
 
   usePageTitle("Dashboard — GM")
 
@@ -73,16 +78,25 @@ function GMInner() {
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
-  const handleApproveCashup = date =>
+  /* Approve no longer fires immediately from the alert card — it opens this
+     preview first, so the report is on screen at the moment the decision is
+     actually made, not something you have to have separately remembered to
+     check via "View". (State declared above, before the early return.) */
+
+  const doApproveCashup = date =>
     decideCashup(date, "approve").then(d => {
       if (d.ok) { toast.showToast("Approved", `Cash reconciliation for ${date} approved`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
+      setCashupPreviewDate(null)
     })
+
+  const handleApproveCashup = date => setCashupPreviewDate(date)
 
   const handleRejectCashup = date =>
     decideCashup(date, "reject").then(d => {
       if (d.ok) { toast.showToast("Rejected", `Cashier can now correct and resubmit ${date}`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
+      setCashupPreviewDate(null)
     })
 
   const handleReviewShortage = (rowIndex, decision) =>
@@ -254,6 +268,14 @@ function GMInner() {
       </div>
 
       <BottomNav homePath={dashboardPathFor({ role: auth.role, station: auth.station })} />
+      {cashupPreviewDate && (
+        <CashupApprovalPreview
+          date={cashupPreviewDate}
+          onApprove={() => doApproveCashup(cashupPreviewDate)}
+          onReject={() => handleRejectCashup(cashupPreviewDate)}
+          onClose={() => setCashupPreviewDate(null)}
+        />
+      )}
     </div>
   )
 }

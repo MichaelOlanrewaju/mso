@@ -2,6 +2,7 @@ import React from "react"
 import { litres } from "../../utils/format"
 import { useNavigate } from "react-router-dom"
 import { activeStation } from "../../utils/station"
+import ApprovalPreviewModal from "./ApprovalPreviewModal"
 
 function buildCashupAlerts(pendingCashups, onApprove, onReject, onView) {
   if (!pendingCashups || !pendingCashups.length) return []
@@ -18,7 +19,7 @@ function buildCashupAlerts(pendingCashups, onApprove, onReject, onView) {
     actions: onApprove
       ? [
           { label: "View", onClick: () => onView(c.date), tone: "neutral" },
-          { label: "Approve", onClick: () => onApprove(c.date), tone: "green" },
+          { label: "Approve", onClick: () => onApprove.openPreview(c.date), tone: "green" },
           { label: "Reject", onClick: () => onReject(c.date), tone: "red" },
         ]
       : null,

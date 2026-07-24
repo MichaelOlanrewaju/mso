@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import CashupApprovalPreview from "../components/dashboard/CashupApprovalPreview"
 import CashAtHandCard from "../components/dashboard/CashAtHandCard"
 import { getStation } from "../config/stations"
 import Sidebar from "../components/layout/Sidebar"
@@ -58,6 +59,14 @@ function DashboardInner() {
     typeof Notification !== 'undefined' && Notification.permission === 'default'
   )
   const toast = useToast()
+  /* Must be declared here, unconditionally, alongside every other hook —
+     not after the early return below. A hook called only on SOME renders
+     (skipped whenever auth is still loading, called once it resolves) breaks
+     React's hook-count matching between renders and crashes with "Rendered
+     more hooks than during the previous render." This used to sit right
+     before its own comment further down, past the early return — that's
+     exactly the bug. */
+  const [cashupPreviewDate, setCashupPreviewDate] = useState(null)
 
   usePageTitle(`Dashboard — ${getStation(activeStation()).name}`)
 
@@ -87,16 +96,25 @@ function DashboardInner() {
       else toast.showToast("Could not process", d.error || "Try again", "err")
     })
 
-  const handleApproveCashup = date =>
+  /* Approve no longer fires immediately from the alert card — it opens this
+     preview first, so the report is on screen at the moment the decision is
+     actually made, not something you have to have separately remembered to
+     check via "View". (State declared above, before the early return.) */
+
+  const doApproveCashup = date =>
     decideCashup(date, "approve").then(d => {
       if (d.ok) { toast.showToast("Approved", `Cash reconciliation for ${date} approved`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
+      setCashupPreviewDate(null)
     })
+
+  const handleApproveCashup = date => setCashupPreviewDate(date)
 
   const handleRejectCashup = date =>
     decideCashup(date, "reject").then(d => {
       if (d.ok) { toast.showToast("Rejected", `Cashier can now correct and resubmit ${date}`, "ok"); refresh() }
       else toast.showToast("Could not process", d.error || "Try again", "err")
+      setCashupPreviewDate(null)
     })
 
   const handleApprovePayroll = month =>
@@ -289,6 +307,14 @@ function DashboardInner() {
 
       <BottomNav />
       {showNotifPrompt && <NotificationPrompt onDismiss={() => setShowNotifPrompt(false)} />}
+      {cashupPreviewDate && (
+        <CashupApprovalPreview
+          date={cashupPreviewDate}
+          onApprove={() => doApproveCashup(cashupPreviewDate)}
+          onReject={() => handleRejectCashup(cashupPreviewDate)}
+          onClose={() => setCashupPreviewDate(null)}
+        />
+      )}
     </div>
   )
 }

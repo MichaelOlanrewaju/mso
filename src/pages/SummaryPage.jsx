@@ -14,17 +14,18 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
+import { getToken } from "../utils/session"
 
 function PhotoThumb({ fileId, onClick }) {
   const { dataUri, status } = useDriveImage(fileId)
   return (
-    <button type="button" onClick={onClick} className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[10px] border border-border bg-surface">
+    <button type="button" onClick={onClick} className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[14px] border" style={{ borderColor: "var(--ftk-card-border)", background: "var(--ftk-bg)" }}>
       {dataUri ? (
         <img src={dataUri} alt="" className="h-full w-full object-cover" />
       ) : status === "error" ? (
-        <i className="bi bi-image text-ink-4" />
+        <i className="bi bi-image" style={{ color: "var(--ftk-ink-faint)" }} />
       ) : (
-        <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
+        <span className="h-4 w-4 animate-spin-fast rounded-full border-2" style={{ borderColor: "var(--ftk-cyan)", borderTopColor: "transparent" }} />
       )}
     </button>
   )
@@ -68,12 +69,47 @@ function pumpRows(report) {
    customer could have paid with — cash, both POS terminals, both transfer
    types. Transfers were originally left out here (as they briefly were on
    Records too), which made the variance meaningless on a transfer-heavy day;
-   now both pages agree. */
+   now both pages agree.
+
+   THE REAL BUG: expected revenue was read from report.pms_revenue /
+   ago_revenue — fields stored on the daily record. But those only get
+   written at specific save moments; if cash-up is submitted before dip (which
+   we deliberately allow), they're written as 0 and NOTHING recalculates them
+   afterward when the real pump readings come in. So a day with genuine,
+   complete pump data could still show pms_revenue: 0 on the stored record —
+   confirmed directly: a real check on 23 July showed full pump sessions for
+   all 4 pumps with real diffs, while pms_litres/pms_revenue both sat at zero.
+   Records never trusted that stored field for this reason — it computes
+   expected revenue LIVE from the actual pump sessions × the day's price.
+   This does the same, instead of trusting a field that can silently go
+   stale. */
 function reconciliationFor(report) {
-  const expected = (report.pms_revenue || 0) + (report.ago_revenue || 0)
+  const map = report.pumpMetres || {}
+  let pmsPumpLitres = 0, agoPumpLitres = 0, hasPumpSessionData = false
+  Object.keys(map).forEach(pump => {
+    const sessions = map[pump].sessions || []
+    const diff = sessions.length
+      ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
+      : Number(map[pump].litres || 0)
+    if (sessions.some(s => Number(s.open) > 0 || Number(s.close) > 0) || diff > 0) hasPumpSessionData = true
+    // AGO pumps carry "AGO" in their key/product; everything else counts as PMS.
+    const isAgo = pump.toUpperCase().includes("AGO") || map[pump].product === "AGO"
+    if (isAgo) agoPumpLitres += diff
+    else pmsPumpLitres += diff
+  })
+
+  const hasFuelData = hasPumpSessionData || (report.pms_litres || 0) > 0 || (report.ago_litres || 0) > 0
+
+  // Live pump data wins when it exists; otherwise fall back to whatever the
+  // stored record has (older records, or a day with no PumpMetres rows at all).
+  const pmsLitresForRevenue = hasPumpSessionData ? pmsPumpLitres : (report.pms_litres || 0)
+  const agoLitresForRevenue = hasPumpSessionData ? agoPumpLitres : (report.ago_litres || 0)
+  const expected = pmsLitresForRevenue * (report.pms_price || 0) + agoLitresForRevenue * (report.ago_price || 0)
+
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
     + (report.trf_mp || 0) + (report.trf_zb || 0)
-  return { variance: collected - expected, hasData: expected > 0 || collected > 0 }
+
+  return { variance: collected - expected, hasData: hasFuelData }
 }
 
 function buildSummaryText(report, date) {
@@ -125,6 +161,7 @@ function buildSummaryText(report, date) {
     ...(report.total_cash_summary ? [
       `Sales Cash Summary:`,
       `  PMS: ${naira(report.pms_cash_summary)}`,
+      `  AGO: ${naira(report.ago_cash_summary)}`,
       `  OIL: ${naira(report.oil_cash_summary)}`,
       `  GAS: ${naira(report.gas_cash_summary)}`,
       `  TOTAL: ${naira(report.total_cash_summary)}`,
@@ -137,12 +174,40 @@ function buildSummaryText(report, date) {
   return lines.join("\n")
 }
 
+/* ── small presentational helpers, in the fintech-light language ── */
+function Section({ title, right, children }) {
+  return (
+    <div className="ftk-glass mb-4 rounded-[18px] p-4">
+      {(title || right) && (
+        <div className="mb-3 flex items-center justify-between">
+          {title && <span className="text-[10px] font-extrabold uppercase tracking-[0.9px]" style={{ color: "var(--ftk-ink-faint)" }}>{title}</span>}
+          {right}
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
+
+function Row({ label, value, bold, tone, sub }) {
+  const color = tone === "red" ? "var(--ftk-red)" : tone === "green" ? "var(--ftk-green)" : tone === "amber" ? "var(--ftk-amber)" : "var(--ftk-ink)"
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <div>
+        <span className={`text-[13px] ${bold ? "font-extrabold" : "font-semibold"}`} style={{ color: tone ? color : "var(--ftk-ink-dim)" }}>{label}</span>
+        {sub && <div className="text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{sub}</div>}
+      </div>
+      <span className="ftk-mono text-[13px] font-bold" style={{ color }}>{value}</span>
+    </div>
+  )
+}
+
 function SummaryInner() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
   const today = todayISO()
   const [date, setDate] = useState(today)
-  const { status, report } = useRecordsData(auth.username, date)
+  const { status, report, refresh } = useRecordsData(auth.username, date)
   const [photos, setPhotos] = useState([])
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   usePageTitle(`Daily Summary — ${getStation(activeStation()).name}`)
@@ -166,8 +231,12 @@ function SummaryInner() {
 
   const lightboxImage = useDriveImage(lightboxPhoto ? lightboxPhoto.fileId : null)
 
+  const station = activeStation()
+  const isMM = station === "mrs"
+  const themeVars = isMM ? { "--ftk-cyan": "#B8860B", "--ftk-violet": "#8F3A5C" } : {}
+
   if (auth.loading || !auth.user) {
-    return <div className="min-h-screen bg-pagebg" />
+    return <div className="fintech-dark min-h-screen" style={{ ...themeVars }} />
   }
 
   const handleShare = async () => {
@@ -184,67 +253,74 @@ function SummaryInner() {
     }
   }
 
+  const recon = report ? reconciliationFor(report) : null
+
   return (
-    <div className="min-h-screen bg-pagebg pb-10">
+    <div className="fintech-dark relative overflow-hidden pb-16" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)] print:hidden" style={{ paddingTop: "max(var(--sat), 52px)" }}>
+      <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-[0.12] print:hidden" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
+      <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-[0.10] print:hidden" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
+
+      {/* Top bar */}
+      <div
+        className="sticky top-0 z-[200] flex items-center gap-3 px-4 pb-2.5 print:hidden"
+        style={{ paddingTop: "max(var(--sat), 26px)", background: "rgba(244,246,251,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid var(--ftk-card-border)" }}
+      >
         <button
           type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]"
+          style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}
         >
           <i className="bi bi-arrow-left" />
         </button>
         <div className="flex-1">
-          <div className="text-[16px] font-extrabold text-ink">Daily Summary</div>
-          <label className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-4">
+          <div className="text-[15px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Daily Summary</div>
+          <label className="mt-0.5 flex items-center gap-1.5 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
             <i className="bi bi-calendar3" />
             <input
               type="date"
               value={date}
               max={today}
               onChange={e => e.target.value && setDate(e.target.value)}
-              className="bg-transparent text-[10px] text-ink-4 outline-none [color-scheme:light]"
+              className="bg-transparent text-[10.5px] outline-none [color-scheme:light]"
+              style={{ color: "var(--ftk-ink-faint)" }}
             />
           </label>
         </div>
-        <button type="button" onClick={() => window.print()} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
+        <button type="button" onClick={() => window.print()} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
           <i className="bi bi-printer" />
         </button>
-        <button type="button" onClick={handleShare} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
+        <button type="button" onClick={handleShare} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
           <i className="bi bi-share" />
         </button>
       </div>
 
-      <div className="print-release mx-auto max-w-[480px] px-4 py-5">
+      <div className="print-release relative z-10 mx-auto max-w-[560px] px-4 py-5">
         <PrintWatermark />
         <PrintHeader
           title="Daily Summary"
           subtitle={
             report
-              ? new Date(date).toLocaleDateString("en-NG", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })
+              ? new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
               : undefined
           }
         />
+
         {status === "loading" && (
-          <div className="flex items-center justify-center py-16 text-[13px] text-ink-4">
-            <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
+          <div className="flex items-center justify-center py-16 text-[13px]" style={{ color: "var(--ftk-ink-faint)" }}>
+            <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2" style={{ borderColor: "var(--ftk-cyan)", borderTopColor: "transparent" }} />
             Loading summary…
           </div>
         )}
 
         {status === "no-data" && (
-          <div className="flex flex-col items-center gap-2 rounded-card border border-border bg-white py-16 text-center shadow-card">
-            <i className="bi bi-inbox text-3xl text-ink-4" />
-            <div className="text-[14px] font-bold text-ink">
+          <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
+            <i className="bi bi-inbox text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
+            <div className="text-[14px] font-bold" style={{ color: "var(--ftk-ink)" }}>
               {date === today ? "No data for today yet" : "No record found for this date"}
             </div>
-            <div className="max-w-[280px] text-[12.5px] text-ink-4">
+            <div className="max-w-[280px] text-[12.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
               {date === today
                 ? "Once Dip and Cashup are submitted, the summary will appear here."
                 : "Try a different date, or check that Dip and Cashup were submitted that day."}
@@ -253,204 +329,188 @@ function SummaryInner() {
         )}
 
         {status === "ready" && report && (
-          <div className="overflow-hidden rounded-card border border-border bg-white shadow-card print:border-0 print:shadow-none">
-            <div className="bg-navy px-5 py-5 text-white print:bg-white print:text-ink print:border-b print:border-border">
-              <div className="text-[10px] font-bold uppercase tracking-[1.5px] opacity-50">{getStation(activeStation()).name} · Daily Summary</div>
-              <div className="mt-1 text-[15px] font-bold opacity-80">{new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
-              <div className="mono mt-3 text-[30px] font-black tracking-tight">{naira(report.grand_total)}</div>
-              <div className="text-[11px] opacity-50">Grand Total</div>
-              {(report.pms_margin !== 0 || report.ago_margin !== 0) && (
-                <div className="mt-3 flex gap-4 border-t border-white/10 pt-3 text-[11px] opacity-70">
-                  <div>
-                    <span className="opacity-60">PMS Margin: </span>
-                    <span className="mono font-bold">{litres(report.pms_margin, { maximumFractionDigits: 2 })} ({naira(report.pms_margin_amount)})</span>
+          <>
+            {/* Hero — Grand Total */}
+            <div className="mb-4 overflow-hidden rounded-[22px] text-white shadow-lift print:hidden" style={{ background: `linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))` }}>
+              <div className="p-5">
+                <div className="text-[10px] font-bold uppercase tracking-[1.2px] opacity-70">{getStation(station).name} · {new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</div>
+                <div className="ftk-mono mt-1.5 text-[32px] font-black tracking-tight">{naira(report.grand_total)}</div>
+                <div className="text-[11px] opacity-70">Grand Total</div>
+                {(report.pms_margin !== 0 || report.ago_margin !== 0) && (
+                  <div className="mt-3 flex gap-4 border-t border-white/20 pt-3 text-[11px] opacity-90">
+                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(report.pms_margin, { maximumFractionDigits: 2 })} ({naira(report.pms_margin_amount)})</span></div>
+                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(report.ago_margin, { maximumFractionDigits: 2 })} ({naira(report.ago_margin_amount)})</span></div>
                   </div>
-                  <div>
-                    <span className="opacity-60">AGO Margin: </span>
-                    <span className="mono font-bold">{litres(report.ago_margin, { maximumFractionDigits: 2 })} ({naira(report.ago_margin_amount)})</span>
+                )}
+              </div>
+            </div>
+
+            {/* Print-only plain header (keeps printed output clean, unaffected by screen theme) */}
+            <div className="hidden overflow-hidden rounded-card border border-border bg-white print:block">
+              <div className="border-b border-border px-5 py-4">
+                <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-ink-4">{getStation(station).name} · Daily Summary</div>
+                <div className="mt-1 text-[15px] font-bold text-ink">{new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+                <div className="mono mt-2 text-[24px] font-black text-ink">{naira(report.grand_total)}</div>
+              </div>
+            </div>
+
+            {/* PMS / AGO fuel cards */}
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              {[
+                { label: "PMS", litres: report.pms_litres, revenue: report.pms_revenue, price: report.pms_price, margin: report.pms_margin, marginAmt: report.pms_margin_amount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
+                { label: "AGO", litres: report.ago_litres, revenue: report.ago_revenue, price: report.ago_price, margin: report.ago_margin, marginAmt: report.ago_margin_amount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
+              ].map(f => (
+                <div key={f.label} className="ftk-glass rounded-[18px] p-4">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full" style={{ background: f.tint }} />
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>{f.label}</span>
                   </div>
+                  <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.litres, { maximumFractionDigits: 2 })}</div>
+                  <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(f.revenue)} @ {f.price > 0 ? `${naira(f.price)}/L` : "— /L"}</div>
+                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litres(f.margin, { maximumFractionDigits: 2 })} · {naira(f.marginAmt)}</div>
+                  {f.tiers?.length > 1 && (
+                    <div className="mt-2 space-y-0.5 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
+                      {f.tiers.map((t, i) => (
+                        <div key={i} className="flex justify-between text-[10px]" style={{ color: "var(--ftk-ink-faint)" }}>
+                          <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
+                          <span className="ftk-mono font-semibold" style={{ color: "var(--ftk-ink-dim)" }}>{naira(t.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-px bg-surface">
-              <div className="bg-white p-4">
-                <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">PMS</div>
-                <div className="mono mt-1 text-[15px] font-extrabold text-ink">{litres(report.pms_litres, { maximumFractionDigits: 2 })}</div>
-                <div className="text-[11px] text-ink-3">{naira(report.pms_revenue)} @ {report.pms_price > 0 ? `${naira(report.pms_price)}/L` : "— /L"}</div>
-                <div className="mt-1 text-[10.5px] text-ink-4">Margin: {litres(report.pms_margin, { maximumFractionDigits: 2 })} · {naira(report.pms_margin_amount)}</div>
-                {report.priceTiers?.PMS?.length > 1 && (
-                  <div className="mt-2 space-y-0.5 border-t border-surface pt-2">
-                    {report.priceTiers.PMS.map((t, i) => (
-                      <div key={i} className="flex justify-between text-[10px] text-ink-4">
-                        <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
-                        <span className="mono font-semibold text-ink-3">{naira(t.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="bg-white p-4">
-                <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">AGO</div>
-                <div className="mono mt-1 text-[15px] font-extrabold text-ink">{litres(report.ago_litres, { maximumFractionDigits: 2 })}</div>
-                <div className="text-[11px] text-ink-3">{naira(report.ago_revenue)} @ {report.ago_price > 0 ? `${naira(report.ago_price)}/L` : "— /L"}</div>
-                <div className="mt-1 text-[10.5px] text-ink-4">Margin: {litres(report.ago_margin, { maximumFractionDigits: 2 })} · {naira(report.ago_margin_amount)}</div>
-                {report.priceTiers?.AGO?.length > 1 && (
-                  <div className="mt-2 space-y-0.5 border-t border-surface pt-2">
-                    {report.priceTiers.AGO.map((t, i) => (
-                      <div key={i} className="flex justify-between text-[10px] text-ink-4">
-                        <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
-                        <span className="mono font-semibold text-ink-3">{naira(t.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="border-t border-surface px-5 py-4">
-              <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Tank Dips</div>
+            {/* Tank dips */}
+            <Section title="Tank Dips">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-surface">
+                    <tr style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
                       {["Tank", "Opening", "Closing", "Diff", "Margin"].map(h => (
-                        <th key={h} className="py-1.5 pr-2 text-left text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4 last:text-right">
-                          {h}
-                        </th>
+                        <th key={h} className="py-1.5 pr-2 text-left text-[9px] font-bold uppercase tracking-[0.5px] last:text-right" style={{ color: "var(--ftk-ink-faint)" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {tankRows(report).map(t => (
-                      <tr key={t.id} className="border-b border-surface last:border-b-0">
-                        <td className="py-2 pr-2 text-[11.5px] font-bold text-ink">
-                          {t.id} <span className="font-normal text-ink-4">· {t.product}</span>
-                        </td>
-                        <td className="mono py-2 pr-2 text-[11.5px] text-ink-2">{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                        <td className="mono py-2 pr-2 text-[11.5px] text-ink-2">{numberNG(t.closing, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                        <td className="mono py-2 pr-2 text-[11.5px] text-ink-2">{numberNG(t.diff, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                        <td className="mono py-2 text-right text-[11.5px] font-bold text-ink">{numberNG(t.margin, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
+                      <tr key={t.id} style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
+                        <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{t.id} <span className="font-normal" style={{ color: "var(--ftk-ink-faint)" }}>· {t.product}</span></td>
+                        <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
+                        <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.closing, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
+                        <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.diff, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
+                        <td className="ftk-mono py-2 text-right text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{numberNG(t.margin, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Section>
 
+            {/* Pump readings */}
             {pumpRows(report).length > 0 && (
-              <div className="border-t border-surface px-5 py-4">
-                <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Pump Readings</div>
+              <Section title="Pump Readings">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-surface">
+                      <tr style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
                         {["Pump", "Sessions", "Litres", "Amount"].map(h => (
-                          <th key={h} className="py-1.5 pr-2 text-left text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4 last:text-right">
-                            {h}
-                          </th>
+                          <th key={h} className="py-1.5 pr-2 text-left text-[9px] font-bold uppercase tracking-[0.5px] last:text-right" style={{ color: "var(--ftk-ink-faint)" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {pumpRows(report).map(p => (
-                        <tr key={p.pump} className="border-b border-surface last:border-b-0">
-                          <td className="py-2 pr-2 text-[11.5px] font-bold text-ink">{p.pump}</td>
-                          <td className="py-2 pr-2 text-[11.5px] text-ink-4">{p.sessionCount || "—"}</td>
-                          <td className="mono py-2 pr-2 text-[11.5px] text-ink-2">{litres(p.diff, { maximumFractionDigits: 2 })}</td>
-                          <td className="mono py-2 text-right text-[11.5px] font-bold text-ink">{p.amount > 0 ? naira(p.amount) : "—"}</td>
+                        <tr key={p.pump} style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
+                          <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.pump}</td>
+                          <td className="py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{p.sessionCount || "—"}</td>
+                          <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{litres(p.diff, { maximumFractionDigits: 2 })}</td>
+                          <td className="ftk-mono py-2 text-right text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.amount > 0 ? naira(p.amount) : "—"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </Section>
             )}
 
+            {/* Photos */}
             {photos.length > 0 && (
-              <div className="border-t border-surface px-5 py-4 print:hidden">
-                <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Photos ({photos.length})</div>
-                {["Morning", "Evening"].map(session => {
-                  const group = photos.filter(p => p.session === session)
-                  if (group.length === 0) return null
-                  return (
-                    <div key={session} className="mb-3 last:mb-0">
-                      <div className="mb-1.5 text-[10px] font-semibold text-ink-4">{session}</div>
-                      <div className="flex flex-wrap gap-2">
-                        {group.map((p, i) => (
-                          <PhotoThumb key={i} fileId={p.fileId} onClick={() => setLightboxPhoto(p)} />
-                        ))}
+              <Section title={`Photos (${photos.length})`}>
+                <div className="print:hidden">
+                  {["Morning", "Evening"].map(session => {
+                    const group = photos.filter(p => p.session === session)
+                    if (group.length === 0) return null
+                    return (
+                      <div key={session} className="mb-3 last:mb-0">
+                        <div className="mb-1.5 text-[10px] font-semibold" style={{ color: "var(--ftk-ink-faint)" }}>{session}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {group.map((p, i) => (
+                            <PhotoThumb key={i} fileId={p.fileId} onClick={() => setLightboxPhoto(p)} />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              </Section>
             )}
 
-            <div className="flex flex-col gap-2.5 border-t border-surface p-5">
-              {[
-                ["Total POS (M.P)", report.pos_mp],
-                ["Total POS (Z.M)", report.pos_zm],
-                ["Total TRF (M.P)", report.trf_mp],
-                ["Cash Collected", report.cash],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between text-[13px]">
-                  <span className="font-semibold text-ink-2">{k}</span>
-                  <span className="mono font-bold text-ink">{naira(v)}</span>
-                </div>
-              ))}
+            {/* Payments / Expenses / Variance */}
+            <Section>
+              <Row label="Total POS (M.P)" value={naira(report.pos_mp)} />
+              <Row label="Total POS (Z.M)" value={naira(report.pos_zm)} />
+              <Row label="Total TRF (M.P)" value={naira(report.trf_mp)} />
+              <Row label="Cash Collected" value={naira(report.cash)} />
 
               {(report.trf_zb_amelia > 0 || report.trf_fcmb_truck > 0 || report.trf_fcmb_md > 0) && (
-                <div className="mt-1 space-y-2 border-t border-surface pt-2.5">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.7px] text-ink-4">Other Transfers</div>
+                <div className="mt-1 space-y-1 border-t pt-2.5" style={{ borderColor: "var(--ftk-card-border)" }}>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>Other Transfers</div>
                   {[
                     ["TRF to Z.B Amelia", report.trf_zb_amelia],
                     ["TRF to FCMB Truck", report.trf_fcmb_truck],
                     ["TRF to FCMB M.D", report.trf_fcmb_md],
                   ].filter(([, v]) => v > 0).map(([k, v]) => (
-                    <div key={k} className="flex items-center justify-between text-[12.5px]">
-                      <span className="text-ink-2">{k}</span>
-                      <span className="mono font-bold text-ink">{naira(v)}</span>
-                    </div>
+                    <Row key={k} label={k} value={naira(v)} />
                   ))}
                 </div>
               )}
 
-              <div className="flex items-center justify-between text-[13px] text-red">
-                <span>Expenses</span>
-                <span className="mono font-bold">−{naira(report.total_expenses)}</span>
+              <div className="mt-1 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
+                <Row label="Expenses" value={`−${naira(report.total_expenses)}`} tone="red" />
               </div>
 
-              {/* What each expense was for — not just the total. */}
+              {/* What each expense was for — just a plain record of what was
+                  typed. Whatever's entered here IS an expense; this app
+                  doesn't second-guess or relabel it. A real shortage is
+                  detected automatically, by comparing what fuel sales say
+                  should exist against what was actually collected — never by
+                  a person manually re-tagging a specific line item. */}
               {report.expense_items && report.expense_items.length > 0 && (
-                <div className="ml-3 space-y-1 border-l-2 border-red/20 pl-3">
+                <div className="ml-3 space-y-1 border-l-2 pl-3" style={{ borderColor: "rgba(220,38,38,0.2)" }}>
                   {report.expense_items.map((e, i) => (
-                    <div key={i} className="flex items-start justify-between gap-3 text-[12px] text-ink-4">
+                    <div key={i} className="flex items-start justify-between gap-3 py-0.5 text-[12px]" style={{ color: "var(--ftk-ink-faint)" }}>
                       <span className="min-w-0 flex-1 break-words">{e.description || "Expense"}</span>
-                      <span className="mono flex-shrink-0 font-semibold">−{naira(Number(e.amount) || 0)}</span>
+                      <span className="ftk-mono flex-shrink-0 font-semibold">−{naira(Number(e.amount) || 0)}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="flex items-center justify-between border-t border-surface pt-2.5 text-[12.5px]">
-                <span className="text-ink-3">POS Charges (MP 0.30% + ZM 0.30% + TRF M.P 0.30%)</span>
-                <span className="mono font-semibold text-ink-3">−{naira(report.pos_mp_charge + report.pos_zm_charge)}</span>
+              <div className="mt-1 flex items-center justify-between border-t pt-2.5 text-[12.5px]" style={{ borderColor: "var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
+                <span>POS Charges (MP 0.30% + ZM 0.30% + TRF M.P 0.30%)</span>
+                <span className="ftk-mono font-semibold">−{naira(report.pos_mp_charge + report.pos_zm_charge)}</span>
               </div>
-              {report.emtl_amount > 0 && (
-                <div className="flex items-center justify-between text-[12.5px]">
-                  <span className="text-ink-3">EMTL</span>
-                  <span className="mono font-semibold text-ink-3">{naira(report.emtl_amount)}</span>
-                </div>
-              )}
+              {report.emtl_amount > 0 && <Row label="EMTL" value={naira(report.emtl_amount)} />}
 
-              <div className="mt-1 flex items-center justify-between border-t border-border pt-3">
-                <span className="text-[13.5px] font-extrabold text-ink">Cash to Bank</span>
-                <span className="mono text-[18px] font-extrabold text-green">{naira(report.to_bank)}</span>
+              <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
+                <span className="text-[13.5px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Cash to Bank</span>
+                <span className="ftk-mono text-[19px] font-extrabold" style={{ color: "var(--ftk-green)" }}>{naira(report.to_bank)}</span>
               </div>
 
               {report.pos_proof_file_id && (
-                <div className="mt-2 flex flex-wrap gap-2 border-t border-border pt-3">
+                <div className="mt-2 flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
                   <ProofPhotoViewer label="Moniepoint proof" fileId={report.pos_proof_file_id} />
                 </div>
               )}
@@ -459,104 +519,98 @@ function SummaryInner() {
                   numbers as the Records page — this and Records should always
                   agree, since a discrepancy between the two would itself be
                   confusing. */}
-              {reconciliationFor(report).hasData && (() => {
-                const { variance } = reconciliationFor(report)
+              {recon && !recon.hasData && (
+                <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
+                  <span className="text-[13.5px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Variance</span>
+                  <span className="text-[12px] font-semibold" style={{ color: "var(--ftk-ink-faint)" }}>Pending — awaiting dip/pump readings</span>
+                </div>
+              )}
+              {recon && recon.hasData && (() => {
+                const { variance } = recon
                 const label = Math.abs(variance) < 1 ? "Balanced" : variance < 0 ? "Shortage" : "Surplus"
-                const color = Math.abs(variance) < 1 ? "text-green" : variance < 0 ? "text-red" : "text-cyan"
+                const color = Math.abs(variance) < 1 ? "var(--ftk-green)" : variance < 0 ? "var(--ftk-red)" : "var(--ftk-cyan)"
                 return (
-                  <div className="mt-1 flex items-center justify-between border-t border-border pt-3">
-                    <span className="text-[13.5px] font-extrabold text-ink">Variance</span>
+                  <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
+                    <span className="text-[13.5px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Variance</span>
                     <div className="text-right">
-                      <div className={`mono text-[15px] font-extrabold ${color}`}>{naira(variance)}</div>
-                      <div className={`text-[10.5px] font-bold uppercase tracking-[0.5px] ${color}`}>{label}</div>
+                      <div className="ftk-mono text-[15px] font-extrabold" style={{ color }}>{naira(variance)}</div>
+                      <div className="text-[10.5px] font-bold uppercase tracking-[0.5px]" style={{ color }}>{label}</div>
                     </div>
                   </div>
                 )
               })()}
-            </div>
+            </Section>
 
+            {/* Lubricant */}
             {report.lubricantItems?.length > 0 && (
-              <div className="border-t border-surface p-5">
-                <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Lubricant (Oil) Report</div>
-                <div className="space-y-1.5">
-                  {report.lubricantItems.map((it, i) => (
-                    <div key={i} className="flex items-center justify-between text-[12.5px]">
-                      <span className="text-ink-2">{it.product} <span className="text-ink-4">{it.qty}×{naira(it.unitPrice)}</span></span>
-                      <span className="mono font-bold text-ink">{naira(it.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2.5 flex items-center justify-between border-t border-surface pt-2.5">
-                  <span className="text-[13px] font-extrabold text-ink">Total Amount Remitted</span>
-                  <span className="mono text-[15px] font-extrabold text-ink">{naira(report.lubricant_rev)}</span>
-                </div>
-              </div>
-            )}
-
-            {report.lpg_kg > 0 && (
-              <div className="border-t border-surface p-5">
-                <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">LPG Report</div>
-                {[
-                  ["Total KG", `${report.lpg_kg}KG`],
-                  ["Unit Price", naira(report.lpg_price)],
-                  ["Total Sales", naira(report.lpg_revenue)],
-                  ["Amount Remitted", naira(report.lpg_remitted)],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between text-[12.5px]">
-                    <span className="text-ink-2">{k}</span>
-                    <span className="mono font-bold text-ink">{v}</span>
-                  </div>
+              <Section title="Lubricant (Oil) Report">
+                {report.lubricantItems.map((it, i) => (
+                  <Row key={i} label={`${it.product}`} sub={`${it.qty}×${naira(it.unitPrice)}`} value={naira(it.amount)} />
                 ))}
-              </div>
+                <div className="mt-1.5 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--ftk-card-border)" }}>
+                  <span className="text-[13px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Total Amount Remitted</span>
+                  <span className="ftk-mono text-[15px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{naira(report.lubricant_rev)}</span>
+                </div>
+              </Section>
             )}
 
+            {/* LPG */}
+            {report.lpg_kg > 0 && (
+              <Section title="LPG Report">
+                <Row label="Total KG" value={`${report.lpg_kg}KG`} />
+                <Row label="Unit Price" value={naira(report.lpg_price)} />
+                <Row label="Total Sales" value={naira(report.lpg_revenue)} />
+                <Row label="Amount Remitted" value={naira(report.lpg_remitted)} />
+              </Section>
+            )}
+
+            {/* Sales Cash Summary */}
             {report.total_cash_summary > 0 && (
-              <div className="border-t border-surface p-5">
-                <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">Sales Cash Summary</div>
+              <Section title="Sales Cash Summary">
                 {[
                   ["PMS", report.pms_cash_summary],
+                  ["AGO", report.ago_cash_summary],
                   ["OIL", report.oil_cash_summary],
                   ["GAS", report.gas_cash_summary],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between border-b border-surface py-1.5 text-[12.5px]">
-                    <span className="text-ink-2">{k}</span>
-                    <span className="mono font-bold text-ink">{naira(v)}</span>
-                  </div>
-                ))}
-                <div className="mt-1 flex items-center justify-between pt-1.5">
-                  <span className="text-[13px] font-extrabold text-ink">TOTAL</span>
-                  <span className="mono text-[16px] font-extrabold text-navy">{naira(report.total_cash_summary)}</span>
+                ].map(([k, v]) => <Row key={k} label={k} value={naira(v)} />)}
+                <div className="mt-1 flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
+                  <span className="text-[13px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>TOTAL</span>
+                  <span className="ftk-mono text-[17px] font-extrabold" style={{ color: "var(--ftk-cyan)" }}>{naira(report.total_cash_summary)}</span>
                 </div>
-              </div>
+              </Section>
             )}
 
+            {/* Status + remarks */}
             {(report.remarks || report.cashup_status) && (
-              <div className="border-t border-surface p-5">
+              <Section>
                 {report.cashup_status && (
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.7px] text-ink-4">Cash Reconciliation:</span>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      report.cashup_status === "APPROVED" ? "bg-green-light text-green"
-                      : report.cashup_status === "REJECTED" ? "bg-red-light text-red"
-                      : "bg-amber-light text-amber"
-                    }`}>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>Cash Reconciliation:</span>
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                      style={
+                        report.cashup_status === "APPROVED" ? { background: "rgba(52,211,153,0.15)", color: "var(--ftk-green)" }
+                        : report.cashup_status === "REJECTED" ? { background: "rgba(220,38,38,0.12)", color: "var(--ftk-red)" }
+                        : { background: "rgba(217,119,6,0.12)", color: "var(--ftk-amber)" }
+                      }
+                    >
                       {report.cashup_status === "APPROVED" ? "✓ Approved" : report.cashup_status === "REJECTED" ? "✗ Rejected" : "⏳ Pending Approval"}
                     </span>
                   </div>
                 )}
                 {report.remarks && (
-                  <div className="rounded-[12px] border border-amber/20 bg-amber-light px-4 py-3">
-                    <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.7px] text-amber">General Remarks</div>
-                    <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink">{report.remarks}</div>
+                  <div className="rounded-[14px] px-4 py-3" style={{ background: "rgba(217,119,6,0.08)", border: "1px solid rgba(217,119,6,0.2)" }}>
+                    <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-amber)" }}>General Remarks</div>
+                    <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: "var(--ftk-ink)" }}>{report.remarks}</div>
                   </div>
                 )}
-              </div>
+              </Section>
             )}
 
-            <div className="border-t border-surface px-5 py-3 text-center text-[11px] text-ink-4">
+            <div className="pt-2 text-center text-[11px]" style={{ color: "var(--ftk-ink-faint)" }}>
               Submitted by {report.submitted_by || "—"}
             </div>
-          </div>
+          </>
         )}
       </div>
 

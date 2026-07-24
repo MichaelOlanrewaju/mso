@@ -79,7 +79,7 @@ function CashupInner() {
     posMP, setPosMP, posZM, setPosZM, cashAmt, setCashAmt,
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,
     emtlCount, setEmtlCount, emtlAmount,
-    expenses, addExpense, updateExpense, removeExpense,
+    expenses, addExpense, updateExpense, removeExpense, expensesMissingDescription,
     lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal, setLubricantPrices,
     lpgRemitted, setLpgRemitted, lpgSales, lpgVariance,
     remarks, setRemarks,
@@ -314,6 +314,37 @@ function CashupInner() {
 
             <SectionCard title="Cash" sub="Count carefully — exact amount">
               <MoneyRow label="Physical Cash Collected" value={cashAmt} onChange={setCashAmt} />
+              {/* This is the ONE figure the whole reconciliation depends on.
+                  If it's adjusted to make the totals look right, a real
+                  shortage becomes invisible everywhere — the variance can
+                  only catch what this number honestly reports. */}
+              <div className="mt-2.5 flex items-start gap-2 rounded-[10px] border border-cyan/25 bg-cyan-light px-3 py-2.5 text-[11.5px] text-cyan-dark">
+                <i className="bi bi-info-circle-fill mt-0.5 flex-shrink-0" />
+                <span>
+                  Enter exactly what you counted in the drawer — nothing more, nothing less. Don't adjust this
+                  to make the totals balance. If cash is short, that's meant to show up automatically; report it
+                  via <strong>Shortage</strong>, don't correct it here.
+                </span>
+              </div>
+
+              {/* Live check — only possible once dip is in, since that's what
+                  "expected" is calculated from. Updates the instant she types,
+                  so a mistake (or a real shortage) is visible while she can
+                  still walk back to the drawer and recount — not three days
+                  later on a report nobody's looking at. Never blocks
+                  submission; a genuine shortage is still valid to save,
+                  it just shouldn't be a surprise. */}
+              {expected.hasData && Number(cashAmt) > 0 && reconStatus !== "balanced" && (
+                <div className={`mt-2.5 flex items-start gap-2 rounded-[10px] border px-3 py-2.5 text-[11.5px] ${
+                  reconStatus === "short" ? "border-red/30 bg-red-light text-red" : "border-amber/30 bg-amber-light text-amber"
+                }`}>
+                  <i className="bi bi-exclamation-triangle-fill mt-0.5 flex-shrink-0" />
+                  <span>
+                    Based on today's fuel sales, this results in a <strong>{reconStatus === "short" ? "shortage" : "surplus"} of {naira(Math.abs(variance || 0))}</strong>.
+                    {reconStatus === "short" ? " Please recount before submitting, or continue if this is accurate." : " Double-check the figures before submitting."}
+                  </span>
+                </div>
+              )}
             </SectionCard>
           </>
         )}
@@ -343,6 +374,25 @@ function CashupInner() {
                 <button type="button" onClick={addExpense} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3">
                   <i className="bi bi-plus-circle" /> Add Expense
                 </button>
+                {/* An expense is money the business chose to spend. A shortage —
+                    an attendant error, a dispense mistake — is money that went
+                    MISSING. Typing a shortage into the expense box quietly
+                    reduces what's owed and makes the day look reconciled when
+                    it isn't. This gives an equally visible, equally easy way
+                    to report it correctly instead. */}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/shortage/${auth.station}`)}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-amber/40 bg-amber-light py-2.5 text-[12.5px] font-semibold text-amber"
+                >
+                  <i className="bi bi-exclamation-triangle" /> Report a shortage/dispense error instead
+                </button>
+                {expensesMissingDescription && (
+                  <div className="mt-2 flex items-start gap-2 rounded-[9px] border border-amber/30 bg-amber-light px-3 py-2.5 text-[12px] font-semibold text-amber">
+                    <i className="bi bi-exclamation-triangle-fill mt-0.5" />
+                    <span>An expense has an amount but no description — it won't be saved or counted until you add what it was for.</span>
+                  </div>
+                )}
                 <div className="mt-2.5 flex items-center justify-between rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                   <span className="text-[11px] font-semibold text-ink-3">Total Expenses</span>
                   <span className="mono text-[14px] font-extrabold text-ink">{naira(totalExpenses)}</span>
@@ -551,6 +601,7 @@ function CashupInner() {
             <div className="mb-2.5 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">Sales Cash Summary</div>
             {[
               ["PMS", cashSummary.pms],
+              ["AGO", cashSummary.ago],
               ["OIL", cashSummary.oil],
               ["GAS", cashSummary.gas],
             ].map(([k, v]) => (
