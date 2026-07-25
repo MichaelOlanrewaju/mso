@@ -2,9 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getToken } from "../utils/session"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
-/* The station now comes from the signed-in user's session, not from a
-   build-time env var — one deployment serves both MSO and M&M. */
-import { activeStation } from "../utils/station"
 const POLL_MS = 10000
 /* Inbox refresh — slower than the message poll on purpose. Unread counts
    and presence dots can lag a few seconds; an open thread cannot. */
@@ -19,7 +16,11 @@ export function dmConversationId(a, b) {
 }
 
 /* ── useConversations ────────────────────────────────────── */
-export function useConversations({ username }) {
+/* Takes an explicit station rather than reading the global session station.
+   This lets CEO/owner/GM (and specifically named users) view either
+   station's chat from a local toggle, without touching their real assigned
+   station anywhere else in the app — same reasoning as Bank Deposits. */
+export function useConversations({ username, station }) {
   const [status, setStatus] = useState("loading")
   const [conversations, setConversations] = useState([])
   // Colleagues seen within the backend's presence window. Empty array
@@ -33,10 +34,10 @@ export function useConversations({ username }) {
   }, [])
 
   const load = useCallback(() => {
-    if (!SCRIPT_URL || !username) return
+    if (!SCRIPT_URL || !username || !station) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getConversations")
-    url.searchParams.set("station", activeStation())
+    url.searchParams.set("station", station)
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -51,7 +52,7 @@ export function useConversations({ username }) {
         else setStatus("error")
       })
       .catch(() => { if (isMounted.current) setStatus("error") })
-  }, [username])
+  }, [username, station])
 
   useEffect(() => { load() }, [load])
 
@@ -76,9 +77,9 @@ export function useConversations({ username }) {
    the app being open, not about a websocket, because there isn't one.
    Silently no-ops if the backend hasn't been patched yet.
 ──────────────────────────────────────────────────────────────── */
-export function useChatPresence({ username, active = true }) {
+export function useChatPresence({ username, active = true, station }) {
   useEffect(() => {
-    if (!SCRIPT_URL || !username || !active) return
+    if (!SCRIPT_URL || !username || !active || !station) return
 
     let cancelled = false
     const beat = () => {
@@ -86,7 +87,7 @@ export function useChatPresence({ username, active = true }) {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return
       const url = new URL(SCRIPT_URL)
       url.searchParams.set("action", "chatHeartbeat")
-      url.searchParams.set("station", activeStation())
+      url.searchParams.set("station", station)
       url.searchParams.set("username", username)
       url.searchParams.set("token", getToken())
       fetch(url.toString(), { method: "GET", redirect: "follow" }).catch(() => {})
@@ -103,11 +104,11 @@ export function useChatPresence({ username, active = true }) {
       clearInterval(id)
       document.removeEventListener("visibilitychange", onVisible)
     }
-  }, [username, active])
+  }, [username, active, station])
 }
 
 /* ── useChat ─────────────────────────────────────────────── */
-export function useChat({ username, name, conversationId }) {
+export function useChat({ username, name, conversationId, station }) {
   const [status, setStatus] = useState("loading")
   const [messages, setMessages] = useState([])
   const [sending, setSending] = useState(false)
@@ -125,7 +126,7 @@ export function useChat({ username, name, conversationId }) {
     if (!SCRIPT_URL || !conversationId) return Promise.resolve()
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getChatMessages")
-    url.searchParams.set("station", activeStation())
+    url.searchParams.set("station", station)
     url.searchParams.set("conversationId", conversationId)
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken()) // for deleted-for-me filtering
@@ -147,7 +148,7 @@ export function useChat({ username, name, conversationId }) {
         if (isInitial) setStatus("ready")
       })
       .catch(() => { if (isInitial && isMounted.current) setStatus("error") })
-  }, [conversationId, username])
+  }, [conversationId, username, station])
 
   useEffect(() => {
     if (!conversationId) return
@@ -188,7 +189,7 @@ export function useChat({ username, name, conversationId }) {
       if (pollTimer.current) clearTimeout(pollTimer.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, fetchMessages])
+  }, [conversationId, fetchMessages, station])
 
   /* Move this user's read cursor to now. Fired when the thread opens and
      whenever new messages land while they're looking at it — so a chat
@@ -199,12 +200,12 @@ export function useChat({ username, name, conversationId }) {
     if (!SCRIPT_URL || !conversationId || !username) return
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "markConversationRead")
-    url.searchParams.set("station", activeStation())
+    url.searchParams.set("station", station)
     url.searchParams.set("conversationId", conversationId)
     url.searchParams.set("username", username)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" }).catch(() => {})
-  }, [conversationId, username])
+  }, [conversationId, username, station])
 
   /* Mark read on open, and again each time the message list grows while
      this thread is on screen. */
@@ -231,7 +232,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: activeStation(), conversationId, username, name, text: trimmed, imageFileId, replyToId }),
+        body: JSON.stringify({ action: "saveChatMessage", token: getToken(), station: station, conversationId, username, name, text: trimmed, imageFileId, replyToId }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -249,7 +250,7 @@ export function useChat({ username, name, conversationId }) {
     } finally {
       if (isMounted.current) setSending(false)
     }
-  }, [username, name, conversationId])
+  }, [username, name, conversationId, station])
 
   const editMessage = useCallback(async (messageId, newText) => {
     if (!SCRIPT_URL) return { ok: false }
@@ -257,7 +258,7 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "editChatMessage", token: getToken(), station: activeStation(), messageId, text: newText, username }),
+        body: JSON.stringify({ action: "editChatMessage", token: getToken(), station: station, messageId, text: newText, username }),
       })
       const d = await res.json()
       if (d.ok) {
@@ -267,7 +268,7 @@ export function useChat({ username, name, conversationId }) {
       }
       return d
     } catch { return { ok: false, error: "Network error" } }
-  }, [username])
+  }, [username, station])
 
   const deleteMessage = useCallback(async messageId => {
     if (!SCRIPT_URL) return { ok: false }
@@ -277,11 +278,11 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "deleteChatMessage", token: getToken(), station: activeStation(), messageId, username }),
+        body: JSON.stringify({ action: "deleteChatMessage", token: getToken(), station: station, messageId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
-  }, [username])
+  }, [username, station])
 
   const reactToMessage = useCallback(async (messageId, emoji) => {
     if (!SCRIPT_URL) return { ok: false }
@@ -299,11 +300,11 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "reactToMessage", token: getToken(), station: activeStation(), messageId, emoji, username }),
+        body: JSON.stringify({ action: "reactToMessage", token: getToken(), station: station, messageId, emoji, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
-  }, [username])
+  }, [username, station])
 
   const pinMessage = useCallback(async (messageId, pin = true) => {
     if (!SCRIPT_URL) return { ok: false }
@@ -312,11 +313,11 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "pinMessage", token: getToken(), station: activeStation(), messageId, pin, username }),
+        body: JSON.stringify({ action: "pinMessage", token: getToken(), station: station, messageId, pin, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
-  }, [username])
+  }, [username, station])
 
   const deleteMessageForEveryone = useCallback(async messageId => {
     if (!SCRIPT_URL) return { ok: false }
@@ -328,11 +329,11 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "deleteMessageForEveryone", token: getToken(), station: activeStation(), messageId, username }),
+        body: JSON.stringify({ action: "deleteMessageForEveryone", token: getToken(), station: station, messageId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
-  }, [username])
+  }, [username, station])
 
   const hideConversation = useCallback(async () => {
     if (!SCRIPT_URL || !conversationId) return { ok: false }
@@ -341,11 +342,11 @@ export function useChat({ username, name, conversationId }) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "hideConversation", token: getToken(), station: activeStation(), conversationId, username }),
+        body: JSON.stringify({ action: "hideConversation", token: getToken(), station: station, conversationId, username }),
       })
       return await res.json()
     } catch { return { ok: false, error: "Network error" } }
-  }, [conversationId, username])
+  }, [conversationId, username, station])
 
   return { status, messages, sending, sendMessage, editMessage, deleteMessage, deleteMessageForEveryone, reactToMessage, pinMessage, hideConversation, markRead }
 }

@@ -355,7 +355,7 @@ function RecordsInner() {
                 <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   <div className="rounded-card border border-border bg-white p-3.5 shadow-card">
                     <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">Grand Total</div>
-                    <div className="mono mt-1 text-[16px] font-extrabold text-ink">{naira(report.grand_total)}</div>
+                    <div className="mono mt-1 text-[16px] font-extrabold text-ink">{naira(hasAnyPumpData ? pmsExpected + agoExpected : (report.grand_total || 0))}</div>
                   </div>
                   <div className="rounded-card border border-border bg-white p-3.5 shadow-card">
                     <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-ink-4">Dip vs Pump Margin</div>
@@ -446,7 +446,7 @@ function RecordsInner() {
                           </td>
                           <td className="mono px-3.5 py-2.5">{litres(report.pms_litres, { maximumFractionDigits: 2 })}</td>
                           <td className="mono px-3.5 py-2.5">{report.pms_price > 0 ? naira(report.pms_price) : <span className="text-ink-4">—</span>}</td>
-                          <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.pms_revenue)}</td>
+                          <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(pmsExpected)}</td>
                           <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.pms_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.pms_margin).toFixed(2)}L</td>
                         </tr>
                         <PriceTierRows tiers={report.priceTiers?.PMS} tone="text-cyan-dark" />
@@ -456,7 +456,7 @@ function RecordsInner() {
                           </td>
                           <td className="mono px-3.5 py-2.5">{litres(report.ago_litres, { maximumFractionDigits: 2 })}</td>
                           <td className="mono px-3.5 py-2.5">{report.ago_price > 0 ? naira(report.ago_price) : <span className="text-ink-4">—</span>}</td>
-                          <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(report.ago_revenue)}</td>
+                          <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(agoExpected)}</td>
                           <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.ago_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.ago_margin).toFixed(2)}L</td>
                         </tr>
                         <PriceTierRows tiers={report.priceTiers?.AGO} tone="text-amber" />

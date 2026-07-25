@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react"
+import { STATION_KEYS } from "../config/stations"
+import { canViewBankDeposits } from "../hooks/useBankDeposits"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -281,10 +283,10 @@ function EditModal({ message, onSave, onClose }) {
 }
 
 /* ── Conversation window ────────────────────────────────── */
-function ConversationView({ auth, conversationId, conversationName, isGeneral, onBack, onConversationDeleted }) {
+function ConversationView({ auth, station, conversationId, conversationName, isGeneral, onBack, onConversationDeleted }) {
   const toast = useToast()
   const { status, messages, sending, sendMessage, editMessage, deleteMessage, deleteMessageForEveryone, reactToMessage, pinMessage, hideConversation } = useChat({
-    username: auth.username, name: auth.name, conversationId,
+    username: auth.username, name: auth.name, conversationId, station,
   })
   const [draft, setDraft] = useState("")
   const [replyTo, setReplyTo] = useState(null)   // the message being replied to
@@ -358,7 +360,7 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
-              action: "savePhoto", station: activeStation(),
+              action: "savePhoto", station,
               date: now, session: "Chat", subject: `chat__${Date.now()}`,
               base64, mimeType,
               username: auth.username,
@@ -584,15 +586,29 @@ function ConversationView({ auth, conversationId, conversationName, isGeneral, o
 function ChatInner() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  const { status: convStatus, conversations, onlineUsernames, refresh } = useConversations({ username: auth.username })
+
+  /* Which station THIS PAGE is viewing — local to Chat only, same pattern as
+     Bank Deposits. Lets CEO/owner/GM (and Lanre specifically, by name) read
+     either station's chat without touching their real assigned station
+     anywhere else in the app. Everyone else just sees their own station,
+     with no toggle. */
+  const [station, setStation] = useState(
+    auth.station && auth.station !== "both" ? auth.station : "mso"
+  )
+  /* canViewBankDeposits already covers exactly this set: GM by role,
+     CEO/owner, or a specifically named user (Lanre) regardless of their
+     account role — reused here rather than duplicating the same logic. */
+  const canSwitchStation = canViewBankDeposits(auth.username, auth.role)
+
+  const { status: convStatus, conversations, onlineUsernames, refresh } = useConversations({ username: auth.username, station })
   const { staff } = useStaff(auth.username)
   /* Tell the backend we're here, so colleagues see our presence dot. */
-  useChatPresence({ username: auth.username, active: Boolean(auth.user) })
+  useChatPresence({ username: auth.username, active: Boolean(auth.user), station })
   const [activeConv, setActiveConv] = useState(null)
   /* Conversations opened this session — used to zero their badge optimistically
      until the backend's own count catches up on the next inbox refresh. */
   const [readLocally, setReadLocally] = useState(() => new Set())
-  usePageTitle(`Chat — ${getStation(activeStation()).name}`)
+  usePageTitle(`Chat — ${getStation(station).name}`)
 
   useEffect(() => {
     if (convStatus === "ready" && !activeConv && window.innerWidth >= 768) {
@@ -630,6 +646,26 @@ function ChatInner() {
       {/* Inbox */}
       <div className={`flex-shrink-0 md:w-[320px] md:pl-3 ${mobileShowChat ? "hidden md:flex md:flex-col" : "flex w-full flex-col px-2.5"}`}
         style={{ height:"100%" }}>
+        {/* Station toggle — local to this page, same as Bank Deposits. Only
+            visible to those who can view both stations' chat; switching it
+            reloads the conversation list and messages for that station,
+            without touching anyone's real assigned station. */}
+        {canSwitchStation && (
+          <div className="mb-2 flex gap-1.5 rounded-[12px] bg-white p-1.5 shadow-card">
+            {STATION_KEYS.map(key => (
+              <button
+                key={key} type="button"
+                onClick={() => { setStation(key); setActiveConv(null) }}
+                className="flex-1 rounded-[9px] py-2 text-[12.5px] font-bold transition-colors"
+                style={station === key
+                  ? { background: getStation(key).theme.primary, color: "#fff" }
+                  : { background: "transparent", color: "var(--text-muted)" }}
+              >
+                {getStation(key).short || getStation(key).name}
+              </button>
+            ))}
+          </div>
+        )}
         <ChatSidebar auth={auth} conversations={conversationsForList} convStatus={convStatus}
           staff={staff} onlineUsernames={onlineUsernames} activeConvId={activeConv?.conversationId}
           onSelect={handleSelect}
@@ -638,12 +674,12 @@ function ChatInner() {
       {/* Chat window */}
       <div className={`flex-1 flex-col md:pr-3 ${mobileShowChat ? "flex px-2.5" : "hidden md:flex"}`} style={{ height:"100%" }}>
         {activeConv
-          ? <ConversationView auth={auth} conversationId={activeConv.conversationId}
+          ? <ConversationView auth={auth} station={station} conversationId={activeConv.conversationId}
               conversationName={activeConv.name} isGeneral={activeConv.isGeneral}
               onBack={() => setActiveConv(null)} onConversationDeleted={handleConversationDeleted} />
           : <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden rounded-[22px] bg-white text-center" style={{ boxShadow: "0 8px 30px rgba(15,23,42,.10)" }}>
-              <div className="flex h-16 w-16 items-center justify-center rounded-[18px] text-white" style={{ background: BRAND_GRADIENT }}>
-                <span className="text-[18px] font-extrabold">MSO</span>
+              <div className="flex h-16 w-16 items-center justify-center rounded-[18px] text-white" style={{ background: getStation(station).theme.gradientBtn }}>
+                <span className="text-[18px] font-extrabold">{getStation(station).short}</span>
               </div>
               <div className="text-[15px] font-bold text-ink">Staff Chat</div>
               <div className="text-[12.5px] text-ink-4">Select a conversation or tap a person to message</div>

@@ -324,12 +324,11 @@ export function useCashupData(username, name, initialDate) {
     if (expensesMissingDescription) {
       return Promise.resolve({ ok: false, error: "One of your expenses has an amount but no description — add what it was for before saving." })
     }
-    /* No longer blocked on closing dip. What the cashier physically counted
-       doesn't depend on whether the supervisor has finished dip readings —
-       refusing to save her real numbers because someone else's task is late
-       serves no one. The comparison against expected fuel revenue completes
-       itself automatically once the dip is in; it isn't a reason to hold up
-       the save. */
+    /* Unlocked for both stations. The real bug was the expected-revenue
+       calculation trusting a stale stored field — fixed by deriving it live
+       from actual pump sessions. With that fixed, there's no remaining
+       reason to hold up the save for either station; the comparison
+       completes itself once dip data lands. */
     if (cashupLocked) {
       return Promise.resolve({ ok: false, error: `Cash Reconciliation for ${date} has already been approved. Request an edit and wait for GM/Owner approval before resubmitting.`, locked: true })
     }

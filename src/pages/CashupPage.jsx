@@ -112,11 +112,13 @@ function CashupInner() {
   }
 
   const recon = RECON_STYLES[reconStatus]
-  /* No longer a hard lock — she can save her real figures regardless of
-     whether the supervisor has finished the closing dip. This just tracks
-     whether that's still outstanding, so we can show a heads-up rather than
-     silence, without blocking the save itself. */
+  /* No longer a hard lock for either station — the actual bug (expected
+     revenue reading a stale stored field) is fixed, so the comparison
+     completes correctly once dip data lands, without needing to block the
+     save. This just tracks whether dip is still outstanding, to show a
+     heads-up instead of silence. */
   const dipPending = !loadingExpected && !expected.closingDipDone
+  const dipLocked = false
 
   const doSubmit = async () => {
     setConfirmOpen(false)
@@ -218,17 +220,17 @@ function CashupInner() {
               <i className="bi bi-exclamation-triangle-fill" /> Supervisor has not submitted dip readings yet.
             </div>
           )}
-          {!dipPending && cashupStatus === "PENDING" && (
+          {!dipLocked && cashupStatus === "PENDING" && (
             <div className="mt-3.5 flex items-center gap-2 rounded-[10px] bg-black/20 px-3.5 py-2.5 text-[12px] font-medium text-white">
               <i className="bi bi-hourglass-split" /> Submitted — awaiting GM/CEO approval.
             </div>
           )}
-          {!dipPending && cashupStatus === "REJECTED" && (
+          {!dipLocked && cashupStatus === "REJECTED" && (
             <div className="mt-3.5 flex items-center gap-2 rounded-[10px] bg-black/20 px-3.5 py-2.5 text-[12px] font-medium text-white">
               <i className="bi bi-x-circle-fill" /> This was rejected — please review and resubmit.
             </div>
           )}
-          {!dipPending && cashupLocked && (
+          {!dipLocked && cashupLocked && (
             <div className="mt-3.5 rounded-[10px] bg-black/20 px-3.5 py-2.5">
               <div className="flex items-center gap-2 text-[12px] font-medium text-white">
                 <i className="bi bi-shield-check" /> Approved — locked. Request an edit to change it.
@@ -626,17 +628,17 @@ function CashupInner() {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={saving || cashupLocked}
+            disabled={saving || cashupLocked || dipLocked}
             className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-[13px] bg-green text-[15px] font-extrabold text-white shadow-[0_4px_18px_rgba(22,163,74,.3)] disabled:opacity-60"
           >
             {saving ? (
               <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
-            ) : cashupLocked ? (
+            ) : cashupLocked || dipLocked ? (
               <i className="bi bi-lock-fill" />
             ) : (
               <i className="bi bi-check2-all" />
             )}
-            {saving ? "Saving…" : cashupLocked ? "Locked — Approved" : "Save Reconciliation"}
+            {saving ? "Saving…" : dipLocked ? "Locked — Complete Closing Dip First" : cashupLocked ? "Locked — Approved" : "Save Reconciliation"}
           </button>
         </div>
       </div>

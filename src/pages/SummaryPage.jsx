@@ -83,7 +83,14 @@ function pumpRows(report) {
    expected revenue LIVE from the actual pump sessions × the day's price.
    This does the same, instead of trusting a field that can silently go
    stale. */
-function reconciliationFor(report) {
+/* Real pump session data is the ground truth for "how much fuel actually sold
+   today" — the stored litres/revenue/grand_total fields on the daily record
+   only get written at specific save moments and can sit stale (confirmed
+   directly: a real day showed complete pump sessions for every pump while
+   pms_litres/pms_revenue/grand_total all read zero). Every figure derived
+   from fuel sold — variance, the Grand Total hero, anything — uses this
+   single live computation instead of trusting a field that can go stale. */
+function liveFuelData(report) {
   const map = report.pumpMetres || {}
   let pmsPumpLitres = 0, agoPumpLitres = 0, hasPumpSessionData = false
   Object.keys(map).forEach(pump => {
@@ -92,34 +99,38 @@ function reconciliationFor(report) {
       ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
       : Number(map[pump].litres || 0)
     if (sessions.some(s => Number(s.open) > 0 || Number(s.close) > 0) || diff > 0) hasPumpSessionData = true
-    // AGO pumps carry "AGO" in their key/product; everything else counts as PMS.
     const isAgo = pump.toUpperCase().includes("AGO") || map[pump].product === "AGO"
     if (isAgo) agoPumpLitres += diff
     else pmsPumpLitres += diff
   })
 
   const hasFuelData = hasPumpSessionData || (report.pms_litres || 0) > 0 || (report.ago_litres || 0) > 0
+  const pmsLitres = hasPumpSessionData ? pmsPumpLitres : (report.pms_litres || 0)
+  const agoLitres = hasPumpSessionData ? agoPumpLitres : (report.ago_litres || 0)
+  const pmsRevenue = pmsLitres * (report.pms_price || 0)
+  const agoRevenue = agoLitres * (report.ago_price || 0)
 
-  // Live pump data wins when it exists; otherwise fall back to whatever the
-  // stored record has (older records, or a day with no PumpMetres rows at all).
-  const pmsLitresForRevenue = hasPumpSessionData ? pmsPumpLitres : (report.pms_litres || 0)
-  const agoLitresForRevenue = hasPumpSessionData ? agoPumpLitres : (report.ago_litres || 0)
-  const expected = pmsLitresForRevenue * (report.pms_price || 0) + agoLitresForRevenue * (report.ago_price || 0)
+  return { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue: pmsRevenue + agoRevenue }
+}
 
+function reconciliationFor(report) {
+  const { fuelRevenue, hasFuelData } = liveFuelData(report)
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
     + (report.trf_mp || 0) + (report.trf_zb || 0)
 
-  return { variance: collected - expected, hasData: hasFuelData }
+  return { variance: collected - fuelRevenue, hasData: hasFuelData }
 }
 
 function buildSummaryText(report, date) {
+  const { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue } = liveFuelData(report)
+  const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
   const lines = [
     `${getStation(activeStation()).name} — Daily Summary`,
     `${date}`,
     ``,
-    `Grand Total: ${naira(report.grand_total)}`,
-    `PMS: ${litres(report.pms_litres, { maximumFractionDigits: 2 })} @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(report.pms_revenue)}`,
-    `AGO: ${litres(report.ago_litres, { maximumFractionDigits: 2 })} @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(report.ago_revenue)}`,
+    `Grand Total: ${naira(displayGrandTotal)}`,
+    `PMS: ${litres(pmsLitres, { maximumFractionDigits: 2 })} @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(pmsRevenue)}`,
+    `AGO: ${litres(agoLitres, { maximumFractionDigits: 2 })} @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(agoRevenue)}`,
     `PMS Margin: ${litres(report.pms_margin, { maximumFractionDigits: 2 })} (${naira(report.pms_margin_amount)}) · AGO Margin: ${litres(report.ago_margin, { maximumFractionDigits: 2 })} (${naira(report.ago_margin_amount)})`,
     ``,
     `Tank Dips:`,
@@ -328,13 +339,16 @@ function SummaryInner() {
           </div>
         )}
 
-        {status === "ready" && report && (
+        {status === "ready" && report && (() => {
+          const { hasFuelData, fuelRevenue, pmsLitres, agoLitres, pmsRevenue, agoRevenue } = liveFuelData(report)
+          const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
+          return (
           <>
             {/* Hero — Grand Total */}
             <div className="mb-4 overflow-hidden rounded-[22px] text-white shadow-lift print:hidden" style={{ background: `linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))` }}>
               <div className="p-5">
                 <div className="text-[10px] font-bold uppercase tracking-[1.2px] opacity-70">{getStation(station).name} · {new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</div>
-                <div className="ftk-mono mt-1.5 text-[32px] font-black tracking-tight">{naira(report.grand_total)}</div>
+                <div className="ftk-mono mt-1.5 text-[32px] font-black tracking-tight">{naira(displayGrandTotal)}</div>
                 <div className="text-[11px] opacity-70">Grand Total</div>
                 {(report.pms_margin !== 0 || report.ago_margin !== 0) && (
                   <div className="mt-3 flex gap-4 border-t border-white/20 pt-3 text-[11px] opacity-90">
@@ -350,15 +364,15 @@ function SummaryInner() {
               <div className="border-b border-border px-5 py-4">
                 <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-ink-4">{getStation(station).name} · Daily Summary</div>
                 <div className="mt-1 text-[15px] font-bold text-ink">{new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
-                <div className="mono mt-2 text-[24px] font-black text-ink">{naira(report.grand_total)}</div>
+                <div className="mono mt-2 text-[24px] font-black text-ink">{naira(displayGrandTotal)}</div>
               </div>
             </div>
 
             {/* PMS / AGO fuel cards */}
             <div className="mb-4 grid grid-cols-2 gap-3">
               {[
-                { label: "PMS", litres: report.pms_litres, revenue: report.pms_revenue, price: report.pms_price, margin: report.pms_margin, marginAmt: report.pms_margin_amount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
-                { label: "AGO", litres: report.ago_litres, revenue: report.ago_revenue, price: report.ago_price, margin: report.ago_margin, marginAmt: report.ago_margin_amount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
+                { label: "PMS", litres: pmsLitres, revenue: pmsRevenue, price: report.pms_price, margin: report.pms_margin, marginAmt: report.pms_margin_amount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
+                { label: "AGO", litres: agoLitres, revenue: agoRevenue, price: report.ago_price, margin: report.ago_margin, marginAmt: report.ago_margin_amount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
               ].map(f => (
                 <div key={f.label} className="ftk-glass rounded-[18px] p-4">
                   <div className="mb-1 flex items-center gap-1.5">
@@ -611,7 +625,8 @@ function SummaryInner() {
               Submitted by {report.submitted_by || "—"}
             </div>
           </>
-        )}
+          )
+        })()}
       </div>
 
       {lightboxPhoto && (
