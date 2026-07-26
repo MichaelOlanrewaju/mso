@@ -219,6 +219,24 @@ function SummaryInner() {
   const today = todayISO()
   const [date, setDate] = useState(today)
   const { status, report, refresh } = useRecordsData(auth.username, date)
+
+  /* Discharge for this specific date — same reasoning as Records: without
+     this, an unusually high opening figure has no explanation anywhere on
+     the summary a supervisor prints or shares. */
+  const [dischargeToday, setDischargeToday] = useState([])
+  useEffect(() => {
+    if (!SCRIPT_URL || !date) return
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getDischarge")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("dateFrom", date)
+    url.searchParams.set("dateTo", date)
+    url.searchParams.set("token", getToken())
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => setDischargeToday(d.ok ? (d.discharge || []) : []))
+      .catch(() => setDischargeToday([]))
+  }, [date])
   const [photos, setPhotos] = useState([])
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   usePageTitle(`Daily Summary — ${getStation(activeStation()).name}`)
@@ -395,6 +413,43 @@ function SummaryInner() {
                 </div>
               ))}
             </div>
+
+            {/* Discharge received this day — explains why an opening
+                reading might be higher than a plain sales day would
+                produce. The stored opening already includes it (bumped
+                directly the moment discharge was saved); this shows the
+                story behind that number rather than leaving it unexplained
+                on a summary that gets printed or shared. */}
+            {dischargeToday.length > 0 && (
+              <div className="mb-4">
+                <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>Discharge Received</div>
+                <div className="ftk-glass overflow-hidden rounded-[18px]">
+                  {dischargeToday.map((d, i) => {
+                    const tankMatch = String(d["Product"] || "").toUpperCase().match(/TANK\s*(\d+)|TK\s*(\d+)/)
+                    const tankId = tankMatch ? "TK" + (tankMatch[1] || tankMatch[2]) : null
+                    const received = Number(d["Actual Received"]) || 0
+                    const currentOpen = tankId ? Number(report[`${tankId.toLowerCase()}_opening`]) || 0 : 0
+                    const beforeOpen = currentOpen - received
+                    return (
+                      <div key={i} className="flex items-center justify-between px-4 py-3" style={{ borderTop: i > 0 ? "1px solid var(--ftk-card-border)" : "none" }}>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[12.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{d["Product"]}</div>
+                          <div className="text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{d["Supplier"]} · {litres(received)} received</div>
+                        </div>
+                        {tankId && (
+                          <div className="flex-shrink-0 text-right">
+                            <div className="ftk-mono text-[11px]" style={{ color: "var(--ftk-ink-faint)" }}>
+                              {litres(beforeOpen)} → <span className="font-bold" style={{ color: "var(--ftk-ink)" }}>{litres(currentOpen)}</span>
+                            </div>
+                            <div className="text-[8.5px] uppercase tracking-[0.4px]" style={{ color: "var(--ftk-ink-faint)" }}>before → current opening</div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Tank dips */}
             <Section title="Tank Dips">

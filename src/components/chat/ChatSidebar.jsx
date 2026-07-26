@@ -34,6 +34,7 @@ export default function ChatSidebar({
   onSelect,
   onDashboard,
   stationToggle,
+  switching = false,
 }) {
   const [query, setQuery] = useState("")
   const [tab, setTab] = useState("all")
@@ -175,7 +176,7 @@ export default function ChatSidebar({
           }}
         >
           {/* Rail hides itself when the roster is exhausted or nothing matches. */}
-          <PeopleRail people={railPeople} onStart={startDM} />
+          <PeopleRail people={switching ? [] : railPeople} onStart={startDM} />
           <SearchBar value={query} onChange={setQuery} />
         </div>
       </ChatHeader>
@@ -225,7 +226,7 @@ export default function ChatSidebar({
           onOpen={openConversation}
           onTogglePin={togglePin}
           onToggleFavourite={toggleFavourite}
-          loading={convStatus === "loading" && !conversations.length}
+          loading={switching || (convStatus === "loading" && !conversations.length)}
         />
 
         {convStatus === "error" && (

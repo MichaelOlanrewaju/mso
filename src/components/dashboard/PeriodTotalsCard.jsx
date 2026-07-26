@@ -29,19 +29,53 @@ function usePeriodTotals() {
   return { data, loading, refresh: load }
 }
 
-function StatRow({ icon, label, value, sub, valueColor }) {
+function StatRow({ icon, label, value, sub, valueColor, items }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasItems = items && items.length > 0
+
   return (
-    <div className="flex items-center justify-between border-b border-surface px-4 py-3 last:border-b-0">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-surface text-[13px] text-ink-3">
-          <i className={`bi ${icon}`} />
+    <div className="border-b border-surface last:border-b-0">
+      <button
+        type="button"
+        onClick={() => hasItems && setExpanded(e => !e)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-surface text-[13px] text-ink-3">
+            <i className={`bi ${icon}`} />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-2">
+              {label}
+              {hasItems && <i className={`bi bi-chevron-${expanded ? "up" : "down"} text-[9px] text-ink-4`} />}
+            </div>
+            {sub && <div className="mono text-[10.5px] text-ink-4">{sub}</div>}
+          </div>
         </div>
-        <div>
-          <div className="text-[12.5px] font-semibold text-ink-2">{label}</div>
-          {sub && <div className="mono text-[10.5px] text-ink-4">{sub}</div>}
+        <div className={`mono text-[14px] font-extrabold ${valueColor || "text-ink"}`}>{value}</div>
+      </button>
+
+      {/* Itemized breakdown — this used to only ever show one lump total
+          with no way to see what was actually in it. Same spirit as the
+          expense breakdown: what makes up the number, not just the number. */}
+      {hasItems && expanded && (
+        <div className="space-y-1.5 border-t border-surface bg-surface/40 px-4 py-3">
+          {items.map((it, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 text-[11.5px]">
+              <div className="min-w-0 flex-1">
+                <span className="font-semibold text-ink-2">{it.product || "—"}</span>
+                <span className="ml-1.5 text-ink-4">
+                  {it.date} · {litres(it.litres)}{it.supplier ? ` · ${it.supplier}` : ""}
+                </span>
+                {it.shortageLitres > 0 && (
+                  <span className="ml-1.5 font-semibold text-red">· {litres(it.shortageLitres)} short</span>
+                )}
+              </div>
+              <span className="mono flex-shrink-0 font-bold text-ink-3">{naira(it.cost)}</span>
+            </div>
+          ))}
         </div>
-      </div>
-      <div className={`mono text-[14px] font-extrabold ${valueColor || "text-ink"}`}>{value}</div>
+      )}
     </div>
   )
 }
@@ -112,7 +146,8 @@ export default function PeriodTotalsCard() {
       <div>
         <StatRow icon="bi-arrow-down-circle" label="Expenses" value={naira(bucket.expenses)} valueColor="text-red" />
         <StatRow icon="bi-truck" label="Discharge Bought" value={naira(bucket.dischargeCost)}
-          sub={`${litres(bucket.dischargeLitres)} · ${bucket.dischargeCount} record${bucket.dischargeCount !== 1 ? "s" : ""}`} valueColor="text-ink" />
+          sub={`${litres(bucket.dischargeLitres)} · ${bucket.dischargeCount} record${bucket.dischargeCount !== 1 ? "s" : ""}`}
+          valueColor="text-ink" items={bucket.dischargeItems} />
         <StatRow icon="bi-exclamation-triangle" label="Discharge Shortage" value={naira(bucket.dischargeShortageAmount)}
           sub={bucket.dischargeShortageLitres > 0 ? litres(bucket.dischargeShortageLitres) + " short" : "None"}
           valueColor={bucket.dischargeShortageAmount > 0 ? "text-red" : "text-green"} />

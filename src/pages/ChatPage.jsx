@@ -424,8 +424,11 @@ function ConversationView({ auth, station, conversationId, conversationName, isG
   return (
     <div className="flex h-full w-full max-w-full flex-col overflow-hidden rounded-t-[22px] md:rounded-[22px]" style={{ boxShadow: "0 8px 30px rgba(15,23,42,.10)", maxWidth: "100vw" }}>
       {/* Header — brand gradient with a rounded lower edge, so Chat reads as
-          part of the same product as the rest of the console */}
-      <div className="flex flex-shrink-0 items-center gap-3 rounded-b-[22px] px-4 pb-4" style={{ paddingTop: "max(var(--sat), 52px)", background: BRAND_GRADIENT }}>
+          part of the same product as the rest of the console. Uses the
+          TOGGLED station's own colors, not the viewer's real session color —
+          otherwise a GM viewing M&M chat would see it rendered in MSO's navy,
+          which is exactly backwards. */}
+      <div className="flex flex-shrink-0 items-center gap-3 rounded-b-[22px] px-4 pb-4" style={{ paddingTop: "max(var(--sat), 52px)", background: getStation(station).theme.gradientBtn }}>
         <button type="button" onClick={onBack}
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white active:bg-white/20">
           <i className="bi bi-arrow-left text-[15px]" />
@@ -437,8 +440,16 @@ function ConversationView({ auth, station, conversationId, conversationName, isG
           : <Avatar name={conversationName} size={44} ring />
         }
         <div className="flex-1 min-w-0">
-          <div className="truncate text-[16.5px] font-extrabold text-white">{conversationName}</div>
-          <div className="text-[11.5px] text-white/55">{isGeneral ? "Everyone at MSO Station" : "Direct message"}</div>
+          <div className="flex items-center gap-1.5">
+            <div className="truncate text-[16.5px] font-extrabold text-white">{conversationName}</div>
+            {/* Persistent station badge — stays visible even deep inside a
+                conversation, so switching back to the inbox isn't the only
+                way to remember which station's chat this is. */}
+            <span className="flex-shrink-0 rounded-full border border-white/25 bg-white/10 px-2 py-[1px] text-[9.5px] font-bold uppercase tracking-[0.4px] text-white/80">
+              {getStation(station).short}
+            </span>
+          </div>
+          <div className="text-[11.5px] text-white/55">{isGeneral ? `Everyone at ${getStation(station).name}` : "Direct message"}</div>
         </div>
         {!isGeneral && (
           <button type="button" onClick={() => setShowDeleteConv(true)}
@@ -585,24 +596,54 @@ function ConversationView({ auth, station, conversationId, conversationName, isG
 function ChatInner() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
+  const toast = useToast()
 
   /* Which station THIS PAGE is viewing — local to Chat only, same pattern as
      Bank Deposits. Lets CEO/owner/GM (and Lanre specifically, by name) read
      either station's chat without touching their real assigned station
      anywhere else in the app. Everyone else just sees their own station,
      with no toggle. */
-  const [station, setStation] = useState(
-    auth.station && auth.station !== "both" ? auth.station : "mso"
-  )
+  /* Remembers the last station chosen, per person, so reopening Chat later
+     doesn't silently reset back to their own assigned station every time —
+     that felt like the toggle wasn't "sticking." */
+  const stationMemoryKey = `chat_last_station_${auth.username || ""}`
+  const [station, setStation] = useState(() => {
+    try {
+      const remembered = sessionStorage.getItem(stationMemoryKey)
+      if (remembered === "mso" || remembered === "mrs") return remembered
+    } catch {}
+    return auth.station && auth.station !== "both" ? auth.station : "mso"
+  })
+  /* True only during the brief window between tapping the toggle and the
+     new station's data arriving — used to show a clear loading state
+     instead of the old station's conversations sitting there stale for a
+     moment before being replaced. */
+  const [switching, setSwitching] = useState(false)
   /* canViewBankDeposits already covers exactly this set: GM by role,
      CEO/owner, or a specifically named user (Lanre) regardless of their
      account role — reused here rather than duplicating the same logic. */
   const canSwitchStation = canViewBankDeposits(auth.username, auth.role)
 
+  const handleStationSwitch = key => {
+    if (key === station) return
+    setSwitching(true)
+    setStation(key)
+    setActiveConv(null)
+    try { sessionStorage.setItem(stationMemoryKey, key) } catch {}
+    toast.showToast(`Switched to ${getStation(key).name}`, "Loading conversations…", "ok")
+  }
+
   const { status: convStatus, conversations, onlineUsernames, refresh } = useConversations({ username: auth.username, station })
   const { staff } = useStaff(auth.username, station)
   /* Tell the backend we're here, so colleagues see our presence dot. */
   useChatPresence({ username: auth.username, active: Boolean(auth.user), station })
+
+  // Once the new station's conversation list actually arrives, the
+  // "switching" window is over — whatever state it lands in (ready or
+  // error) is real data now, not stale leftovers from the prior station.
+  useEffect(() => {
+    if (switching && convStatus !== "loading") setSwitching(false)
+  }, [switching, convStatus])
   const [activeConv, setActiveConv] = useState(null)
   /* Conversations opened this session — used to zero their badge optimistically
      until the backend's own count catches up on the next inbox refresh. */
@@ -649,7 +690,8 @@ function ChatInner() {
           staff={staff} onlineUsernames={onlineUsernames} activeConvId={activeConv?.conversationId}
           onSelect={handleSelect}
           onDashboard={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          stationToggle={canSwitchStation ? { station, onSwitch: key => { setStation(key); setActiveConv(null) } } : null} />
+          stationToggle={canSwitchStation ? { station, onSwitch: handleStationSwitch } : null}
+          switching={switching} />
       </div>
       {/* Chat window */}
       <div className={`flex-1 flex-col md:pr-3 ${mobileShowChat ? "flex px-2.5" : "hidden md:flex"}`} style={{ height:"100%" }}>

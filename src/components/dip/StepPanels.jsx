@@ -21,7 +21,9 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
   // case. Closing exactly equal to opening is a legitimate zero-sales
   // day for that tank, not an error; only closing being HIGHER than
   // opening (which would mean the tank refilled itself) is a real
-  // mistake worth flagging.
+  // mistake worth flagging. If a delivery happened today, the opening
+  // reading itself already includes it — saveDischarge bumps it directly
+  // the moment a delivery is recorded — so this stays a plain comparison.
   const entered = v => v !== "" && v !== null && v !== undefined && !Number.isNaN(Number(v))
   const dipDiff = mode === "close" && entered(s.open) && entered(s.close) && Number(s.open) >= Number(s.close) ? Number(s.open) - Number(s.close) : 0
   const errClose = mode === "close" && entered(s.close) && entered(s.open) && Number(s.close) > Number(s.open)

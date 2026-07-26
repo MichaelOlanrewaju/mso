@@ -5,6 +5,7 @@ import { getCurrentCoords } from "../utils/geolocation"
    have collected dips for a tank that does not exist. */
 import { tanksFor, pumpsFor } from "../config/stations"
 import { activeStation } from "../utils/station"
+import { getToken } from "../utils/session"
 import { compressImage } from "../utils/compressImage"
 import { postWithProgress } from "../utils/postWithProgress"
 
@@ -316,7 +317,10 @@ export function useDipData(username, selectedDate) {
     date => {
       // Dip only ever reports the raw stock difference now — margin
       // (dip diff minus pump diff) is computed on the Records page,
-      // once both Dip and Sales data exist for the date.
+      // once both Dip and Sales data exist for the date. The opening
+      // reading itself already includes any discharge received today —
+      // saveDischarge bumps it directly the moment a delivery is recorded —
+      // so this stays a plain opening-minus-closing, nothing special needed.
       const tankDiffs = {}
       let anyDiff = false
 

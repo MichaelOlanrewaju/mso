@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import { getStation } from "../config/stations"
+import { getStation, tanksFor } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -12,7 +12,17 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
-const PRODUCTS = ["Tank 1 (PMS)", "Tank 2 (PMS)", "Tank 3 (AGO)", "Tank 4 (AGO)"]
+/* Used to be a single hardcoded list ("Tank 3 (AGO)") that didn't match
+   either station's real configuration — MSO's TK3 actually holds PMS, and
+   M&M has no TK3 at all. Built from each station's real tank config instead,
+   so the option shown always matches reality. The stored VALUE is a clean
+   tank id ("TK1") rather than a decorative label — needed so a discharge can
+   be reliably matched back to a specific tank later (for the dip diff fix). */
+function dischargeOptionsFor(stationKey) {
+  return tanksFor(stationKey)
+    .filter(t => t.product !== "LPG")   // LPG is refilled by cylinder swap, not tanker discharge
+    .map(t => ({ value: t.id, label: `${t.id} — ${t.product}` }))
+}
 
 // Real Discharge sheet column names — these match the live spreadsheet
 // headers exactly, including the ones with parentheses/currency symbols.
@@ -163,9 +173,26 @@ export default function DischargePage() {
     acc.litres += Number(r[COL.ACTUAL]) || 0
     acc.cost   += Number(r[COL.TOTAL]) || 0
     acc.shortageAmount += Number(r[COL.SHORTAGE_AMOUNT]) || 0
+    acc.shortageLitres += Number(r[COL.SHORTAGE]) || 0
     acc.count += 1
     return acc
-  }, { litres: 0, cost: 0, shortageAmount: 0, count: 0 })
+  }, { litres: 0, cost: 0, shortageAmount: 0, shortageLitres: 0, count: 0 })
+
+  /* Per-tank breakdown — the summary strip used to only ever show one
+     combined total across every tank, with no way to see which tank
+     actually received what. Groups by the product label as stored
+     (old-style "Tank 2 (PMS)" or the newer clean form), summed separately. */
+  const sumByTank = (list) => {
+    const byTank = {}
+    list.forEach(r => {
+      const label = String(r[COL.PRODUCT] || "Unknown")
+      if (!byTank[label]) byTank[label] = { label, litres: 0, cost: 0, count: 0 }
+      byTank[label].litres += Number(r[COL.ACTUAL]) || 0
+      byTank[label].cost   += Number(r[COL.TOTAL]) || 0
+      byTank[label].count  += 1
+    })
+    return Object.values(byTank).sort((a, b) => b.litres - a.litres)
+  }
 
   const weekRecords = useMemo(() => records.filter(r => {
     const d = parseSheetDate(r[COL.DATE])
@@ -181,6 +208,12 @@ export default function DischargePage() {
     if (period === "week") return sumRecords(weekRecords)
     if (period === "month") return sumRecords(monthRecords)
     return sumRecords(records)
+  }, [period, records, weekRecords, monthRecords])
+
+  const periodByTank = useMemo(() => {
+    if (period === "week") return sumByTank(weekRecords)
+    if (period === "month") return sumByTank(monthRecords)
+    return sumByTank(records)
   }, [period, records, weekRecords, monthRecords])
 
   const periodLabel = period === "week"
@@ -370,6 +403,25 @@ export default function DischargePage() {
                     <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : periodTotals.shortageAmount < 0 ? "text-green" : "text-white"}`}>{periodTotals.shortageAmount < 0 ? `+${naira(Math.abs(periodTotals.shortageAmount))}` : naira(periodTotals.shortageAmount)}</div>
                   </div>
                 </div>
+
+                {/* Per-tank breakdown — the combined total above used to be
+                    the only thing shown; no way to see which tank actually
+                    received what within the period. */}
+                {periodByTank.length > 0 && (
+                  <div className="border-t border-white/10 px-4 py-3">
+                    <div className="mb-2 text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">By Tank</div>
+                    <div className="space-y-1.5">
+                      {periodByTank.map(t => (
+                        <div key={t.label} className="flex items-center justify-between text-[12px]">
+                          <span className="font-semibold text-white/90">{t.label}</span>
+                          <span className="mono font-bold text-white">
+                            {litres(t.litres)}{t.cost > 0 ? ` · ${naira(t.cost)}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {pending.length > 0 && (
                   <div className="flex items-center gap-2 border-t border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold text-white/80">
                     <i className="bi bi-hourglass-split" /> {pending.length} record{pending.length !== 1 ? "s" : ""} awaiting price from GM
@@ -393,18 +445,34 @@ export default function DischargePage() {
             )}
             {!loading && records.length > 0 && (
               <div className="space-y-5">
-                {groupedRecords.map((group, gi) => (
+                {groupedRecords.map((group, gi) => {
+                  const daySum = sumRecords(group.items)
+                  const dayByTank = sumByTank(group.items)
+                  return (
                   <div key={gi}>
                     <div className="mb-2 flex items-center gap-2 px-1">
                       <div className="text-[11.5px] font-extrabold text-ink-2">{formatDateLabel(group.date)}</div>
                       <div className="h-px flex-1 bg-border" />
-                      {isGMOrOwner && (
-                        <div className="mono text-[10.5px] font-bold text-ink-4">
-                          {litres(sumRecords(group.items).litres)}
-                          {sumRecords(group.items).cost > 0 && <> · {naira(sumRecords(group.items).cost)}</>}
-                        </div>
-                      )}
+                      <div className="mono text-[10.5px] font-bold text-ink-4">
+                        {litres(daySum.litres)}
+                        {isGMOrOwner && daySum.cost > 0 && <> · {naira(daySum.cost)}</>}
+                        {daySum.shortageLitres > 0 && <span className="text-red"> · {litres(daySum.shortageLitres)} short</span>}
+                      </div>
                     </div>
+                    {/* Per-tank breakdown for this day — only shown when more
+                        than one tank received fuel the same day (like a
+                        delivery split across TK1/TK2/TK3). A single-tank day
+                        already says everything it needs to in the combined
+                        line above; this is for the day that needs untangling. */}
+                    {dayByTank.length > 1 && (
+                      <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 px-1">
+                        {dayByTank.map(t => (
+                          <span key={t.label} className="text-[10.5px] font-semibold text-ink-3">
+                            {t.label}: <span className="font-mono font-bold text-ink-2">{litres(t.litres)}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="space-y-3">
                       {group.items.map((r, i) => (
                         <div key={i} className="overflow-hidden rounded-[14px] bg-white shadow-sm transition hover:shadow-md">
@@ -483,7 +551,8 @@ export default function DischargePage() {
                       ))}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>
@@ -505,7 +574,7 @@ export default function DischargePage() {
                       <span className={labelCls}>Product / Tank</span>
                       <select value={form.product} onChange={e => setForm(f => ({...f, product: e.target.value}))} className={inputCls}>
                         <option value="">Select…</option>
-                        {PRODUCTS.map(t => <option key={t} value={t}>{t}</option>)}
+                        {dischargeOptionsFor(activeStation()).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </label>
                     <label className="block">

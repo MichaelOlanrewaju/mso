@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
@@ -95,6 +95,25 @@ function RecordsInner() {
   const [date, setDate] = useState(todayISO())
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { status, report, refresh, error } = useRecordsData(auth.username, date)
+
+  /* Discharge for this specific date — the "why" behind an opening reading
+     that's higher than a plain sales day would explain. Fetched separately
+     since it lives on its own sheet, not the daily report. */
+  const [dischargeToday, setDischargeToday] = useState([])
+  useEffect(() => {
+    const scriptUrl = import.meta.env.VITE_SCRIPT_URL
+    if (!scriptUrl || !date) return
+    const url = new URL(scriptUrl)
+    url.searchParams.set("action", "getDischarge")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("dateFrom", date)
+    url.searchParams.set("dateTo", date)
+    url.searchParams.set("token", getToken())
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => setDischargeToday(d.ok ? (d.discharge || []) : []))
+      .catch(() => setDischargeToday([]))
+  }, [date])
 
   const [exportOpen, setExportOpen] = useState(false)
   const [exportFrom, setExportFrom] = useState(() => {
@@ -380,6 +399,41 @@ function RecordsInner() {
                       Dip readings are in but no Pump metre submission exists for this date yet — margin will show once Pump is submitted.
                     </div>
                   </div>
+                )}
+
+                {/* Discharge received this day — explains why an opening
+                    reading is higher than a plain sales day would produce.
+                    The stored opening already includes any delivery (bumped
+                    directly the moment discharge was saved); this shows the
+                    story behind that number rather than leaving it
+                    unexplained. */}
+                {dischargeToday.length > 0 && (
+                  <>
+                    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Discharge Received</div>
+                    <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
+                      {dischargeToday.map((d, i) => {
+                        const tankMatch = String(d["Product"] || "").toUpperCase().match(/TANK\s*(\d+)|TK\s*(\d+)/)
+                        const tankId = tankMatch ? "TK" + (tankMatch[1] || tankMatch[2]) : null
+                        const received = Number(d["Actual Received"]) || 0
+                        const currentOpen = tankId ? Number(report[`${tankId.toLowerCase()}_opening`]) || 0 : 0
+                        const beforeOpen = currentOpen - received
+                        return (
+                          <div key={i} className="flex items-center justify-between border-b border-surface px-4 py-3 last:border-b-0">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[12.5px] font-bold text-ink">{d["Product"]}</div>
+                              <div className="text-[10.5px] text-ink-4">{d["Supplier"]} · {litres(received)} received</div>
+                            </div>
+                            {tankId && (
+                              <div className="flex-shrink-0 text-right">
+                                <div className="text-[10px] text-ink-4">{litres(beforeOpen)} → <span className="font-bold text-ink">{litres(currentOpen)}</span></div>
+                                <div className="text-[9px] uppercase tracking-[0.4px] text-ink-4">before → current opening</div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
                 )}
 
                 <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Tank Dip Readings</div>

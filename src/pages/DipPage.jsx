@@ -172,7 +172,7 @@ function DipInner() {
     const val = mode === "open" ? st.open : st.close
     const openVal = st.open
     const isSuspicious = mode === "close" && entered(val) && Number(val) > 0
-      && Number(openVal) > 0 && Number(val) < Number(openVal) * 0.3
+      && openVal > 0 && Number(val) < openVal * 0.3
     return {
       label: `${t.id} — ${t.product} ${mode === "open" ? "Opening" : "Closing"}`,
       value: entered(val) ? litres(Number(val)) : "Not entered",
@@ -189,8 +189,8 @@ function DipInner() {
     } else if (Number(val) === 0) {
       reviewWarnings.push(`${t.id} is recorded as empty (0${t.unit || "L"}) — confirm the tank is genuinely dry.`)
     }
-    if (mode === "close" && entered(val) && Number(val) > 0 && Number(openVal) > 0 && Number(val) < Number(openVal) * 0.3) {
-      reviewWarnings.push(`${t.id} closing (${litres(Number(val))}) is unusually far below opening (${litres(Number(openVal))}) — double-check this reading.`)
+    if (mode === "close" && entered(val) && Number(val) > 0 && openVal > 0 && Number(val) < openVal * 0.3) {
+      reviewWarnings.push(`${t.id} closing (${litres(Number(val))}) is unusually far below opening (${litres(openVal)}) — double-check this reading.`)
     }
   })
 
