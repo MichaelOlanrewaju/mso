@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback } from "react"
-import { STATION_KEYS } from "../config/stations"
 import { canViewBankDeposits } from "../hooks/useBankDeposits"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
@@ -601,7 +600,7 @@ function ChatInner() {
   const canSwitchStation = canViewBankDeposits(auth.username, auth.role)
 
   const { status: convStatus, conversations, onlineUsernames, refresh } = useConversations({ username: auth.username, station })
-  const { staff } = useStaff(auth.username)
+  const { staff } = useStaff(auth.username, station)
   /* Tell the backend we're here, so colleagues see our presence dot. */
   useChatPresence({ username: auth.username, active: Boolean(auth.user), station })
   const [activeConv, setActiveConv] = useState(null)
@@ -646,30 +645,11 @@ function ChatInner() {
       {/* Inbox */}
       <div className={`flex-shrink-0 md:w-[320px] md:pl-3 ${mobileShowChat ? "hidden md:flex md:flex-col" : "flex w-full flex-col px-2.5"}`}
         style={{ height:"100%" }}>
-        {/* Station toggle — local to this page, same as Bank Deposits. Only
-            visible to those who can view both stations' chat; switching it
-            reloads the conversation list and messages for that station,
-            without touching anyone's real assigned station. */}
-        {canSwitchStation && (
-          <div className="mb-2 flex gap-1.5 rounded-[12px] bg-white p-1.5 shadow-card">
-            {STATION_KEYS.map(key => (
-              <button
-                key={key} type="button"
-                onClick={() => { setStation(key); setActiveConv(null) }}
-                className="flex-1 rounded-[9px] py-2 text-[12.5px] font-bold transition-colors"
-                style={station === key
-                  ? { background: getStation(key).theme.primary, color: "#fff" }
-                  : { background: "transparent", color: "var(--text-muted)" }}
-              >
-                {getStation(key).short || getStation(key).name}
-              </button>
-            ))}
-          </div>
-        )}
         <ChatSidebar auth={auth} conversations={conversationsForList} convStatus={convStatus}
           staff={staff} onlineUsernames={onlineUsernames} activeConvId={activeConv?.conversationId}
           onSelect={handleSelect}
-          onDashboard={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} />
+          onDashboard={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
+          stationToggle={canSwitchStation ? { station, onSwitch: key => { setStation(key); setActiveConv(null) } } : null} />
       </div>
       {/* Chat window */}
       <div className={`flex-1 flex-col md:pr-3 ${mobileShowChat ? "flex px-2.5" : "hidden md:flex"}`} style={{ height:"100%" }}>

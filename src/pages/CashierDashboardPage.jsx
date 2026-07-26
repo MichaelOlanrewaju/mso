@@ -33,7 +33,7 @@ const buildQuickActions = station => [
 function CashierInner() {
   const auth = useAuth({ requireAuth: true })
   const { data, loading, refresh } = useDashboardData(auth.username)
-  const { lpgKg, setLpgKg, lpgPrice, setLpgPrice, lpgRemitted, setLpgRemitted, lpgSales, lpgVariance } = useCashupData(auth.username)
+  const { lpgKg, setLpgKg, lpgPrice, setLpgPrice, lpgRemitted, setLpgRemitted, lpgSales, lpgVariance, cashupStatus } = useCashupData(auth.username)
   const navigate = useNavigate()
   usePageTitle(`Cashier — ${getStation(activeStation()).name}`)
 
@@ -90,7 +90,30 @@ function CashierInner() {
       </div>
 
       <div className="mx-auto max-w-[540px] px-4 py-4">
-        <StaffNotifications username={auth.username} role={auth.role} station="mso" />
+        <StaffNotifications username={auth.username} role={auth.role} station={auth.station} />
+
+        {/* A rejected cash-up needs the cashier's attention right away — not
+            just a push notification she might miss, and not buried inside
+            the Cashup page where she'd only see it if she happened to open
+            it. This sits at the very top of her dashboard, impossible to
+            scroll past. */}
+        {cashupStatus === "REJECTED" && (
+          <button
+            type="button"
+            onClick={() => navigate(`/cashup/${auth.station}`)}
+            className="mb-4 flex w-full items-center gap-3 rounded-[16px] border border-red/30 bg-red-light px-4 py-3.5 text-left"
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red/15">
+              <i className="bi bi-x-circle-fill text-[18px] text-red" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-extrabold text-red">Cash-up was rejected</div>
+              <div className="text-[11.5px] text-red/80">Tap to review and resubmit — this needs your attention</div>
+            </div>
+            <i className="bi bi-chevron-right text-red/60" />
+          </button>
+        )}
+
         <div className="relative mb-4 overflow-hidden rounded-[18px] p-5" style={{ background: hero.bg }}>
           <div className="relative z-[1] mb-2 text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">Today's Reconciliation</div>
           <div className="relative z-[1] mb-1 text-[22px] font-black tracking-tight text-white">{gt > 0 ? hero.label : "Awaiting Data"}</div>

@@ -13,7 +13,13 @@ import { activeStation } from "../utils/station"
 // anything the client claims, so this must always be the real, logged-in
 // user's own username, never the username of the staff record being
 // viewed or edited.
-export function useStaff(actingUsername) {
+/* viewStation is an OPTIONAL override for reading the staff list only — used
+   by Chat's station toggle so CEO/GM/Lanre can see the OTHER station's
+   people to message, without affecting anything else. Every write action
+   below (save/invite/delete) still uses the real session station always —
+   staff management should never accidentally act on a station someone was
+   just glancing at. */
+export function useStaff(actingUsername, viewStation) {
   const [status, setStatus] = useState("loading")
   const [staff, setStaff] = useState([])
   const [saving, setSaving] = useState(false)
@@ -29,7 +35,7 @@ export function useStaff(actingUsername) {
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getStaff")
-    url.searchParams.set("station", activeStation())
+    url.searchParams.set("station", viewStation || activeStation())
     url.searchParams.set("username", actingUsername)
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
@@ -40,7 +46,7 @@ export function useStaff(actingUsername) {
         setStatus("ready")
       })
       .catch(() => { if (isMounted.current) setStatus("error") })
-  }, [actingUsername])
+  }, [actingUsername, viewStation])
 
   useEffect(() => { load() }, [load])
 

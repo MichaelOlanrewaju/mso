@@ -6,6 +6,7 @@ import FilterTabs from "./FilterTabs"
 import ConversationList from "./ConversationList"
 import { useChatListPrefs } from "../../hooks/useChatListPrefs"
 import { dmConversationId } from "../../hooks/useChat"
+import { STATION_KEYS, getStation } from "../../config/stations"
 
 const TABS = [
   { id: "all", label: "All", icon: "bi-collection" },
@@ -32,6 +33,7 @@ export default function ChatSidebar({
   activeConvId,
   onSelect,
   onDashboard,
+  stationToggle,
 }) {
   const [query, setQuery] = useState("")
   const [tab, setTab] = useState("all")
@@ -177,6 +179,29 @@ export default function ChatSidebar({
           <SearchBar value={query} onChange={setQuery} />
         </div>
       </ChatHeader>
+
+      {/* Station toggle — placed here deliberately, BELOW ChatHeader's own
+          safe-area padding. It used to sit above the header entirely, which
+          put it right in the phone's reserved notch/status-bar space instead
+          of the actual content area. Only shown to those who can view both
+          stations' chat; switching it reloads the conversation list, the
+          people rail, and messages for that station. */}
+      {stationToggle && (
+        <div className="mt-2 flex gap-1.5 rounded-[12px] bg-white p-1.5 shadow-card">
+          {STATION_KEYS.map(key => (
+            <button
+              key={key} type="button"
+              onClick={() => stationToggle.onSwitch(key)}
+              className="flex-1 rounded-[9px] py-2 text-[12.5px] font-bold transition-colors"
+              style={stationToggle.station === key
+                ? { background: getStation(key).theme.primary, color: "#fff" }
+                : { background: "transparent", color: "var(--text-muted)" }}
+            >
+              {getStation(key).short || getStation(key).name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-3 pb-6" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Chips stick under the header so filtering stays reachable mid-scroll. */}
