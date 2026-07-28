@@ -33,11 +33,38 @@ function stateKey(p) {
   return p.id
 }
 
-function TankMarginRow({ tank, report }) {
+/* Margin used to be read straight from a stored field — computed ONCE, the
+   moment dip was submitted, never touched again. If pump sales get
+   corrected afterward (like a missing price-cutover session getting added
+   back to SalesLog), that stored margin stays frozen at its old, wrong
+   value forever — confirmed directly: fixing 27 July's missing session
+   didn't move TK2/TK3's margin at all here either. Computed LIVE instead,
+   same formula the backend uses, straight from real pump session data. */
+function liveMarginByTank(report, station) {
+  const map = report.pumpMetres || {}
+  const litresByTank = {}
+  pumpsFor(station).forEach(p => {
+    const entry = map[p.id]
+    const sessions = entry?.sessions || []
+    const diff = sessions.length
+      ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
+      : Number(entry?.litres || 0)
+    litresByTank[p.tank] = (litresByTank[p.tank] || 0) + diff
+  })
+  const marginByTank = {}
+  tanksFor(station).forEach(t => {
+    const pumpLitres = litresByTank[t.id] || 0
+    const dipDiff = Number(report[`${t.id.toLowerCase()}_diff`]) || 0
+    marginByTank[t.id] = Math.round((pumpLitres - dipDiff) * 100) / 100
+  })
+  return marginByTank
+}
+
+function TankMarginRow({ tank, report, liveMargin }) {
   const open = report[`${tank.id.toLowerCase()}_opening`] || 0
   const close = report[`${tank.id.toLowerCase()}_closing`] || 0
   const dipDiff = report[`${tank.id.toLowerCase()}_diff`] || 0
-  const margin = report[`${tank.id.toLowerCase()}_margin`] || 0
+  const margin = liveMargin ?? (report[`${tank.id.toLowerCase()}_margin`] || 0)
   const empty = open === 0 && close === 0
 
   return (
@@ -63,30 +90,58 @@ function TankMarginRow({ tank, report }) {
 
 function PumpMetreRow({ pump, pumpMetres }) {
   const key = stateKey(pump)
-  const session = pumpMetres && pumpMetres[key] && pumpMetres[key].sessions && pumpMetres[key].sessions[0]
-  const open = session ? session.open : 0
-  const close = session ? session.close : 0
-  const diff = session ? session.diff : 0
-  const amount = session ? session.amount : 0
-  const empty = !session || (open === 0 && close === 0)
+  const entry = pumpMetres && pumpMetres[key]
+  const sessions = entry?.sessions || []
+  // This used to read only sessions[0] — meaning any pump that went through
+  // a price change (a second session) had that second session's litres and
+  // revenue completely invisible here, not just unbroken-down. Aggregates
+  // across every session now; open/close span the whole day (first opening
+  // to last closing), diff/amount sum everything that actually happened.
+  const open = sessions.length ? sessions[0].open : 0
+  const close = sessions.length ? sessions[sessions.length - 1].close : 0
+  const diff = sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
+  const amount = sessions.reduce((sum, s) => sum + Number(s.amount || 0), 0)
+  const empty = sessions.length === 0 || (open === 0 && close === 0)
+  const distinctPrices = new Set(sessions.filter(s => Number(s.diff) > 0).map(s => Number(s.price)))
+  const priceBreakdown = distinctPrices.size > 1
+    ? sessions.filter(s => Number(s.diff) > 0).map(s => ({ litres: Number(s.diff), price: Number(s.price), amount: Number(s.amount) }))
+    : null
 
   return (
-    <tr className={`border-b border-surface last:border-none ${empty ? "" : "hover:bg-[#FAFBFE]"}`}>
-      <td className="px-3.5 py-2.5">
-        <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-[3px] text-[10.5px] font-bold ${
-            pump.product === "AGO" ? "border-amber/25 bg-amber-light text-amber" : "border-cyan/20 bg-cyan-light text-cyan-dark"
-          }`}
-        >
-          {pumpId(pump)}
-        </span>
-      </td>
-      <td className="px-3.5 py-2.5 text-[11.5px] text-ink-3">{pump.tank}</td>
-      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(open)}</td>
-      <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(close)}</td>
-      <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>{litres(diff, { maximumFractionDigits: 2 })}</td>
-      <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-green"}`}>{empty ? "—" : naira(amount)}</td>
-    </tr>
+    <>
+      <tr className={`border-b ${priceBreakdown ? "border-transparent" : "border-surface"} last:border-none ${empty ? "" : "hover:bg-[#FAFBFE]"}`}>
+        <td className="px-3.5 py-2.5">
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-[3px] text-[10.5px] font-bold ${
+              pump.product === "AGO" ? "border-amber/25 bg-amber-light text-amber" : "border-cyan/20 bg-cyan-light text-cyan-dark"
+            }`}
+          >
+            {pumpId(pump)}
+          </span>
+        </td>
+        <td className="px-3.5 py-2.5 text-[11.5px] text-ink-3">{pump.tank}</td>
+        <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(open)}</td>
+        <td className={`mono px-3.5 py-2.5 ${empty ? "text-ink-4" : ""}`}>{litres(close)}</td>
+        <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-cyan-dark"}`}>{litres(diff, { maximumFractionDigits: 2 })}</td>
+        <td className={`mono px-3.5 py-2.5 font-bold ${empty ? "text-ink-4" : "text-green"}`}>{empty ? "—" : naira(amount)}</td>
+      </tr>
+      {/* Only shown when this pump genuinely sold at more than one price —
+          a real price change that day, not just a normal single session. */}
+      {priceBreakdown && (
+        <tr className="border-b border-surface last:border-none">
+          <td colSpan={6} className="px-3.5 pb-2.5 pt-0">
+            <div className="space-y-0.5 border-l-2 border-cyan/20 pl-3">
+              {priceBreakdown.map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-[10.5px] text-ink-4">
+                  <span>{litres(s.litres, { maximumFractionDigits: 2 })} @ {naira(s.price)}</span>
+                  <span className="mono font-semibold text-ink-3">{naira(s.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }
 
@@ -212,6 +267,19 @@ function RecordsInner() {
   const agoLitresForRevenue = hasAnyPumpData ? agoPumpLitres : (report && report.ago_litres) || 0
   const pmsExpected = report ? pmsLitresForRevenue * (report.pms_price || 0) : 0
   const agoExpected = report ? agoLitresForRevenue * (report.ago_price || 0) : 0
+
+  // Live margin, aggregated by product — same fix as the per-tank table
+  // below, applied here for the PMS/AGO summary row too.
+  const liveMarginByTankTop = report ? liveMarginByTank(report, activeStation()) : {}
+  let livePmsMarginTotal = 0, liveAgoMarginTotal = 0
+  if (report) {
+    tanksFor(activeStation()).forEach(t => {
+      if (t.product === "PMS") livePmsMarginTotal += liveMarginByTankTop[t.id] || 0
+      else if (t.product === "AGO") liveAgoMarginTotal += liveMarginByTankTop[t.id] || 0
+    })
+  }
+  livePmsMarginTotal = Math.round(livePmsMarginTotal * 100) / 100
+  liveAgoMarginTotal = Math.round(liveAgoMarginTotal * 100) / 100
   const expectedRevenue = pmsExpected + agoExpected
 
   /* Money collected must include EVERY way a customer pays for fuel: cash, POS
@@ -450,9 +518,12 @@ function RecordsInner() {
                         </tr>
                       </thead>
                       <tbody>
-                        {tanksFor(activeStation()).map(t => (
-                          <TankMarginRow key={t.id} tank={t} report={report} />
-                        ))}
+                        {(() => {
+                          const marginByTank = liveMarginByTank(report, activeStation())
+                          return tanksFor(activeStation()).map(t => (
+                            <TankMarginRow key={t.id} tank={t} report={report} liveMargin={marginByTank[t.id]} />
+                          ))
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -501,7 +572,7 @@ function RecordsInner() {
                           <td className="mono px-3.5 py-2.5">{litres(report.pms_litres, { maximumFractionDigits: 2 })}</td>
                           <td className="mono px-3.5 py-2.5">{report.pms_price > 0 ? naira(report.pms_price) : <span className="text-ink-4">—</span>}</td>
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(pmsExpected)}</td>
-                          <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.pms_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.pms_margin).toFixed(2)}L</td>
+                          <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(livePmsMarginTotal) > 50 ? "text-red" : "text-ink-3"}`}>{Number(livePmsMarginTotal).toFixed(2)}L</td>
                         </tr>
                         <PriceTierRows tiers={report.priceTiers?.PMS} tone="text-cyan-dark" />
                         <tr>
@@ -511,7 +582,7 @@ function RecordsInner() {
                           <td className="mono px-3.5 py-2.5">{litres(report.ago_litres, { maximumFractionDigits: 2 })}</td>
                           <td className="mono px-3.5 py-2.5">{report.ago_price > 0 ? naira(report.ago_price) : <span className="text-ink-4">—</span>}</td>
                           <td className="mono px-3.5 py-2.5 font-bold text-green">{naira(agoExpected)}</td>
-                          <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(report.ago_margin) > 50 ? "text-red" : "text-ink-3"}`}>{Number(report.ago_margin).toFixed(2)}L</td>
+                          <td className={`mono px-3.5 py-2.5 font-bold ${Math.abs(liveAgoMarginTotal) > 50 ? "text-red" : "text-ink-3"}`}>{Number(liveAgoMarginTotal).toFixed(2)}L</td>
                         </tr>
                         <PriceTierRows tiers={report.priceTiers?.AGO} tone="text-amber" />
                       </tbody>

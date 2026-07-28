@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
-import { getStation } from "../config/stations"
+import { getStation, tanksFor, pumpsFor } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -35,12 +35,12 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
-function tankRows(report) {
+function tankRows(report, marginByTank) {
   return [
-    { id: "TK 1", product: "PMS", opening: report.tk1_opening, closing: report.tk1_closing, diff: report.tk1_diff, margin: report.tk1_margin },
-    { id: "TK 2", product: "PMS", opening: report.tk2_opening, closing: report.tk2_closing, diff: report.tk2_diff, margin: report.tk2_margin },
-    { id: "TK 3", product: "PMS", opening: report.tk3_opening, closing: report.tk3_closing, diff: report.tk3_diff, margin: report.tk3_margin },
-    { id: "TK 4", product: "AGO", opening: report.tk4_opening, closing: report.tk4_closing, diff: report.tk4_diff, margin: report.tk4_margin },
+    { id: "TK 1", product: "PMS", opening: report.tk1_opening, closing: report.tk1_closing, diff: report.tk1_diff, margin: marginByTank?.TK1 ?? report.tk1_margin },
+    { id: "TK 2", product: "PMS", opening: report.tk2_opening, closing: report.tk2_closing, diff: report.tk2_diff, margin: marginByTank?.TK2 ?? report.tk2_margin },
+    { id: "TK 3", product: "PMS", opening: report.tk3_opening, closing: report.tk3_closing, diff: report.tk3_diff, margin: marginByTank?.TK3 ?? report.tk3_margin },
+    { id: "TK 4", product: "AGO", opening: report.tk4_opening, closing: report.tk4_closing, diff: report.tk4_diff, margin: marginByTank?.TK4 ?? report.tk4_margin },
     ...(report.lpg_tank_opening > 0 || report.lpg_tank_closing > 0
       ? [{ id: "TK 5", product: "LPG", unit: "kg", opening: report.lpg_tank_opening, closing: report.lpg_tank_closing, diff: report.lpg_tank_diff, margin: report.lpg_tank_margin }]
       : []),
@@ -56,11 +56,19 @@ function pumpRows(report) {
       const totalDiff = sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
       const totalAmount = sessions.reduce((sum, s) => sum + Number(s.amount || 0), 0)
       const litresFallback = Number(map[pump].litres || 0)
+      // Only worth showing as a breakdown when there's more than one
+      // DISTINCT price across sessions — two sessions at the same price
+      // (a supervisor just doing opening/closing normally) isn't a price
+      // change and doesn't need to be shown as if it were one.
+      const distinctPrices = new Set(sessions.filter(s => Number(s.diff) > 0).map(s => Number(s.price)))
       return {
         pump,
         sessionCount: sessions.length,
         diff: sessions.length ? totalDiff : litresFallback,
         amount: totalAmount,
+        priceBreakdown: distinctPrices.size > 1
+          ? sessions.filter(s => Number(s.diff) > 0).map(s => ({ litres: Number(s.diff), price: Number(s.price), amount: Number(s.amount) }))
+          : null,
       }
     })
 }
@@ -113,6 +121,35 @@ function liveFuelData(report) {
   return { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue: pmsRevenue + agoRevenue }
 }
 
+/* Margin (tank dip diff vs what the pumps actually recorded selling) used to
+   be read straight from a stored field — computed ONCE, the moment dip was
+   submitted, and never touched again. If pump sales get corrected afterward
+   (like a missing price-cutover session getting added back to SalesLog),
+   that stored margin stays frozen at its old, now-wrong value forever —
+   confirmed directly: fixing 27 July's missing session didn't move TK2/TK3's
+   margin at all, because nothing ever recalculated it. This computes margin
+   LIVE instead, the same formula the backend uses, straight from real pump
+   session data — so it's always correct, no resubmission needed. */
+function liveMarginByTank(report, station) {
+  const map = report.pumpMetres || {}
+  const litresByTank = {}
+  pumpsFor(station).forEach(p => {
+    const entry = map[p.id]
+    const sessions = entry?.sessions || []
+    const diff = sessions.length
+      ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
+      : Number(entry?.litres || 0)
+    litresByTank[p.tank] = (litresByTank[p.tank] || 0) + diff
+  })
+  const marginByTank = {}
+  tanksFor(station).forEach(t => {
+    const pumpLitres = litresByTank[t.id] || 0
+    const dipDiff = Number(report[`${t.id.toLowerCase()}_diff`]) || 0
+    marginByTank[t.id] = Math.round((pumpLitres - dipDiff) * 100) / 100
+  })
+  return marginByTank
+}
+
 function reconciliationFor(report) {
   const { fuelRevenue, hasFuelData } = liveFuelData(report)
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
@@ -124,6 +161,17 @@ function reconciliationFor(report) {
 function buildSummaryText(report, date) {
   const { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue } = liveFuelData(report)
   const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
+  const station = activeStation()
+  const marginByTank = liveMarginByTank(report, station)
+  let livePmsMargin = 0, liveAgoMargin = 0
+  tanksFor(station).forEach(t => {
+    if (t.product === "PMS") livePmsMargin += marginByTank[t.id] || 0
+    else if (t.product === "AGO") liveAgoMargin += marginByTank[t.id] || 0
+  })
+  livePmsMargin = Math.round(livePmsMargin * 100) / 100
+  liveAgoMargin = Math.round(liveAgoMargin * 100) / 100
+  const livePmsMarginAmount = Math.round(livePmsMargin * (report.pms_price || 0) * 100) / 100
+  const liveAgoMarginAmount = Math.round(liveAgoMargin * (report.ago_price || 0) * 100) / 100
   const lines = [
     `${getStation(activeStation()).name} — Daily Summary`,
     `${date}`,
@@ -131,10 +179,10 @@ function buildSummaryText(report, date) {
     `Grand Total: ${naira(displayGrandTotal)}`,
     `PMS: ${litres(pmsLitres, { maximumFractionDigits: 2 })} @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(pmsRevenue)}`,
     `AGO: ${litres(agoLitres, { maximumFractionDigits: 2 })} @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(agoRevenue)}`,
-    `PMS Margin: ${litres(report.pms_margin, { maximumFractionDigits: 2 })} (${naira(report.pms_margin_amount)}) · AGO Margin: ${litres(report.ago_margin, { maximumFractionDigits: 2 })} (${naira(report.ago_margin_amount)})`,
+    `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} (${naira(livePmsMarginAmount)}) · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })} (${naira(liveAgoMarginAmount)})`,
     ``,
     `Tank Dips:`,
-    ...tankRows(report).map(
+    ...tankRows(report, marginByTank).map(
       t => `  ${t.id} (${t.product}): ${numberNG(t.opening, { maximumFractionDigits: 2 })}${t.unit || "L"} → ${numberNG(t.closing, { maximumFractionDigits: 2 })}${t.unit || "L"}, diff ${numberNG(t.diff, { maximumFractionDigits: 2 })}${t.unit || "L"}, margin ${numberNG(t.margin, { maximumFractionDigits: 2 })}${t.unit || "L"}`
     ),
     ``,
@@ -360,6 +408,20 @@ function SummaryInner() {
         {status === "ready" && report && (() => {
           const { hasFuelData, fuelRevenue, pmsLitres, agoLitres, pmsRevenue, agoRevenue } = liveFuelData(report)
           const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
+          // Live margin, aggregated by product from each tank's live margin —
+          // replaces the stored pms_margin/ago_margin fields, which only ever
+          // reflected whatever SalesLog looked like at the moment dip was
+          // originally submitted.
+          const marginByTank = liveMarginByTank(report, station)
+          let livePmsMargin = 0, liveAgoMargin = 0
+          tanksFor(station).forEach(t => {
+            if (t.product === "PMS") livePmsMargin += marginByTank[t.id] || 0
+            else if (t.product === "AGO") liveAgoMargin += marginByTank[t.id] || 0
+          })
+          livePmsMargin = Math.round(livePmsMargin * 100) / 100
+          liveAgoMargin = Math.round(liveAgoMargin * 100) / 100
+          const livePmsMarginAmount = Math.round(livePmsMargin * (report.pms_price || 0) * 100) / 100
+          const liveAgoMarginAmount = Math.round(liveAgoMargin * (report.ago_price || 0) * 100) / 100
           return (
           <>
             {/* Hero — Grand Total */}
@@ -368,10 +430,10 @@ function SummaryInner() {
                 <div className="text-[10px] font-bold uppercase tracking-[1.2px] opacity-70">{getStation(station).name} · {new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</div>
                 <div className="ftk-mono mt-1.5 text-[32px] font-black tracking-tight">{naira(displayGrandTotal)}</div>
                 <div className="text-[11px] opacity-70">Grand Total</div>
-                {(report.pms_margin !== 0 || report.ago_margin !== 0) && (
+                {(livePmsMargin !== 0 || liveAgoMargin !== 0) && (
                   <div className="mt-3 flex gap-4 border-t border-white/20 pt-3 text-[11px] opacity-90">
-                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(report.pms_margin, { maximumFractionDigits: 2 })} ({naira(report.pms_margin_amount)})</span></div>
-                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(report.ago_margin, { maximumFractionDigits: 2 })} ({naira(report.ago_margin_amount)})</span></div>
+                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(livePmsMargin, { maximumFractionDigits: 2 })} ({naira(livePmsMarginAmount)})</span></div>
+                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(liveAgoMargin, { maximumFractionDigits: 2 })} ({naira(liveAgoMarginAmount)})</span></div>
                   </div>
                 )}
               </div>
@@ -389,8 +451,8 @@ function SummaryInner() {
             {/* PMS / AGO fuel cards */}
             <div className="mb-4 grid grid-cols-2 gap-3">
               {[
-                { label: "PMS", litres: pmsLitres, revenue: pmsRevenue, price: report.pms_price, margin: report.pms_margin, marginAmt: report.pms_margin_amount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
-                { label: "AGO", litres: agoLitres, revenue: agoRevenue, price: report.ago_price, margin: report.ago_margin, marginAmt: report.ago_margin_amount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
+                { label: "PMS", litres: pmsLitres, revenue: pmsRevenue, price: report.pms_price, margin: livePmsMargin, marginAmt: livePmsMarginAmount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
+                { label: "AGO", litres: agoLitres, revenue: agoRevenue, price: report.ago_price, margin: liveAgoMargin, marginAmt: liveAgoMarginAmount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
               ].map(f => (
                 <div key={f.label} className="ftk-glass rounded-[18px] p-4">
                   <div className="mb-1 flex items-center gap-1.5">
@@ -463,7 +525,7 @@ function SummaryInner() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tankRows(report).map(t => (
+                    {tankRows(report, marginByTank).map(t => (
                       <tr key={t.id} style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
                         <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{t.id} <span className="font-normal" style={{ color: "var(--ftk-ink-faint)" }}>· {t.product}</span></td>
                         <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
@@ -491,12 +553,32 @@ function SummaryInner() {
                     </thead>
                     <tbody>
                       {pumpRows(report).map(p => (
-                        <tr key={p.pump} style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
-                          <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.pump}</td>
-                          <td className="py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{p.sessionCount || "—"}</td>
-                          <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{litres(p.diff, { maximumFractionDigits: 2 })}</td>
-                          <td className="ftk-mono py-2 text-right text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.amount > 0 ? naira(p.amount) : "—"}</td>
-                        </tr>
+                        <React.Fragment key={p.pump}>
+                          <tr style={{ borderBottom: p.priceBreakdown ? "none" : "1px solid var(--ftk-card-border)" }}>
+                            <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.pump}</td>
+                            <td className="py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{p.sessionCount || "—"}</td>
+                            <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{litres(p.diff, { maximumFractionDigits: 2 })}</td>
+                            <td className="ftk-mono py-2 text-right text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.amount > 0 ? naira(p.amount) : "—"}</td>
+                          </tr>
+                          {/* Only shown when this pump genuinely sold at more than
+                              one price that day — a real price change, not just
+                              a normal opening/closing pair. Broken out by price,
+                              same treatment as the PMS/AGO tier breakdown above. */}
+                          {p.priceBreakdown && (
+                            <tr style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
+                              <td colSpan={4} className="pb-2 pl-3 pr-2">
+                                <div className="space-y-0.5">
+                                  {p.priceBreakdown.map((s, i) => (
+                                    <div key={i} className="flex items-center justify-between text-[10px]" style={{ color: "var(--ftk-ink-faint)" }}>
+                                      <span>{litres(s.litres, { maximumFractionDigits: 2 })} @ {naira(s.price)}</span>
+                                      <span className="ftk-mono font-semibold" style={{ color: "var(--ftk-ink-dim)" }}>{naira(s.amount)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
