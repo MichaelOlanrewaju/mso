@@ -273,6 +273,11 @@ export default function DischargePage() {
 
   // What the review popup shows before the actual save.
   const dischargeReviewRows = [
+    /* Makes the auto-bump effect impossible to miss at the exact moment of
+       submission — this used to happen silently, which meant a mistaken or
+       test entry could corrupt a real day's opening reading with nobody
+       noticing until much later. Now it's the first thing shown. */
+    { label: "⚠ This will do", value: `Add ${litres(form.actualReceived || 0)} to ${form.product}'s opening reading for ${form.date}`, warn: true },
     { label: "Product / Tank", value: form.product },
     { label: "Supplier", value: form.supplier },
     { label: "Driver", value: form.driverName || "Not entered", warn: !form.driverName },

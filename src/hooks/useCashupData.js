@@ -43,7 +43,11 @@ export function useCashupData(username, name, initialDate) {
   // EMTL — Electronic Money Transfer Levy, a flat regulatory charge per
   // qualifying bank transfer
   const [emtlCount, setEmtlCount] = useState("")
-  const [expenses, setExpenses] = useState([{ desc: "", amt: "" }])
+  /* Real expenses already logged for this date via the standalone Expenses
+     page — fetched, not typed. Cash-up no longer has its own expense entry;
+     everything gets logged in exactly one place, and this is what Cash to
+     Bank actually subtracts. */
+  const [existingExpenses, setExistingExpenses] = useState([])
   // Lubricant/oil — itemized product sales, same pattern as expenses
   /* No unitPrice here on purpose. The price is not the cashier's to hold —
      it comes from the LubricantProducts catalogue, is displayed read-only in
@@ -78,6 +82,9 @@ export function useCashupData(username, name, initialDate) {
       .then(d => {
         const r = d.ok ? d.report : null
         const closingDipDone = !!r?.hasClosing
+        // Set regardless of which branch runs below — expenses can exist
+        // for a date even before dip/pump data does.
+        setExistingExpenses(r?.expense_items || [])
         if (!r || !r.grand_total) {
           setExpected(prev => ({ ...prev, hasData: false, closingDipDone }))
           setLoadingExpected(false)
@@ -140,21 +147,6 @@ export function useCashupData(username, name, initialDate) {
     loadExpected()
   }, [loadExpected])
 
-  const addExpense = useCallback(() => {
-    setExpenses(prev => [...prev, { desc: "", amt: "" }])
-  }, [])
-
-  const updateExpense = useCallback((i, field, value) => {
-    setExpenses(prev => prev.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)))
-  }, [])
-
-  const removeExpense = useCallback(i => {
-    setExpenses(prev => {
-      const next = prev.filter((_, idx) => idx !== i)
-      return next.length ? next : [{ desc: "", amt: "" }]
-    })
-  }, [])
-
   /* The page owns the catalogue fetch (useLubricantProducts); it hands the
      prices down here so the running total stays correct. */
   const setLubricantPrices = useCallback(map => setLubPrices(map || {}), [])
@@ -187,16 +179,11 @@ export function useCashupData(username, name, initialDate) {
   const EMTL_RATE = 50 // Nigeria's standard flat EMTL charge per qualifying transfer
   const emtlAmount = emtlCountNum * EMTL_RATE
 
-  /* An amount only counts if it has a description. Previously this summed
-     EVERY entered amount regardless — so an expense typed with a figure but
-     no description still reduced Cash to Bank, while silently vanishing from
-     the itemized record (the save step below has always required a
-     description, so that amount was never written anywhere). Money was
-     leaving the total with no trace of what it was for. */
-  const totalExpenses = expenses.reduce((s, e) => s + (e.desc && Number(e.amt) > 0 ? Number(e.amt) : 0), 0)
-  // An amount WITHOUT a description — money about to silently vanish from the
-  // record. Surfaced so the cashier fixes it before submitting, not after.
-  const expensesMissingDescription = expenses.some(e => Number(e.amt) > 0 && !e.desc)
+  /* Expenses come from the standalone Expenses page now, not typed here —
+     this is the real total already logged for this date, fetched via
+     getDailyReport. Cash-up can't create or lose an expense; it can only
+     see what's actually on record. */
+  const totalExpenses = existingExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0)
   const mpCharge = Math.round(mp * MP_RATE)
   const zmCharge = Math.round(zm * ZM_RATE)
   // TRF (M.P) carries the same 0.3% charge as the MP terminal itself —
@@ -321,9 +308,6 @@ export function useCashupData(username, name, initialDate) {
     if (mp === 0 && zm === 0 && cash === 0 && trfTotal === 0) {
       return Promise.resolve({ ok: false, error: "Enter at least one payment amount" })
     }
-    if (expensesMissingDescription) {
-      return Promise.resolve({ ok: false, error: "One of your expenses has an amount but no description — add what it was for before saving." })
-    }
     /* Unlocked for both stations. The real bug was the expected-revenue
        calculation trusting a stale stored field — fixed by deriving it live
        from actual pump sessions. With that fixed, there's no remaining
@@ -364,16 +348,6 @@ export function useCashupData(username, name, initialDate) {
           setSaving(false)
           return d
         }
-        const expSaves = expenses
-          .filter(e => Number(e.amt) > 0 && e.desc)
-          .map(e =>
-            fetch(SCRIPT_URL, {
-              method: "POST",
-              headers: { "Content-Type": "text/plain" },
-              body: JSON.stringify({ action: "saveExpense", station: activeStation(), username, date, description: e.desc, amount: Number(e.amt) }),
-              redirect: "follow",
-            })
-          )
         const lubSaves = lubricantItems
           .filter(it => Number(it.qty) > 0 && it.product)
           .map(it =>
@@ -385,7 +359,7 @@ export function useCashupData(username, name, initialDate) {
               redirect: "follow",
             })
           )
-        return Promise.all([...expSaves, ...lubSaves]).then(() => {
+        return Promise.all(lubSaves).then(() => {
           setSaving(false)
           return d
         })
@@ -394,7 +368,7 @@ export function useCashupData(username, name, initialDate) {
         setSaving(false)
         return { ok: false, error: "Network error — check connection" }
       })
-  }, [mp, zm, cash, trfTotal, trfMPNum, trfZBNum, trfTruckNum, trfMDNum, totalExpenses, cashToBank, mpCharge, zmCharge, trfMPCharge, emtlAmount, expected, expenses, lubricantItems, lubricantTotal, username, lpgRemittedNum, cashSummary, date, cashupLocked, remarks])
+  }, [mp, zm, cash, trfTotal, trfMPNum, trfZBNum, trfTruckNum, trfMDNum, totalExpenses, cashToBank, mpCharge, zmCharge, trfMPCharge, emtlAmount, expected, lubricantItems, lubricantTotal, username, lpgRemittedNum, cashSummary, date, cashupLocked, remarks])
 
   return {
     date, setDate,
@@ -403,7 +377,7 @@ export function useCashupData(username, name, initialDate) {
     posMP, setPosMP, posZM, setPosZM, cashAmt, setCashAmt,
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,
     emtlCount, setEmtlCount, emtlAmount,
-    expenses, addExpense, updateExpense, removeExpense, expensesMissingDescription,
+    existingExpenses,
     lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal, setLubricantPrices,
     mpCharge, zmCharge, trfMPCharge, mpNet, zmNet, trfMPNet, totalCharges, totalExpenses,
     grossTotal, collected, cashToBank, variance, reconStatus, cashSummary,

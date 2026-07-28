@@ -1,7 +1,7 @@
-import React from "react"
+import React, { useState } from "react"
 import { activeStation } from "../utils/station"
 import { getStation } from "../config/stations"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -9,13 +9,19 @@ import { useExpensesData } from "../hooks/useExpensesData"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
 
+function todayISO() {
+  return new Date().toISOString().split("T")[0]
+}
+
 function ExpensesInner() {
   const auth = useAuth({ requireAuth: true })
   const toast = useToast()
   const navigate = useNavigate()
   usePageTitle(`Expenses — ${getStation(activeStation()).name}`)
 
-  const { status, items, total, refresh, desc, setDesc, amt, setAmt, addExpense, saving } = useExpensesData(auth.username)
+  const [searchParams] = useSearchParams()
+  const [date, setDate] = useState(searchParams.get("date") || todayISO())
+  const { status, items, total, refresh, desc, setDesc, amt, setAmt, addExpense, saving } = useExpensesData(auth.username, date)
 
   if (auth.loading || !auth.user) {
     return <div className="min-h-screen bg-pagebg" />
@@ -43,7 +49,13 @@ function ExpensesInner() {
         </button>
         <div className="flex-1">
           <div className="text-[16px] font-extrabold text-ink">Expenses</div>
-          <div className="text-[10px] text-ink-4">{new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</div>
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            max={todayISO()}
+            className="border-none bg-transparent p-0 text-[10px] text-ink-4 outline-none"
+          />
         </div>
         <button type="button" onClick={refresh} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
           <i className={`bi bi-arrow-clockwise ${status === "loading" ? "animate-spin-fast" : ""}`} />
@@ -58,7 +70,7 @@ function ExpensesInner() {
             </div>
             <div>
               <div className="text-[13px] font-extrabold text-ink">Log New Expense</div>
-              <div className="text-[10px] text-ink-4">Deducted from today's cash to bank</div>
+              <div className="text-[10px] text-ink-4">{date === todayISO() ? "Deducted from today's cash to bank" : `Deducted from ${date}'s cash to bank`}</div>
             </div>
           </div>
           <div className="flex flex-col gap-2.5 p-4">
@@ -98,7 +110,7 @@ function ExpensesInner() {
         </div>
 
         <div className="mb-1.5 flex items-center justify-between">
-          <div className="text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Today's Expenses</div>
+          <div className="text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">{date === todayISO() ? "Today's" : date} Expenses</div>
           <div className="mono text-[12px] font-bold text-red">{items.length ? naira(total) : "—"}</div>
         </div>
         <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
@@ -117,7 +129,7 @@ function ExpensesInner() {
           {status === "ready" && items.length === 0 && (
             <div className="flex flex-col items-center gap-1.5 py-10 text-center text-ink-4">
               <i className="bi bi-check-circle text-2xl opacity-30" />
-              <div className="text-[12.5px]">No expenses recorded today</div>
+              <div className="text-[12.5px]">No expenses recorded {date === todayISO() ? "today" : "for this date"}</div>
             </div>
           )}
           {status === "ready" &&

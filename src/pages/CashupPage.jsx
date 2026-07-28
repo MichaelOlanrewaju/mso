@@ -79,7 +79,7 @@ function CashupInner() {
     posMP, setPosMP, posZM, setPosZM, cashAmt, setCashAmt,
     trfMP, setTrfMP, trfZBAmelia, setTrfZBAmelia, trfFCMBTruck, setTrfFCMBTruck, trfFCMBMD, setTrfFCMBMD, trfTotal,
     emtlCount, setEmtlCount, emtlAmount,
-    expenses, addExpense, updateExpense, removeExpense, expensesMissingDescription,
+    existingExpenses,
     lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal, setLubricantPrices,
     lpgRemitted, setLpgRemitted, lpgSales, lpgVariance,
     remarks, setRemarks,
@@ -354,34 +354,37 @@ function CashupInner() {
         {/* ── DEDUCTIONS TAB ── */}
         {tab === "deductions" && (
           <>
-            <SectionCard title="Today's Expenses" sub="Deducted from cash to bank">
+            <SectionCard title="Today's Expenses" sub="Logged separately on the Expenses page">
               <div className="p-4">
-                {expenses.map((e, i) => (
-                  <div key={i} className="mb-2 flex items-center gap-2 last:mb-0">
-                    <input
-                      type="text" placeholder="Description (e.g. Logistics to bank)"
-                      value={e.desc} onChange={ev => updateExpense(i, "desc", ev.target.value)}
-                      className="flex-1 rounded-[9px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-[13px] font-medium text-ink outline-none focus:border-cyan focus:bg-white"
-                    />
-                    <input
-                      type="number" placeholder="₦0" min="0" step="1"
-                      value={e.amt} onChange={ev => updateExpense(i, "amt", ev.target.value)}
-                      className="mono w-[110px] rounded-[9px] border-[1.5px] border-border bg-surface px-3 py-2.5 text-right text-[13px] font-bold text-ink outline-none focus:border-cyan focus:bg-white"
-                    />
-                    <button type="button" onClick={() => removeExpense(i)} className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[8px] border border-[#FECACA] bg-red-light text-red">
-                      <i className="bi bi-trash text-[13px]" />
-                    </button>
+                {/* Expenses no longer get typed here — every expense is
+                    logged exactly once, on the standalone Expenses page.
+                    This shows what's already on record for today so the
+                    cashier can see what Cash to Bank is actually subtracting,
+                    without a second place to enter the same thing twice. */}
+                {existingExpenses.length === 0 ? (
+                  <div className="rounded-[9px] border border-dashed border-border bg-surface px-3.5 py-4 text-center text-[12.5px] text-ink-4">
+                    No expenses logged for today yet
                   </div>
-                ))}
-                <button type="button" onClick={addExpense} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3">
-                  <i className="bi bi-plus-circle" /> Add Expense
+                ) : (
+                  <div className="mb-2 space-y-1.5">
+                    {existingExpenses.map((e, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
+                        <span className="text-[12.5px] font-medium text-ink">{e.description || "Expense"}</span>
+                        <span className="mono text-[13px] font-bold text-ink">{naira(e.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/expenses/${auth.station}?date=${date}`)}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border bg-surface py-2.5 text-[12.5px] font-semibold text-ink-3"
+                >
+                  <i className="bi bi-plus-circle" /> Log an expense on the Expenses page
                 </button>
                 {/* An expense is money the business chose to spend. A shortage —
                     an attendant error, a dispense mistake — is money that went
-                    MISSING. Typing a shortage into the expense box quietly
-                    reduces what's owed and makes the day look reconciled when
-                    it isn't. This gives an equally visible, equally easy way
-                    to report it correctly instead. */}
+                    MISSING. This is the correct, separate place to report it. */}
                 <button
                   type="button"
                   onClick={() => navigate(`/shortage/${auth.station}`)}
@@ -389,12 +392,6 @@ function CashupInner() {
                 >
                   <i className="bi bi-exclamation-triangle" /> Report a shortage/dispense error instead
                 </button>
-                {expensesMissingDescription && (
-                  <div className="mt-2 flex items-start gap-2 rounded-[9px] border border-amber/30 bg-amber-light px-3 py-2.5 text-[12px] font-semibold text-amber">
-                    <i className="bi bi-exclamation-triangle-fill mt-0.5" />
-                    <span>An expense has an amount but no description — it won't be saved or counted until you add what it was for.</span>
-                  </div>
-                )}
                 <div className="mt-2.5 flex items-center justify-between rounded-[9px] border border-border bg-surface px-3.5 py-2.5">
                   <span className="text-[11px] font-semibold text-ink-3">Total Expenses</span>
                   <span className="mono text-[14px] font-extrabold text-ink">{naira(totalExpenses)}</span>

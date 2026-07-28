@@ -9,7 +9,7 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
-export function useExpensesData(username) {
+export function useExpensesData(username, date) {
   const [status, setStatus] = useState("loading")
   const [items, setItems] = useState([])
   const [desc, setDesc] = useState("")
@@ -17,7 +17,7 @@ export function useExpensesData(username) {
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(() => {
-    if (!SCRIPT_URL) {
+    if (!SCRIPT_URL || !date) {
       setStatus("idle")
       return
     }
@@ -25,14 +25,14 @@ export function useExpensesData(username) {
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getDailyReport")
     url.searchParams.set("station", activeStation())
-    url.searchParams.set("date", todayISO())
+    url.searchParams.set("date", date)
     url.searchParams.set("username", username || "")
 
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
       .then(d => {
         if (!d.ok) {
-          // No DailySales row for today yet — treat as zero expenses
+          // No DailySales row for this date yet — treat as zero expenses
           // logged so far, not an error; the page is still fully usable
           // for adding the day's first expense before any dip exists.
           setItems([])
@@ -43,7 +43,7 @@ export function useExpensesData(username) {
         setStatus("ready")
       })
       .catch(() => setStatus("error"))
-  }, [username])
+  }, [username, date])
 
   useEffect(() => {
     load()
@@ -64,7 +64,7 @@ export function useExpensesData(username) {
         action: "saveExpense",
         station: activeStation(),
         username,
-        date: todayISO(),
+        date,
         description: desc.trim(),
         amount,
       }),
@@ -89,7 +89,7 @@ export function useExpensesData(username) {
         setSaving(false)
         return { ok: false, error: "Network error — check connection" }
       })
-  }, [desc, amt, username])
+  }, [desc, amt, username, date])
 
   return {
     status, items, total, refresh: load,
