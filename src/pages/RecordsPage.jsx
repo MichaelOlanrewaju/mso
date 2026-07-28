@@ -54,7 +54,16 @@ function liveMarginByTank(report, station) {
   const marginByTank = {}
   tanksFor(station).forEach(t => {
     const pumpLitres = litresByTank[t.id] || 0
-    const dipDiff = Number(report[`${t.id.toLowerCase()}_diff`]) || 0
+    // dipDiff computed LIVE (opening minus closing), not trusted from the
+    // stored diff field — that field is itself computed once at closing-
+    // submission time and never revisited. Confirmed directly: every tank
+    // that received a discharge AFTER its closing was submitted showed a
+    // stored diff of exactly 0, because it was calculated before the
+    // discharge bumped the opening. Opening/closing themselves are safe to
+    // trust — they're the actual physical readings, not derived values.
+    const open = Number(report[`${t.id.toLowerCase()}_opening`]) || 0
+    const close = Number(report[`${t.id.toLowerCase()}_closing`]) || 0
+    const dipDiff = close > 0 ? Math.max(0, open - close) : (Number(report[`${t.id.toLowerCase()}_diff`]) || 0)
     marginByTank[t.id] = Math.round((pumpLitres - dipDiff) * 100) / 100
   })
   return marginByTank
@@ -63,7 +72,11 @@ function liveMarginByTank(report, station) {
 function TankMarginRow({ tank, report, liveMargin }) {
   const open = report[`${tank.id.toLowerCase()}_opening`] || 0
   const close = report[`${tank.id.toLowerCase()}_closing`] || 0
-  const dipDiff = report[`${tank.id.toLowerCase()}_diff`] || 0
+  // Live, same reasoning as margin — the stored diff field is computed once
+  // at closing time and never revisited, so a discharge landing afterward
+  // leaves it stale (confirmed: every discharged tank showed a stored diff
+  // of exactly 0 despite real opening/closing readings on file).
+  const dipDiff = close > 0 ? Math.max(0, Math.round((open - close) * 100) / 100) : (report[`${tank.id.toLowerCase()}_diff`] || 0)
   const margin = liveMargin ?? (report[`${tank.id.toLowerCase()}_margin`] || 0)
   const empty = open === 0 && close === 0
 

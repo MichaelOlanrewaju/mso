@@ -35,12 +35,22 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
+function liveDiff(report, tankId) {
+  const open = Number(report[`${tankId}_opening`]) || 0
+  const close = Number(report[`${tankId}_closing`]) || 0
+  // Same reasoning as margin: the stored diff field is computed once at
+  // closing time and never revisited, so a discharge landing afterward
+  // leaves it stale. Live opening/closing are the actual physical readings
+  // and safe to trust directly.
+  return close > 0 ? Math.max(0, Math.round((open - close) * 100) / 100) : (Number(report[`${tankId}_diff`]) || 0)
+}
+
 function tankRows(report, marginByTank) {
   return [
-    { id: "TK 1", product: "PMS", opening: report.tk1_opening, closing: report.tk1_closing, diff: report.tk1_diff, margin: marginByTank?.TK1 ?? report.tk1_margin },
-    { id: "TK 2", product: "PMS", opening: report.tk2_opening, closing: report.tk2_closing, diff: report.tk2_diff, margin: marginByTank?.TK2 ?? report.tk2_margin },
-    { id: "TK 3", product: "PMS", opening: report.tk3_opening, closing: report.tk3_closing, diff: report.tk3_diff, margin: marginByTank?.TK3 ?? report.tk3_margin },
-    { id: "TK 4", product: "AGO", opening: report.tk4_opening, closing: report.tk4_closing, diff: report.tk4_diff, margin: marginByTank?.TK4 ?? report.tk4_margin },
+    { id: "TK 1", product: "PMS", opening: report.tk1_opening, closing: report.tk1_closing, diff: liveDiff(report, "tk1"), margin: marginByTank?.TK1 ?? report.tk1_margin },
+    { id: "TK 2", product: "PMS", opening: report.tk2_opening, closing: report.tk2_closing, diff: liveDiff(report, "tk2"), margin: marginByTank?.TK2 ?? report.tk2_margin },
+    { id: "TK 3", product: "PMS", opening: report.tk3_opening, closing: report.tk3_closing, diff: liveDiff(report, "tk3"), margin: marginByTank?.TK3 ?? report.tk3_margin },
+    { id: "TK 4", product: "AGO", opening: report.tk4_opening, closing: report.tk4_closing, diff: liveDiff(report, "tk4"), margin: marginByTank?.TK4 ?? report.tk4_margin },
     ...(report.lpg_tank_opening > 0 || report.lpg_tank_closing > 0
       ? [{ id: "TK 5", product: "LPG", unit: "kg", opening: report.lpg_tank_opening, closing: report.lpg_tank_closing, diff: report.lpg_tank_diff, margin: report.lpg_tank_margin }]
       : []),
@@ -144,7 +154,16 @@ function liveMarginByTank(report, station) {
   const marginByTank = {}
   tanksFor(station).forEach(t => {
     const pumpLitres = litresByTank[t.id] || 0
-    const dipDiff = Number(report[`${t.id.toLowerCase()}_diff`]) || 0
+    // dipDiff computed LIVE (opening minus closing), not trusted from the
+    // stored diff field — that field is itself computed once at closing-
+    // submission time and never revisited. Confirmed directly: every tank
+    // that received a discharge AFTER its closing was submitted showed a
+    // stored diff of exactly 0, because it was calculated before the
+    // discharge bumped the opening. Opening/closing themselves are safe to
+    // trust — they're the actual physical readings, not derived values.
+    const open = Number(report[`${t.id.toLowerCase()}_opening`]) || 0
+    const close = Number(report[`${t.id.toLowerCase()}_closing`]) || 0
+    const dipDiff = close > 0 ? Math.max(0, open - close) : (Number(report[`${t.id.toLowerCase()}_diff`]) || 0)
     marginByTank[t.id] = Math.round((pumpLitres - dipDiff) * 100) / 100
   })
   return marginByTank
