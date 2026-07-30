@@ -170,10 +170,6 @@ function DashboardInner() {
               <StationSwitcherCard show={auth.station === "both" || auth.isOwner || auth.role === "ceo" || auth.role === "gm"} />
             </div>
 
-            <div className="enter mb-3" style={delay(0)}>
-              <CashAtHandCard />
-            </div>
-
             {notifPermission === "granted" && (
               <div className="enter mb-3 flex justify-end" style={delay(0)}>
                 <TestNotificationButton />
@@ -189,6 +185,13 @@ function DashboardInner() {
                 is the very next thing on the page — not the fourth. */}
             <div className="enter mb-5" style={delay(1)}>
               <DayHero status={status} data={data} />
+            </div>
+
+            {/* Cash At Hand sits right under the PMS-on-hand hero — both are
+                "what's actually sitting at the station right now" figures,
+                fuel and cash, so they read naturally as a pair. */}
+            <div className="enter mb-3" style={delay(1)}>
+              <CashAtHandCard />
             </div>
 
             {/* The morning's actual numbers — the first real work of the day,

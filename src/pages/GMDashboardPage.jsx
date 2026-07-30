@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import CashupApprovalPreview from "../components/dashboard/CashupApprovalPreview"
+import CashAtHandCard from "../components/dashboard/CashAtHandCard"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
@@ -159,6 +160,14 @@ function GMInner() {
                 and every other approval is theirs. */}
             <div className="enter mb-5" style={delay(1)}>
               <DayHero status={status} data={data} />
+            </div>
+
+            {/* Cash At Hand sits right under the PMS-on-hand hero — both are
+                "what's actually sitting at the station right now" figures,
+                fuel and cash, read together as a pair. This card existed
+                on the CEO dashboard but was never actually added here. */}
+            <div className="enter mb-3" style={delay(1)}>
+              <CashAtHandCard />
             </div>
 
             {notifPermission === "default" && (
