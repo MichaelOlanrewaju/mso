@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useShortages, SHORTAGE_CATEGORIES } from "../hooks/useShortages"
+import { useAttendants } from "../hooks/useAttendants"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, litres as fmtLitres } from "../utils/format"
 
@@ -28,6 +29,7 @@ export default function ShortagePage() {
   const canReport = auth.role === "supervisor" || auth.role === "cashier" || auth.isGM || auth.isOwner
   const canReview = auth.isGM || auth.isOwner
   const { status, shortages, saving, reportShortage, reviewShortage } = useShortages({ all: canReview })
+  const { attendants } = useAttendants(auth.username)
   usePageTitle(`Shortage — ${getStation(activeStation()).name}`)
 
   const [showForm, setShowForm] = useState(false)
@@ -36,6 +38,7 @@ export default function ShortagePage() {
   const [litres, setLitres] = useState("")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
+  const [attendantId, setAttendantId] = useState("")
   const [feedback, setFeedback] = useState(null)
 
   if (auth.loading || !auth.user) {
@@ -48,6 +51,7 @@ export default function ShortagePage() {
     setLitres("")
     setAmount("")
     setDescription("")
+    setAttendantId("")
   }
 
   const handleSubmit = async e => {
@@ -64,7 +68,7 @@ export default function ShortagePage() {
     setFeedback(null)
     const res = await reportShortage({
       date, category, litres: Number(litres) || 0, amount: amt,
-      description: description.trim(), username: auth.username,
+      description: description.trim(), username: auth.username, attendantId,
     })
     if (res.ok) {
       setFeedback({ type: "success", text: "Shortage reported. GM has been notified." })
@@ -95,8 +99,17 @@ export default function ShortagePage() {
         </button>
         <div className="flex-1">
           <div className="text-[16px] font-extrabold text-ink">Shortage</div>
-          <div className="text-[10px] text-ink-4">MSO Station</div>
+          <div className="text-[10px] text-ink-4">{getStation(activeStation()).name}</div>
         </div>
+        {["ceo", "owner", "gm", "supervisor"].includes(auth.role) && (
+          <button
+            type="button"
+            onClick={() => navigate(`/clear-shortage/${activeStation()}`)}
+            className="flex h-9 items-center gap-1.5 rounded-[9px] border border-green/30 bg-green-light px-3 text-[12px] font-bold text-green"
+          >
+            <i className="bi bi-receipt" /> Clear
+          </button>
+        )}
         {canReport && (
           <button
             type="button"
@@ -133,6 +146,25 @@ export default function ShortagePage() {
               >
                 {SHORTAGE_CATEGORIES.map(c => (
                   <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+
+            {/* Optional — not every shortage traces back to one person
+                (equipment faults, theft by an outsider), but when it does,
+                this is what finally lets it show up on that person's
+                profile and shortage balance instead of just sitting in a
+                general station log. */}
+            <label className="mb-3 block">
+              <span className="mb-1 block text-[11px] font-semibold text-ink-3">Attendant (if it's theirs)</span>
+              <select
+                value={attendantId}
+                onChange={e => setAttendantId(e.target.value)}
+                className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13px] text-ink outline-none focus:border-cyan"
+              >
+                <option value="">Not attributed to a specific attendant</option>
+                {attendants.map(a => (
+                  <option key={a.attendantId} value={a.attendantId}>{a.name}</option>
                 ))}
               </select>
             </label>
@@ -213,7 +245,9 @@ export default function ShortagePage() {
 
         {status === "ready" && shortages.length > 0 && (
           <div className="flex flex-col gap-2.5">
-            {shortages.map(s => (
+            {shortages.map(s => {
+              const attendant = attendants.find(a => a.attendantId === s.attendantId)
+              return (
               <div key={s.rowIndex} className="rounded-card border border-border bg-white p-4 shadow-card">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
@@ -222,6 +256,14 @@ export default function ShortagePage() {
                   </div>
                   <StatusPill status={s.status} />
                 </div>
+                {/* The whole point of linking a shortage to an attendant —
+                    surfaced clearly, not buried in the description text,
+                    so it's obvious at a glance whose record this affects. */}
+                {attendant && (
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber/25 bg-amber-light px-2.5 py-1 text-[11px] font-bold text-amber">
+                    <i className="bi bi-person-fill" /> {attendant.name}
+                  </div>
+                )}
                 <div className="mb-2.5 text-[12.5px] leading-snug text-ink-2">{s.description}</div>
                 <div className="flex items-center gap-3 text-[12px]">
                   <span className="mono font-extrabold text-red">{naira(s.amount)}</span>
@@ -251,7 +293,8 @@ export default function ShortagePage() {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

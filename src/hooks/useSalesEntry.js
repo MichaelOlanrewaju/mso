@@ -74,6 +74,12 @@ export function useSalesEntry(username, name, selectedDate) {
   const [readings, setReadings] = useState(emptyReadings)
   const [hasOpening, setHasOpening] = useState(false)
   const [hasClosing, setHasClosing] = useState(false)
+  /* Which real attendant worked this session — replaces the old behaviour
+     where every sale was silently tagged with the SUPERVISOR's own name,
+     never an actual attendant. Falls back to the supervisor's name only if
+     nobody's selected one, so entry never blocks on this being set. */
+  const [attendantId, setAttendantId] = useState("")
+  const [attendantName, setAttendantName] = useState("")
   const [saving, setSaving] = useState(false)
   const [savingStep, setSavingStep] = useState(false)
   /* Which session each pump is currently on. After a price cutover a pump
@@ -309,7 +315,7 @@ export function useSalesEntry(username, name, selectedDate) {
             action: "saveSale", station: activeStation(), username, date,
             tank: p.tank, pump: label, product: p.product,
             litres: diff, pricePerL: price, amount: Math.round(diff * price),
-            payMethod: "Mixed", attendant: name || username, notes: notes || "",
+            payMethod: "Mixed", attendant: attendantName || name || username, attendantId: attendantId || "", notes: notes || "",
           })
             .catch(() => ({ ok: false, error: "Network error" }))
             .then(saleRes => ({
@@ -320,7 +326,7 @@ export function useSalesEntry(username, name, selectedDate) {
             }))
         })
     },
-    [readings, username, name]
+    [readings, username, name, attendantId, attendantName]
   )
 
   const submit = useCallback(
@@ -429,7 +435,7 @@ export function useSalesEntry(username, name, selectedDate) {
           return { ok: false, error: "Network error — check connection" }
         })
     },
-    [readings, username, name, grandTotals, hasAnyReading, saveOnePump, pumpLocks]
+    [readings, username, name, attendantId, attendantName, grandTotals, hasAnyReading, saveOnePump, pumpLocks]
   )
 
   const savePhoto = useCallback(
@@ -491,6 +497,7 @@ export function useSalesEntry(username, name, selectedDate) {
     status, readings, hasOpening, hasClosing, existingPhotos,
     updateReading, clearAll, grandTotals, submit, savePhoto, saving,
     saveStep, savingStep, pumpLocks, requestEditPump, requestingEdit,
+    attendantId, setAttendantId, attendantName, setAttendantName,
     refresh: () => loadForDate(selectedDate),
   }
 }

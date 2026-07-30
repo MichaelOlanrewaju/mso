@@ -31,7 +31,6 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 // The app's signature navy→violet gradient, reused here from Dip/Sales/
 // Payroll so Chat reads as part of the same product instead of a bolted-on
 // generic messenger.
-const BRAND_GRADIENT = "var(--brand-gradient-btn)"
 
 function timeLabel(iso) {
   if (!iso) return ""
@@ -91,7 +90,7 @@ function ImageBubble({ fileId, isMine }) {
 }
 
 /* Message bubble with long-press actions */
-function Bubble({ msg, isMine, onEdit, onDelete, onDeleteForAll, onReply, onReact, onJumpTo, onPin, quoted, myUsername, canModerate }) {
+function Bubble({ msg, isMine, onEdit, onDelete, onDeleteForAll, onReply, onReact, onJumpTo, onPin, quoted, myUsername, canModerate, station }) {
   const [showActions, setShowActions] = useState(false)
   const pressTimer = useRef(null)
 
@@ -108,7 +107,7 @@ function Bubble({ msg, isMine, onEdit, onDelete, onDeleteForAll, onReply, onReac
         onMouseDown={startPress} onMouseUp={endPress} onMouseLeave={endPress}
         onTouchStart={startPress} onTouchEnd={endPress}>
         {!isMine && <Avatar name={msg.senderName} size={30} />}
-        <div style={{ maxWidth:"78vw", background: isMine ? BRAND_GRADIENT : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
+        <div style={{ maxWidth:"78vw", background: isMine ? getStation(station).theme.gradientBtn : "#fff", boxShadow: isMine ? "0 3px 10px rgba(19,6,86,.22)" : "0 1px 3px rgba(19,6,86,.06)" }}
           className={`min-w-0 flex-shrink rounded-[18px] ${isMine ? "text-white" : "text-ink"}`}>
           {msg.deletedForEveryone ? (
             <div className="flex items-center gap-2 px-4 py-3">
@@ -251,7 +250,7 @@ function DateSep({ iso }) {
 }
 
 /* ── Edit modal ─────────────────────────────────────────── */
-function EditModal({ message, onSave, onClose }) {
+function EditModal({ message, onSave, onClose, station }) {
   const [text, setText] = useState(message.text)
   return (
     <div className="fixed inset-0 z-[600] flex items-end justify-center bg-black/40 p-4"
@@ -272,7 +271,7 @@ function EditModal({ message, onSave, onClose }) {
             Cancel
           </button>
           <button type="button" onClick={() => onSave(text.trim())} disabled={!text.trim()}
-            className="flex-1 rounded-[11px] py-3 text-[13.5px] font-bold text-white disabled:opacity-50" style={{ background: BRAND_GRADIENT }}>
+            className="flex-1 rounded-[11px] py-3 text-[13.5px] font-bold text-white disabled:opacity-50" style={{ background: getStation(station).theme.gradientBtn }}>
             Save
           </button>
         </div>
@@ -509,6 +508,7 @@ function ConversationView({ auth, station, conversationId, conversationName, isG
                 <Bubble msg={item.msg}
                   isMine={item.msg.senderUsername === auth.username}
                   myUsername={auth.username}
+                  station={station}
                   onEdit={handleEdit} onDelete={handleDeleteMsg} onReply={handleReply}
                   onReact={handleReact} onJumpTo={handleJumpTo} onPin={handlePin}
                   onDeleteForAll={handleDeleteForAll} canModerate={canModerate}
@@ -554,7 +554,7 @@ function ConversationView({ auth, station, conversationId, conversationName, isG
           {/* Send button */}
           <button type="button" onClick={handleSend} disabled={!draft.trim() || sending}
             className="mb-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-white disabled:opacity-30"
-            style={{ background: BRAND_GRADIENT }}>
+            style={{ background: getStation(station).theme.gradientBtn }}>
             <i className="bi bi-send-fill text-[14px]" />
           </button>
         </div>
@@ -562,7 +562,7 @@ function ConversationView({ auth, station, conversationId, conversationName, isG
 
       {/* Edit modal */}
       {editingMsg && (
-        <EditModal message={editingMsg} onSave={handleSaveEdit} onClose={() => setEditingMsg(null)} />
+        <EditModal message={editingMsg} onSave={handleSaveEdit} onClose={() => setEditingMsg(null)} station={station} />
       )}
 
       {/* Delete conversation confirm */}

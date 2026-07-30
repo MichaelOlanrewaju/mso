@@ -286,6 +286,13 @@ export default function SupervisorDashboardPage() {
           <MenuRow icon="bi-droplet-fill" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Oil" sub="Prices, stock & deliveries" onClick={() => navigate(`/lubricant/${auth.station}`)} />
         </div>
 
+        <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Attendants</div>
+        <div className="ftk-glass mb-5 overflow-hidden rounded-[18px]">
+          <MenuRow icon="bi-people" iconBg="rgba(124,92,255,0.15)" iconColor="var(--ftk-violet)" title="Attendants" sub="Manage the attendant list" onClick={() => navigate(`/attendants/${auth.station}`)} />
+          <MenuRow icon="bi-calendar-check" iconBg="rgba(52,211,153,0.15)" iconColor="var(--ftk-green)" title="Mark Attendance" sub="Today's present / absent" onClick={() => navigate(`/attendance/${auth.station}`)} />
+          <MenuRow icon="bi-receipt" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Clear Shortage" sub="Record a repayment, with receipt" onClick={() => navigate(`/clear-shortage/${auth.station}`)} />
+        </div>
+
         <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Account</div>
         <div className="ftk-glass overflow-hidden rounded-[18px]">
           <MenuRow icon="bi-person-circle" iconBg="rgba(124,92,255,0.15)" iconColor="var(--ftk-violet)" title="My Profile" sub="Update your details & password" onClick={() => navigate(`/profile`)} />

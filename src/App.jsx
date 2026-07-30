@@ -29,6 +29,11 @@ const ShortagePage           = lazy(() => import("./pages/ShortagePage"))
 const ActivityLogPage        = lazy(() => import("./pages/ActivityLogPage"))
 const PayrollPage            = lazy(() => import("./pages/PayrollPage"))
 const AddStaffPage           = lazy(() => import("./pages/AddStaffPage"))
+const AttendantsPage         = lazy(() => import("./pages/AttendantsPage"))
+const AttendantProfilePage   = lazy(() => import("./pages/AttendantProfilePage"))
+const ClearShortagePage      = lazy(() => import("./pages/ClearShortagePage"))
+const AttendantPerformancePage = lazy(() => import("./pages/AttendantPerformancePage"))
+const AttendancePage         = lazy(() => import("./pages/AttendancePage"))
 const ChatPage               = lazy(() => import("./pages/ChatPage"))
 const ProfilePage            = lazy(() => import("./pages/ProfilePage"))
 const StationAssignmentPage  = lazy(() => import("./pages/StationAssignmentPage"))
@@ -111,6 +116,11 @@ export default function App() {
           <Route path="/pnl/:station" element={<StationGuard><PnLPage /></StationGuard>} />
           <Route path="/payroll/:station" element={<StationGuard><PayrollPage /></StationGuard>} />
           <Route path="/add-staff/:station" element={<StationGuard><AddStaffPage /></StationGuard>} />
+          <Route path="/attendants/:station" element={<StationGuard><AttendantsPage /></StationGuard>} />
+          <Route path="/attendant/:station/:attendantId" element={<StationGuard><AttendantProfilePage /></StationGuard>} />
+          <Route path="/clear-shortage/:station" element={<StationGuard><ClearShortagePage /></StationGuard>} />
+          <Route path="/attendant-performance/:station" element={<StationGuard><AttendantPerformancePage /></StationGuard>} />
+          <Route path="/attendance/:station" element={<StationGuard><AttendancePage /></StationGuard>} />
           <Route path="/chat/:station" element={<StationGuard><ChatPage /></StationGuard>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/station-assignments" element={<StationAssignmentPage />} />

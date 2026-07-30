@@ -17,6 +17,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePrices } from "../hooks/usePrices"
 import { usePriceCutover } from "../hooks/usePriceCutover"
 import { useSalesEntry } from "../hooks/useSalesEntry"
+import { useAttendants } from "../hooks/useAttendants"
 import { usePageTitle } from "../hooks/usePageTitle"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
@@ -49,8 +50,10 @@ function SalesInner() {
     status, readings, hasOpening, hasClosing, existingPhotos,
     updateReading, submit, savePhoto, saving: submitting, refresh,
     saveStep, savingStep, pumpLocks, requestEditPump, requestingEdit,
+    attendantId, setAttendantId, attendantName, setAttendantName,
   } = useSalesEntry(auth.username, auth.name, date)
   const { prices } = usePrices()
+  const { attendants } = useAttendants(auth.username)
 
   /* Run the cutover: one reading per pump closes the old-price session and
      opens the new-price one. On success we clear the ?cutover flag and reload,
@@ -303,6 +306,32 @@ function SalesInner() {
       <div className="px-4 py-4 pb-[100px]">
         <div className="mx-auto max-w-[640px]">
           <DateRow date={date} onChange={handleDateChange} supName={auth.name || auth.username} />
+
+          {/* Which real attendant worked this session — replaces the old
+              silent behaviour where every sale was tagged with the
+              supervisor's own name. Shown prominently since it applies to
+              every pump saved in this session, not per-pump. */}
+          <div className="mb-3 rounded-card border border-border bg-white p-3.5 shadow-card">
+            <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-ink-4">
+              <i className="bi bi-person-check mr-1" /> Attendant working this session
+            </div>
+            <select
+              value={attendantId}
+              onChange={e => {
+                const id = e.target.value
+                setAttendantId(id)
+                const found = attendants.find(a => a.attendantId === id)
+                setAttendantName(found ? found.name : "")
+              }}
+              className="w-full rounded-[9px] border border-border bg-surface px-3 py-2.5 text-[13.5px] font-semibold text-ink outline-none focus:border-cyan"
+            >
+              <option value="">Not selected — will use your own name instead</option>
+              {attendants.map(a => (
+                <option key={a.attendantId} value={a.attendantId}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+
           <ModeToggle mode={mode} onChange={setMode} hasOpening={hasOpening} hasClosing={hasClosing} />
           <StatusStrip hasOpening={hasOpening} hasClosing={hasClosing} hasCash={false} />
 

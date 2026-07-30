@@ -52,14 +52,14 @@ export function useShortages({ all = false } = {}) {
   }, [load])
 
   const reportShortage = useCallback(
-    async ({ date, category, litres, amount, description, username }) => {
+    async ({ date, category, litres, amount, description, username, attendantId }) => {
       if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
       setSaving(true)
       try {
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "saveShortage", station: activeStation(), date, category, litres, amount, description, username }),
+          body: JSON.stringify({ action: "saveShortage", station: activeStation(), date, category, litres, amount, description, username, attendantId }),
         })
         const d = await res.json()
         if (d.ok) load()

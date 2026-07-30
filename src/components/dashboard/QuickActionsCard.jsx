@@ -15,6 +15,19 @@ const ACTIONS = [
   { icon: "bi-graph-up-arrow",         iconBg: "var(--brand-accent-light)", iconColor: "#0891B2", label: "Variance",           href: `/variance/${activeStation()}`, roles: ["ceo","owner","gm"] },
   { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Summary",            href: `/summary/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: `/shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
+  /* Attendants and Attendance are view-only for cashier — the pages
+     themselves gate add/edit/mark to supervisor and above, so cashier can
+     look (useful for checking a balance before accepting a repayment)
+     without being able to change anything. Clear Shortage stays out of
+     cashier's list entirely — deliberately kept with the supervisor, so
+     the person handling the cash isn't also the one certifying it. */
+  { icon: "bi-people",                 iconBg: "#F5F3FF", iconColor: "#7C3AED", label: "Attendants",         href: `/attendants/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
+  { icon: "bi-calendar-check",         iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Attendance",         href: `/attendance/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
+  { icon: "bi-receipt",                iconBg: "#FEF3C7", iconColor: "#B45309", label: "Clear Shortage",     href: `/clear-shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor"] },
+  /* CEO/GM only — this aggregates every attendant at once (sales, litres,
+     shortage) into one view, which needs a wider financial/oversight lens
+     than a supervisor's day-to-day operational role. */
+  { icon: "bi-bar-chart-line",         iconBg: "#EFF6FF", iconColor: "#2563EB", label: "Attendant Performance", href: `/attendant-performance/${activeStation()}`, roles: ["ceo","owner","gm"] },
   { icon: "bi-arrow-left-right",        iconBg: "#F5EBEF", iconColor: "#5f1f33", label: "Station Assign.",     href: "/station-assignments",          roles: ["ceo","owner","gm"] },
   { icon: "bi-tag",                     iconBg: "#FEF3C7", iconColor: "#B45309", label: "Correct Prices",      href: "/correct-prices",               roles: ["ceo","owner"] },
   /* Bank Deposits doesn't fit a plain role list — Joseph and Lanre need it
