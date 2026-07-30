@@ -95,7 +95,14 @@ export default function AttendantProfilePage() {
             {initials(attendant.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[17px] font-extrabold text-ink">{attendant.name}</div>
+            <div className="flex items-center gap-1.5">
+              <div className="truncate text-[17px] font-extrabold text-ink">{attendant.name}</div>
+              {attendant.type === "Trainee" && (
+                <span className="flex-shrink-0 rounded-full bg-amber-light px-2 py-[1px] text-[10px] font-bold uppercase tracking-[0.3px] text-amber">
+                  Trainee
+                </span>
+              )}
+            </div>
             <div className="text-[12px] text-ink-4">{attendant.phone || "No phone on file"}</div>
             <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface px-2 py-[2px] text-[10px] font-semibold capitalize text-ink-3">
               {attendant.status}

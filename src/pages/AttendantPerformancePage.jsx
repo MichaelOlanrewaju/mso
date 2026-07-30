@@ -125,7 +125,14 @@ export default function AttendantPerformancePage() {
                     {initials(a.name)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13.5px] font-bold text-ink">{a.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="truncate text-[13.5px] font-bold text-ink">{a.name}</div>
+                      {a.type === "Trainee" && (
+                        <span className="flex-shrink-0 rounded-full bg-amber-light px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-[0.3px] text-amber">
+                          Trainee
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[10.5px] text-ink-4">{litres(a.litresSold)} · {a.salesCount} sale{a.salesCount !== 1 ? "s" : ""}</div>
                   </div>
                   <div className="flex-shrink-0 text-right">

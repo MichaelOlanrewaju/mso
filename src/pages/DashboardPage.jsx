@@ -7,7 +7,6 @@ import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
-import AdminBanner from "../components/dashboard/AdminBanner"
 import DayHero from "../components/dashboard/DayHero"
 import MorningReadingsCard from "../components/dashboard/MorningReadingsCard"
 import OilCard from "../components/dashboard/OilCard"
@@ -163,7 +162,6 @@ function DashboardInner() {
         <div className="flex-1 p-3.5 pb-[calc(14px+64px)] md:p-6 md:pb-6">
           <div className="mx-auto w-full max-w-[1400px]">
             <div className="enter" style={delay(0)}>
-              <AdminBanner visible={auth.isOwner} />
             </div>
 
             {/* Only for people who actually oversee both sites. A single-station

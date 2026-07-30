@@ -33,6 +33,7 @@ const AttendantsPage         = lazy(() => import("./pages/AttendantsPage"))
 const AttendantProfilePage   = lazy(() => import("./pages/AttendantProfilePage"))
 const ClearShortagePage      = lazy(() => import("./pages/ClearShortagePage"))
 const AttendantPerformancePage = lazy(() => import("./pages/AttendantPerformancePage"))
+const PhotoDownloadPage      = lazy(() => import("./pages/PhotoDownloadPage"))
 const AttendancePage         = lazy(() => import("./pages/AttendancePage"))
 const ChatPage               = lazy(() => import("./pages/ChatPage"))
 const ProfilePage            = lazy(() => import("./pages/ProfilePage"))
@@ -120,6 +121,7 @@ export default function App() {
           <Route path="/attendant/:station/:attendantId" element={<StationGuard><AttendantProfilePage /></StationGuard>} />
           <Route path="/clear-shortage/:station" element={<StationGuard><ClearShortagePage /></StationGuard>} />
           <Route path="/attendant-performance/:station" element={<StationGuard><AttendantPerformancePage /></StationGuard>} />
+          <Route path="/photos/:station" element={<StationGuard><PhotoDownloadPage /></StationGuard>} />
           <Route path="/attendance/:station" element={<StationGuard><AttendancePage /></StationGuard>} />
           <Route path="/chat/:station" element={<StationGuard><ChatPage /></StationGuard>} />
           <Route path="/profile" element={<ProfilePage />} />

@@ -16,7 +16,13 @@ function initials(name) {
   return (name || "?").trim().split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
 }
 
-const ATTENDANT_TYPES = ["Pump Attendant", "Truck Driver", "Security", "Cleaner", "Other Staff"]
+/* These are TRACKED categories for people in the Attendant system — not
+   the same as actual Staff accounts with login access (which live in a
+   completely separate part of the app). A "Supervisor" or "Cashier" here
+   just means someone whose attendance/performance the business wants
+   tracked this way, whether or not they also happen to have a real login
+   elsewhere. */
+const ATTENDANT_TYPES = ["Pump Attendant", "Trainee", "Supervisor", "Cashier", "Truck Driver", "Security", "Cleaner", "Other Staff"]
 
 function AttendantForm({ editing, onSave, onCancel, saving }) {
   const [name, setName] = useState(editing?.name || "")
@@ -167,7 +173,14 @@ function AttendantsInner() {
                   {initials(a.name)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-bold text-ink">{a.name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="truncate text-[14px] font-bold text-ink">{a.name}</div>
+                    {a.type === "Trainee" && (
+                      <span className="flex-shrink-0 rounded-full bg-amber-light px-2 py-[1px] text-[9.5px] font-bold uppercase tracking-[0.3px] text-amber">
+                        Trainee
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[11px] text-ink-4">{a.type || "Pump Attendant"} · {a.phone || "No phone"}</div>
                 </div>
                 {canManage && (

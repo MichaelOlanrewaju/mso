@@ -278,6 +278,7 @@ export default function SupervisorDashboardPage() {
         <div className="ftk-glass mb-5 overflow-hidden rounded-[18px]">
           <MenuRow icon="bi-file-earmark-bar-graph" iconBg="rgba(52,211,153,0.15)" iconColor="var(--ftk-green)" title="Daily Summary" sub="Generate & share report" onClick={() => navigate(`/summary/${auth.station}`)} />
           <MenuRow icon="bi-file-earmark-text" iconBg="rgba(251,191,103,0.15)" iconColor="var(--ftk-amber)" title="Daily Records" sub="View & manage historical data" onClick={() => navigate(`/records/${auth.station}`)} />
+          <MenuRow icon="bi-images" iconBg="rgba(124,92,255,0.15)" iconColor="var(--ftk-violet)" title="Download Photos" sub="Tank dip & pump reading images" onClick={() => navigate(`/photos/${auth.station}`)} />
         </div>
 
         <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[1.1px]" style={{ color: "var(--ftk-ink-faint)" }}>Station</div>

@@ -148,7 +148,14 @@ function AttendanceInner() {
                   >
                     <button type="button" onClick={() => toggle(a.attendantId)} className="flex w-full items-center gap-3 text-left">
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] font-bold text-ink">{a.name}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="truncate text-[14px] font-bold text-ink">{a.name}</div>
+                          {a.type === "Trainee" && (
+                            <span className="flex-shrink-0 rounded-full bg-amber-light px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-[0.3px] text-amber">
+                              Trainee
+                            </span>
+                          )}
+                        </div>
                         {isPresent && allocated.length > 0 && (
                           <div className="mt-0.5 text-[10.5px] text-ink-4">On {allocated.join(", ")}</div>
                         )}
