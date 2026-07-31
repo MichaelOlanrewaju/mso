@@ -197,13 +197,23 @@ export function useCashupData(username, name, initialDate) {
 
   // All payment channels together — POS, bank transfers, and cash
   const grossTotal = mp + zm + trfTotal + cash
-  const collected = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash - totalExpenses
+  /* Two different questions need two different numbers here, and using one
+     value for both was wrong for one of them:
+       - Cash to Bank: what's left to deposit AFTER expenses were paid out
+         of physical cash — correctly SUBTRACTS expenses.
+       - Variance: did the payment channels match what the pumps say was
+         sold — expenses were money genuinely collected first, then spent
+         on real costs, so they need to be back IN this total, not
+         subtracted. Using the cashToBank number here made a legitimate
+         expense look exactly like an unexplained shortage. */
+  const collectedForCashToBank = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash - totalExpenses
+  const collectedForVariance = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash
 
   // To Bank is purely the physical cash collected, minus expenses paid out
   // of that cash — POS/TRF charges never touch physical cash, so they
   // don't reduce this figure.
   const cashToBank = Math.max(0, cash - totalExpenses)
-  const variance = expected.hasData ? collected - expected.grandTotal : null
+  const variance = expected.hasData ? collectedForVariance - expected.grandTotal : null
 
   /* Priced from the catalogue, not from the row. This figure feeds the day's
      cash reconciliation, so it has to match what the server will actually
@@ -283,8 +293,8 @@ export function useCashupData(username, name, initialDate) {
         r.onerror = rej
         r.readAsDataURL(file)
       })
-      const compressed = await compressImage(dataUrl)
-      const base64 = compressed.split(",")[1]
+      const { dataUrl: compressedDataUrl } = await compressImage(dataUrl)
+      const base64 = compressedDataUrl.split(",")[1]
       const resp = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
@@ -335,13 +345,22 @@ export function useCashupData(username, name, initialDate) {
 
     setSaving(true)
     /* Attach GPS coordinates — cash-up must happen on-site per CEO policy,
-       and the backend verifies this before accepting the save. */
-    return getCurrentCoords().then(coords => fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "saveDailyReport", station: activeStation(), username, date, data, lat: coords?.lat, lng: coords?.lng }),
-      redirect: "follow",
-    }))
+       and the backend verifies this before accepting the save. A stalled
+       network here used to hang indefinitely with no error and no way to
+       know whether real money figures actually saved — the same gap
+       confirmed on pump/dip submission, fixed here too since cash-up is
+       at least as critical. */
+    return getCurrentCoords().then(coords => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 25000)
+      return fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "saveDailyReport", station: activeStation(), username, date, data, lat: coords?.lat, lng: coords?.lng }),
+        redirect: "follow",
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId))
+    })
       .then(res => res.json())
       .then(d => {
         if (!d.ok) {
@@ -364,8 +383,11 @@ export function useCashupData(username, name, initialDate) {
           return d
         })
       })
-      .catch(() => {
+      .catch((e) => {
         setSaving(false)
+        if (e.name === "AbortError") {
+          return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved." }
+        }
         return { ok: false, error: "Network error — check connection" }
       })
   }, [mp, zm, cash, trfTotal, trfMPNum, trfZBNum, trfTruckNum, trfMDNum, totalExpenses, cashToBank, mpCharge, zmCharge, trfMPCharge, emtlAmount, expected, lubricantItems, lubricantTotal, username, lpgRemittedNum, cashSummary, date, cashupLocked, remarks])
@@ -380,7 +402,7 @@ export function useCashupData(username, name, initialDate) {
     existingExpenses,
     lubricantItems, addLubricant, updateLubricant, removeLubricant, lubricantTotal, setLubricantPrices,
     mpCharge, zmCharge, trfMPCharge, mpNet, zmNet, trfMPNet, totalCharges, totalExpenses,
-    grossTotal, collected, cashToBank, variance, reconStatus, cashSummary,
+    grossTotal, collected: collectedForVariance, cashToBank, variance, reconStatus, cashSummary,
     lpgRemitted, setLpgRemitted, lpgSales, lpgVariance,
     remarks, setRemarks,
     cashupStatus, cashupLocked, requestEdit, requestingEdit,

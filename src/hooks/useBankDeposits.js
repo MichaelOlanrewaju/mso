@@ -76,8 +76,9 @@ export function useBankDeposits(station) {
       const d = await res.json()
       if (d.ok) load()
       return d
-    } catch {
-      return { ok: false, error: "Network error" }
+    } catch (e) {
+      console.error("Cash tracking setup failed:", e)
+      return { ok: false, error: "Could not save: " + (e?.message || "check connection and try again") }
     }
   }, [load, station])
 
@@ -93,8 +94,8 @@ export function useBankDeposits(station) {
         r.onerror = rej
         r.readAsDataURL(photoFile)
       })
-      const compressed = await compressImage(dataUrl)
-      const base64 = compressed.split(",")[1]
+      const { dataUrl: compressedDataUrl } = await compressImage(dataUrl)
+      const base64 = compressedDataUrl.split(",")[1]
 
       const photoRes = await fetch(SCRIPT_URL, {
         method: "POST",
@@ -112,8 +113,13 @@ export function useBankDeposits(station) {
       const d = await res.json()
       if (d.ok) load()
       return d
-    } catch {
-      return { ok: false, error: "Network error" }
+    } catch (e) {
+      /* A bare catch here is exactly what turned a real code bug (calling
+         .split() on an object instead of a string, from compressImage)
+         into a misleading "Network error" — not actually a network
+         problem, just impossible to tell from the message alone. */
+      console.error("Bank deposit save failed:", e)
+      return { ok: false, error: "Could not save: " + (e?.message || "check connection and try again") }
     } finally {
       setSubmitting(false)
     }

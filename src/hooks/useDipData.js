@@ -44,14 +44,31 @@ function fieldPrefix(tankId) {
    obtained is sent as-is (null); the backend treats that as "not verified"
    and rejects with a clear message, rather than this function silently
    deciding what to do about it. */
+/* A stalled network used to leave this hanging indefinitely — no timeout,
+   no error, just a spinner that never resolved and no way to know whether
+   anything actually saved. Same fix as sales entry: fails clearly after
+   25 seconds instead of an indefinite wait. */
 async function post(payload) {
   const coords = await getCurrentCoords()
-  return fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
-    redirect: "follow",
-  }).then(res => res.json())
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 25000)
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
+      redirect: "follow",
+      signal: controller.signal,
+    })
+    return await res.json()
+  } catch (e) {
+    if (e.name === "AbortError") {
+      return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved." }
+    }
+    return { ok: false, error: "Network error — check your connection and try again." }
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 function preservedFields(rawReport) {

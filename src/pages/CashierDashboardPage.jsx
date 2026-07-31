@@ -26,6 +26,7 @@ const buildQuickActions = station => [
   { icon: "bi-check2-all", bg: "#F0FDF4", color: "#16A34A", label: "Enter Reconciliation", to: `/cashup/${station}` },
   { icon: "bi-receipt-cutoff", bg: "#FEF2F2", color: "#DC2626", label: "Add Expense", to: `/expenses/${station}` },
   { icon: "bi-exclamation-triangle", bg: "#FFF1F2", color: "#DC2626", label: "Report Shortage", to: `/shortage/${station}` },
+  { icon: "bi-cash-coin", bg: "#F0FDF4", color: "#16A34A", label: "Report Excess", to: `/excess/${station}` },
   /* View-only for the cashier — useful for checking an attendant's real
      balance before accepting a repayment, without being able to clear it
      themselves (that stays with the supervisor, deliberately). */

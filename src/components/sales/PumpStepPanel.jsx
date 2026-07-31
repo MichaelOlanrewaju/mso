@@ -15,15 +15,23 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
   const isLpg = pump.product === "LPG"
   const unit = pump.unit || "L"
   const r = readings[pump.id] || { open: "", close: "" }
+  const openEntered = r.open !== "" && r.open !== null && r.open !== undefined
+  const closeEntered = r.close !== "" && r.close !== null && r.close !== undefined
   const op = Number(r.open) || 0
   const cl = Number(r.close) || 0
   const value = mode === "open" ? r.open : r.close
-  const diff = mode === "close" && op > 0 && cl > 0 && cl >= op ? cl - op : 0
+  const diff = mode === "close" && openEntered && cl > 0 && cl >= op ? cl - op : 0
   // Equal readings are valid — it means this pump had zero sales that
   // day (broken, unused, whatever the reason). Pump meters only ever
   // count up, so the only real error is Closing being LOWER than
   // Opening, not equal to it.
-  const errClose = mode === "close" && cl > 0 && op > 0 && cl < op
+  const errClose = mode === "close" && closeEntered && openEntered && cl < op
+  /* Opening genuinely never entered — this used to show "Opening (locked):
+     0L" as if that were a real, legitimate reading, then silently let
+     Closing be submitted against it. That's exactly what turned a pump's
+     entire lifetime cumulative meter reading into "today's sales" on a
+     real day. Flagged clearly now instead of quietly defaulting. */
+  const missingOpen = mode === "close" && !openEntered
 
   return (
     <div>
@@ -45,10 +53,17 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
       </div>
 
       {mode === "close" && (
-        <div className="mb-3 flex items-center justify-between rounded-[14px] border border-border bg-surface px-4 py-3">
-          <span className="text-[12px] font-semibold text-ink-3">Opening (locked)</span>
-          <span className="font-mono text-[15px] font-bold text-ink">{litresValue(op)}{unit}</span>
-        </div>
+        missingOpen ? (
+          <div className="mb-3 flex items-center gap-2 rounded-[14px] border border-red/30 bg-red-light px-4 py-3">
+            <i className="bi bi-exclamation-triangle-fill text-red" />
+            <span className="text-[12.5px] font-bold text-red">No opening reading on file — enter it before closing</span>
+          </div>
+        ) : (
+          <div className="mb-3 flex items-center justify-between rounded-[14px] border border-border bg-surface px-4 py-3">
+            <span className="text-[12px] font-semibold text-ink-3">Opening (locked)</span>
+            <span className="font-mono text-[15px] font-bold text-ink">{litresValue(op)}{unit}</span>
+          </div>
+        )
       )}
 
       <input
@@ -64,21 +79,26 @@ export function PumpStepPanel({ pump, readings, mode, onChange, price }) {
         onChange={e => onChange(pump.id, mode === "open" ? "open" : "close", sanitiseNumeric(e.target.value))}
         placeholder="Enter reading"
         className={`w-full rounded-[16px] border-2 bg-surface px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
-          errClose ? "border-red focus:ring-red/10" : "border-border focus:border-cyan focus:ring-cyan/10"
+          errClose || missingOpen ? "border-red focus:ring-red/10" : "border-border focus:border-cyan focus:ring-cyan/10"
         }`}
       />
 
-      {errClose && (
+      {missingOpen && closeEntered && (
+        <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-red">
+          <i className="bi bi-exclamation-circle" /> Can't save this — go back to Opening mode and enter it first
+        </div>
+      )}
+      {!missingOpen && errClose && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-red">
           <i className="bi bi-exclamation-circle" /> Closing cannot be lower than opening
         </div>
       )}
-      {!errClose && cl > 0 && mode === "close" && cl === op && (
+      {!missingOpen && !errClose && cl > 0 && mode === "close" && cl === op && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-ink-3">
           <i className="bi bi-info-circle" /> No sales from this pump today — readings match
         </div>
       )}
-      {!errClose && cl > 0 && mode === "close" && cl > op && (
+      {!missingOpen && !errClose && cl > 0 && mode === "close" && cl > op && (
         <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-green">
           <i className="bi bi-check-circle" /> Valid · Diff: {litresValue(diff)}{unit}
         </div>

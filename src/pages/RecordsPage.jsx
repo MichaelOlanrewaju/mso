@@ -299,14 +299,17 @@ function RecordsInner() {
      (both terminals), AND bank transfers. Transfers were previously omitted,
      which made the variance meaningless — on a transfer-heavy day like M&M's it
      showed a huge false shortage/surplus even when the day actually balanced. */
-  const actualCollected = report
-    ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-      + (report.trf_mp || 0) + (report.trf_zb || 0)
-    : 0
-  const reconciliationVariance = actualCollected - expectedRevenue
-
   const expenseItems = (report && report.expense_items) || []
   const expenseTotal = expenseItems.reduce((s, e) => s + (Number(e.amount) || 0), 0)
+
+  /* Expenses added back — that money was genuinely collected from customers
+     first, then spent on real business costs. Without this, a legitimate
+     expense reads as an unexplained shortage on the reconciliation. */
+  const actualCollected = report
+    ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
+      + (report.trf_mp || 0) + (report.trf_zb || 0) + expenseTotal
+    : 0
+  const reconciliationVariance = actualCollected - expectedRevenue
 
   return (
     <div className="flex min-h-screen">

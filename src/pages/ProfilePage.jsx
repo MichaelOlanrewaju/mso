@@ -139,14 +139,14 @@ export default function ProfilePage() {
         setLocalPhotoUrl(dataUrl) // instant preview
 
         // Compress then upload
-        const compressed = await compressImage(dataUrl, file.type, 0.7, 600)
+        const { dataUrl: compressedDataUrl, mimeType: compressedMime } = await compressImage(dataUrl, { maxDimension: 600, quality: 0.7 })
         const res = await fetch(SCRIPT_URL, {
           method: "POST", headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({
             action: "savePhoto", station: activeStation(),
             date: new Date().toISOString().split("T")[0],
             session: "Profile", subject: `profile__${auth.username}`,
-            dataUrl: compressed, mimeType: file.type,
+            base64: compressedDataUrl.split(",")[1], mimeType: compressedMime,
             username: auth.username,
           }),
         })

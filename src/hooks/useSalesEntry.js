@@ -41,14 +41,22 @@ function emptyReadings() {
 }
 
 function diffFor(r) {
+  const openEntered = r.open !== "" && r.open !== null && r.open !== undefined
+  const closeEntered = r.close !== "" && r.close !== null && r.close !== undefined
   const op = Number(r.open) || 0
   const cl = Number(r.close) || 0
-  if (op === 0 && cl === 0) return null
+  if (!openEntered && !closeEntered) return null
   // Closing hasn't been entered yet — that's normal mid-morning while
   // only Opening is being filled in, not an invalid reading. Only flag
-  // an actual error once a real Closing value has been typed in and
-  // it's genuinely lower than Opening (pump meters only count up).
-  if (cl === 0) return null
+  // an actual error once a real Closing value has been typed in.
+  if (!closeEntered) return null
+  /* Closing typed in but Opening genuinely never touched — this used to
+     silently treat the blank as 0, turning the pump's entire lifetime
+     cumulative reading into "today's sales" (confirmed directly: a real
+     day this way produced a ₦3.2 billion phantom variance from seven
+     pumps whose opening was never entered). Flagged as an error live,
+     the moment Closing is typed, not just at final submit. */
+  if (!openEntered) return "err"
   if (cl < op) return "err"
   return cl - op
 }
@@ -59,14 +67,34 @@ function diffFor(r) {
    obtained is sent as-is (null); the backend treats that as "not verified"
    and rejects with a clear message, rather than this function silently
    deciding what to do about it. */
+/* A stalled network used to leave this hanging indefinitely — no timeout,
+   no error, just a spinner that never resolved and no way to know whether
+   anything actually saved. Confirmed directly: a supervisor's readings
+   never made it to PumpMetres at all after his connection stalled mid-
+   submit. 25 seconds is generous for a normal request but short enough
+   that a genuinely dead connection surfaces as a real, actionable error
+   instead of an indefinite wait. */
 async function post(payload) {
   const coords = await getCurrentCoords()
-  return fetch(SCRIPT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
-    redirect: "follow",
-  }).then(res => res.json())
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 25000)
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
+      redirect: "follow",
+      signal: controller.signal,
+    })
+    return await res.json()
+  } catch (e) {
+    if (e.name === "AbortError") {
+      return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved." }
+    }
+    return { ok: false, error: "Network error — check your connection and try again." }
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 export function useSalesEntry(username, name, selectedDate) {
@@ -286,12 +314,30 @@ export function useSalesEntry(username, name, selectedDate) {
       const key = stateKey(p)
       const label = pumpId(p)
       const r = readings[key] || { open: "", close: "" }
+      const openEntered = r.open !== "" && r.open !== null && r.open !== undefined
+      const closeEntered = r.close !== "" && r.close !== null && r.close !== undefined
       const op = Number(r.open) || 0
       const cl = Number(r.close) || 0
       const price = p.product === "AGO" ? prices.ago : p.product === "LPG" ? (prices.lpg || 0) : prices.pms
       const diff = cl >= op ? cl - op : 0
 
-      if (op === 0 && cl === 0) return Promise.resolve({ ok: true, skipped: true })
+      if (!openEntered && !closeEntered) return Promise.resolve({ ok: true, skipped: true })
+
+      /* The actual root of the fix — this is the function that really sends
+         the save. A closing reading with opening genuinely blank used to
+         default op to 0 here and send diff = the pump's entire lifetime
+         cumulative reading as "today's sales" (confirmed directly: this
+         produced a ₦3.2 billion phantom variance on a real day, from seven
+         pumps saved this way). Blocked here now, not just in the bulk
+         submit path, so "Save and Continue" on a single pump can't hit it
+         either. */
+      if (closeEntered && !openEntered) {
+        return Promise.resolve({
+          ok: false,
+          pumpLabel: label,
+          error: `${label} has a closing reading but no opening reading. Enter the opening first.`,
+        })
+      }
 
       return post({
         action: "savePumpMetre", station: activeStation(), username, date,
@@ -335,6 +381,27 @@ export function useSalesEntry(username, name, selectedDate) {
       if (hasError) return Promise.resolve({ ok: false, error: "Fix errors before submitting" })
       if (!hasAnyReading("open") && !hasAnyReading("close")) {
         return Promise.resolve({ ok: false, error: "Enter at least one pump reading" })
+      }
+
+      /* A closing reading submitted while opening is genuinely blank used
+         to silently default to 0 — turning a pump's entire lifetime
+         cumulative meter reading into "today's sales" (confirmed directly:
+         this produced a ₦3.2 billion phantom variance on a real day, from
+         seven pumps whose opening step was never completed). Caught here
+         now, before it ever reaches the server, with a clear message
+         naming exactly which pump needs its opening entered. */
+      const missingOpening = pumpsFor(activeStation()).filter(p => {
+        const r = readings[stateKey(p)]
+        const closeEntered = r.close !== "" && r.close !== null && r.close !== undefined
+        const openEntered = r.open !== "" && r.open !== null && r.open !== undefined
+        return closeEntered && !openEntered
+      })
+      if (missingOpening.length > 0) {
+        const names = missingOpening.map(p => pumpId(p)).join(", ")
+        return Promise.resolve({
+          ok: false,
+          error: `${names} has a closing reading but no opening reading. Enter the opening first — submitting without it would count the pump's entire lifetime total as today's sales.`,
+        })
       }
 
       // IMPORTANT: this payload must NEVER include tk1_opening/tk1_closing/

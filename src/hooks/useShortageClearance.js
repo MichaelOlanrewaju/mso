@@ -24,8 +24,8 @@ export function useShortageClearance(username) {
         r.onerror = rej
         r.readAsDataURL(file)
       })
-      const compressed = await compressImage(dataUrl)
-      const base64 = compressed.split(",")[1]
+      const { dataUrl: compressedDataUrl } = await compressImage(dataUrl)
+      const base64 = compressedDataUrl.split(",")[1]
       const resp = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
@@ -39,9 +39,16 @@ export function useShortageClearance(username) {
       if (d.ok && d.fileId) setReceiptFileId(d.fileId)
       else setReceiptFileId("")
       return d
-    } catch {
+    } catch (e) {
+      /* A bare catch here is exactly what turned a real code bug (calling
+         .split() on an object instead of a string) into a misleading
+         "check connection" message — genuinely not a network problem, but
+         impossible to tell from the message alone. Logging the real error
+         means the next failure like this is diagnosable in seconds, not
+         another full investigation. */
+      console.error("Receipt upload failed:", e)
       setReceiptFileId("")
-      return { ok: false, error: "Upload failed — check connection" }
+      return { ok: false, error: "Upload failed: " + (e?.message || "check connection and try again") }
     } finally {
       setUploading(false)
     }

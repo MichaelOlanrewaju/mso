@@ -15,6 +15,7 @@ const ACTIONS = [
   { icon: "bi-graph-up-arrow",         iconBg: "var(--brand-accent-light)", iconColor: "#0891B2", label: "Variance",           href: `/variance/${activeStation()}`, roles: ["ceo","owner","gm"] },
   { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Summary",            href: `/summary/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: `/shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },
+  { icon: "bi-cash-coin",              iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Excess",              href: `/excess/${activeStation()}`,   roles: ["ceo","owner","gm","supervisor","cashier"] },
   /* Attendants and Attendance are view-only for cashier — the pages
      themselves gate add/edit/mark to supervisor and above, so cashier can
      look (useful for checking a balance before accepting a repayment)

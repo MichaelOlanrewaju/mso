@@ -171,8 +171,14 @@ function liveMarginByTank(report, station) {
 
 function reconciliationFor(report) {
   const { fuelRevenue, hasFuelData } = liveFuelData(report)
+  /* Expenses get added back here — that money was genuinely collected from
+     customers first, then spent on real business costs (fuel, transport,
+     etc). Without adding it back, a legitimate expense looks exactly like
+     an unexplained shortage — confirmed directly: a real day's ₦205,620 in
+     honest expenses was making Variance look ₦205,620 worse than it truly
+     was. */
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-    + (report.trf_mp || 0) + (report.trf_zb || 0)
+    + (report.trf_mp || 0) + (report.trf_zb || 0) + (report.total_expenses || 0)
 
   return { variance: collected - fuelRevenue, hasData: hasFuelData }
 }
