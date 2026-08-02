@@ -294,6 +294,34 @@ export function useDipData(username, selectedDate) {
   /* Was this reading actually entered? 0 counts; blank does not. */
   const isEntered = v => v !== "" && v !== null && v !== undefined && !Number.isNaN(Number(v))
 
+  /* Checked before finalizing an opening submission — if a delivery landed
+     on a tank today before its opening was ever measured, this surfaces
+     it so the app can ask directly rather than silently guessing which
+     side of the delivery the reading was taken on. Confirmed directly: a
+     delivery arriving first caused the discharge to be added twice on top
+     of an already-complete reading. */
+  const checkPendingDischarge = useCallback(date => {
+    if (!SCRIPT_URL || !date) return Promise.resolve([])
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getPendingDischargeForOpening")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("date", date)
+    return fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => (d.ok ? d.pending || [] : []))
+      .catch(() => [])
+  }, [])
+
+  /* The supervisor's direct answer to "does your reading already include
+     today's delivery?" — saves the correctly resolved opening for that
+     one tank and marks the discharge as no longer pending. */
+  const resolveDischargeTank = useCallback((date, tank, rawOpening, alreadyIncludesDelivery) => {
+    return post({
+      action: "resolveDischargeForOpening", station: activeStation(), username, date,
+      tank, rawOpening, alreadyIncludesDelivery,
+    }).catch(() => ({ ok: false, error: "Network error — check connection" }))
+  }, [username])
+
   const saveOpening = useCallback(
     date => {
       /* A tank measured at 0 has been read. Requiring > 0 meant an empty tank
@@ -456,6 +484,8 @@ export function useDipData(username, selectedDate) {
     hasCash,
     dipOpeningLocked,
     dipClosingLocked,
+    checkPendingDischarge,
+    resolveDischargeTank,
     requestEdit,
     requestingEdit,
     refreshLocks,

@@ -35,6 +35,7 @@ function DipInner() {
     status, tankState, hasOpening, hasClosing, hasCash, existingPhotos,
     dipOpeningLocked, dipClosingLocked, requestEdit, requestingEdit,
     updateTank, saveOpening, saveClosing, savePhoto, refresh,
+    checkPendingDischarge, resolveDischargeTank,
   } = useDipData(auth.username, date)
   const { prices } = usePrices()
 
@@ -134,6 +135,8 @@ function DipInner() {
     })
   }
 
+  const [dischargePrompt, setDischargePrompt] = useState(null) // [{tank, actual, supplier, answer}]
+
   const doSubmit = async () => {
     setSaving(true)
     const result = mode === "open" ? await saveOpening(date) : await saveClosing(date)
@@ -144,8 +147,37 @@ function DipInner() {
       toast.showToast("Could not save", result.error || "Please try again", "err")
       return
     }
+
+    /* Only relevant for Opening — a delivery that arrived before this
+       reading was taken needs the supervisor's direct answer before the
+       final number is settled. Confirmed directly: skipping this caused
+       a delivery to be counted twice on top of an already-complete
+       reading. */
+    if (mode === "open") {
+      const pending = await checkPendingDischarge(date)
+      if (pending.length > 0) {
+        setDischargePrompt(pending.map(p => ({ ...p, answer: null })))
+        return // hold off on the success toast/navigation until resolved
+      }
+    }
+
     if (navigator.vibrate) navigator.vibrate([50, 30, 80])
     toast.showToast("Saved", mode === "open" ? "Opening saved — return tonight for closing" : "All readings saved", "ok")
+    refresh()
+    setTimeout(() => navigate(dashboardPathFor({ role: auth.role, station: auth.station })), 1200)
+  }
+
+  const finishDischargeResolution = async () => {
+    if (!dischargePrompt || dischargePrompt.some(p => p.answer === null)) return
+    setSaving(true)
+    for (const p of dischargePrompt) {
+      const raw = Number(tankState[p.tank]?.open) || 0
+      await resolveDischargeTank(date, p.tank, raw, p.answer === "yes")
+    }
+    setSaving(false)
+    setDischargePrompt(null)
+    if (navigator.vibrate) navigator.vibrate([50, 30, 80])
+    toast.showToast("Saved", "Opening saved — return tonight for closing", "ok")
     refresh()
     setTimeout(() => navigate(dashboardPathFor({ role: auth.role, station: auth.station })), 1200)
   }
@@ -360,6 +392,58 @@ function DipInner() {
         onConfirm={doSubmit}
         onCancel={() => setConfirmOpen(false)}
       />
+
+      {/* A delivery arrived on one of these tanks before the opening was
+          taken — asked directly instead of guessing, since the app
+          genuinely cannot tell from data alone whether a reading was
+          measured before or after the truck left. */}
+      {dischargePrompt && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[440px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]">
+            <div className="mb-1 text-[15px] font-extrabold text-ink">One more thing before this saves</div>
+            <div className="mb-4 text-[12.5px] text-ink-3">
+              A delivery landed on {dischargePrompt.length > 1 ? "these tanks" : "this tank"} today before the opening was taken. Does your reading already include it?
+            </div>
+            <div className="space-y-3">
+              {dischargePrompt.map((p, i) => (
+                <div key={p.tank} className="rounded-[12px] border border-border bg-surface p-3.5">
+                  <div className="mb-2 text-[13px] font-bold text-ink">
+                    {p.tank} — {p.actual.toLocaleString()}L delivered ({p.supplier})
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDischargePrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "yes" } : x))}
+                      className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
+                        p.answer === "yes" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                      }`}
+                    >
+                      Yes, already included
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDischargePrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "no" } : x))}
+                      className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
+                        p.answer === "no" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                      }`}
+                    >
+                      No, add it
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={dischargePrompt.some(p => p.answer === null) || saving}
+              onClick={finishDischargeResolution}
+              className="mt-4 flex h-[48px] w-full items-center justify-center rounded-[12px] bg-green text-[14px] font-extrabold text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Confirm & Save"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

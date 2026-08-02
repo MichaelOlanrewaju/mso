@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
@@ -7,16 +7,25 @@ import { useToast } from "../components/layout/ToastProvider"
 import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { useBankDeposits, canLogBankDeposit, canViewBankDeposits } from "../hooks/useBankDeposits"
+import { useBankDeposits, useBankDepositApprovals, canLogBankDeposit, canViewBankDeposits } from "../hooks/useBankDeposits"
 import { getStation } from "../config/stations"
-import { activeStation } from "../utils/station"
 import { STATION_KEYS } from "../config/stations"
 import { naira, initials, roleLabel } from "../utils/format"
+
+function todayISO() {
+  return new Date().toISOString().split("T")[0]
+}
 
 function sanitiseNumeric(raw) {
   const cleaned = String(raw).replace(/[^\d.]/g, "")
   const parts = cleaned.split(".")
-  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : cleaned
+  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join(".")}` : cleaned
+}
+
+const STATUS_STYLE = {
+  PENDING:  { bg: "bg-amber-light", text: "text-amber", label: "Pending" },
+  APPROVED: { bg: "bg-green-light", text: "text-green", label: "Approved" },
+  REJECTED: { bg: "bg-red-light",   text: "text-red",   label: "Rejected" },
 }
 
 export default function BankDepositPage() {
@@ -24,22 +33,25 @@ export default function BankDepositPage() {
   const navigate = useNavigate()
   const toast = useToast()
 
-  /* Which station THIS PAGE is viewing/logging for — local to this page only.
-     Joseph, Lanre, and any GM need to work across both MSO and M&M regardless
-     of which single station their account is actually assigned to. Changing
-     this does NOT touch their global session station, so every other page
-     (Dip Entry, Sales, Cash Reconciliation, etc.) keeps behaving exactly as
-     normal for their own assigned station — only this page's view switches. */
   const [station, setStation] = useState(
     auth.station && auth.station !== "both" ? auth.station : "mso"
   )
   usePageTitle(`Bank Deposits — ${getStation(station).name}`)
 
-  const { needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting, submitDeposit, submitStartPoint } = useBankDeposits(station)
+  const {
+    needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting,
+    submitDeposit, submitStartPoint,
+    cashForDate, existingDepositForDate, loadingDateCash, loadCashForDate,
+  } = useBankDeposits(station)
+
+  const canReview = ["ceo", "owner", "gm"].includes(auth.role)
+  const { pending, loading: loadingPending, deciding, decide } = useBankDepositApprovals(station, canReview ? auth.username : null)
+
   const [settingUp, setSettingUp] = useState(false)
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [startDate, setStartDate] = useState(todayISO())
   const [startingBalance, setStartingBalance] = useState("")
 
+  const [depositDate, setDepositDate] = useState(todayISO())
   const [amount, setAmount] = useState("")
   const [notes, setNotes] = useState("")
   const [photoFile, setPhotoFile] = useState(null)
@@ -50,8 +62,10 @@ export default function BankDepositPage() {
   const canSubmit = canLogBankDeposit(auth.username, auth.role)
   const canView = canViewBankDeposits(auth.username, auth.role)
 
-  // Neither able to log a deposit nor view the history — nothing here for
-  // them. Redirect rather than show a locked/empty screen.
+  useEffect(() => {
+    if (canSubmit) loadCashForDate(depositDate)
+  }, [depositDate, canSubmit, loadCashForDate])
+
   if (!auth.loading && !canView) {
     navigate(dashboardPathFor({ role: auth.role, station: auth.station }), { replace: true })
     return null
@@ -70,9 +84,9 @@ export default function BankDepositPage() {
     const amt = Number(amount)
     if (!amt || amt <= 0) { toast.showToast("Enter an amount", "How much was deposited?", "err"); return }
     if (!photoFile) { toast.showToast("Add a photo", "A photo of the deposit slip is required.", "err"); return }
-    const res = await submitDeposit({ amount: amt, photoFile, notes })
+    const res = await submitDeposit({ date: depositDate, amount: amt, photoFile, notes })
     if (res.ok) {
-      toast.showToast("Deposit logged", `${naira(amt)} recorded — Cash At Hand updated.`, "ok")
+      toast.showToast("Logged — awaiting approval", `${naira(amt)} for ${depositDate} sent to GM/CEO for review.`, "ok")
       setAmount(""); setNotes(""); setPhotoFile(null); setPhotoPreview(null)
     } else {
       toast.showToast("Couldn't log deposit", res.error || "Please try again", "err")
@@ -87,10 +101,18 @@ export default function BankDepositPage() {
     else toast.showToast("Couldn't set start point", res.error || "Please try again", "err")
   }
 
+  const handleDecide = async (rowIndex, approve) => {
+    const res = await decide(rowIndex, approve)
+    if (res.ok) {
+      toast.showToast(approve ? "Approved" : "Rejected", approve ? "Cash At Hand updated." : "The submitter has been notified.", approve ? "ok" : "warn")
+    } else {
+      toast.showToast("Couldn't save", res.error || "Please try again", "err")
+    }
+  }
 
   const homePath = dashboardPathFor({ role: auth.role, station: auth.station })
 
-  if (!canView) return null   // avoids a flash of content before the redirect above fires
+  if (!canView) return null
 
   return (
     <div className="flex min-h-screen bg-pagebg">
@@ -108,8 +130,6 @@ export default function BankDepositPage() {
         />
 
         <div className="mx-auto w-full max-w-lg flex-1 px-4 pb-28 pt-4">
-          {/* Station toggle — local to this page. Defaults to their assigned
-              station but lets them check/log for either one. */}
           <div className="mb-3 flex gap-2 rounded-[12px] bg-white p-1.5 shadow-card">
             {STATION_KEYS.map(key => (
               <button
@@ -123,6 +143,38 @@ export default function BankDepositPage() {
               </button>
             ))}
           </div>
+
+          {canReview && pending.length > 0 && (
+            <div className="mb-4 rounded-card border-2 border-amber/30 bg-amber-light p-4">
+              <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-extrabold text-amber">
+                <i className="bi bi-hourglass-split" /> {pending.length} deposit{pending.length !== 1 ? "s" : ""} awaiting your review
+              </div>
+              <div className="space-y-2">
+                {pending.map(p => (
+                  <div key={p.rowIndex} className="rounded-[10px] border border-amber/25 bg-white p-3">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <div>
+                        <div className="mono text-[15px] font-extrabold text-ink">{naira(p.amount)}</div>
+                        <div className="text-[11px] text-ink-4">For {p.date} · by {p.submittedBy}</div>
+                      </div>
+                      <ProofPhotoViewer label="View slip" fileId={p.proofFileId} />
+                    </div>
+                    {p.notes && <div className="mb-2 text-[11.5px] text-ink-3">{p.notes}</div>}
+                    <div className="flex gap-2">
+                      <button type="button" disabled={deciding} onClick={() => handleDecide(p.rowIndex, false)}
+                        className="flex-1 rounded-[8px] border border-red/25 bg-red-light py-2 text-[12px] font-bold text-red disabled:opacity-50">
+                        Reject
+                      </button>
+                      <button type="button" disabled={deciding} onClick={() => handleDecide(p.rowIndex, true)}
+                        className="flex-1 rounded-[8px] bg-green py-2 text-[12px] font-bold text-white disabled:opacity-50">
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {needsSetup ? (
             canSubmit ? (
@@ -164,15 +216,14 @@ export default function BankDepositPage() {
             )
           ) : (
           <>
-          {/* Running balance — the number that should match what's physically in the safe */}
           <div className="overflow-hidden rounded-card text-white shadow-card" style={{ background: getStation(station).theme.gradient }}>
             <div className="p-5">
-              <div className="text-[10px] font-bold uppercase tracking-[1px] text-white/60">Cash At Hand</div>
+              <div className="text-[10px] font-bold uppercase tracking-[1px] text-white/60">Cash At Hand (Running Balance)</div>
               <div className="mono mt-1 text-[34px] font-black tracking-tight">
                 {loading ? "…" : naira(cashAtHand || 0)}
               </div>
               <div className="mt-1.5 text-[11.5px] text-white/70">
-                What should be physically at the station right now — ask the cashier to count it against this.
+                What should be physically at the station right now, across every day not yet deposited and approved.
               </div>
             </div>
             <div className="grid grid-cols-2 divide-x divide-white/15 border-t border-white/15 bg-black/10">
@@ -181,24 +232,39 @@ export default function BankDepositPage() {
                 <div className="mono mt-0.5 text-[14px] font-bold">{naira(totalContributed)}</div>
               </div>
               <div className="p-3.5">
-                <div className="text-[9.5px] font-bold uppercase tracking-[0.6px] text-white/50">Total Deposited</div>
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.6px] text-white/50">Total Deposited (Approved)</div>
                 <div className="mono mt-0.5 text-[14px] font-bold">{naira(totalDeposited)}</div>
               </div>
             </div>
           </div>
           {lastDepositDate && (
-            <div className="mt-2 text-center text-[11px] text-ink-4">Last deposit: {lastDepositDate}</div>
+            <div className="mt-2 text-center text-[11px] text-ink-4">Last approved deposit: {lastDepositDate}</div>
           )}
           </>
           )}
 
-          {/* Log a new deposit — only for GM / Joseph / Lanre. CEO and owner
-              can see everything below (balance, this page, full history and
-              proof photos) but never get a way to submit one. */}
-
           {canSubmit ? (
           <div className="mt-5 rounded-card border border-border bg-white p-4 shadow-card">
             <div className="mb-3 text-[13px] font-extrabold text-ink">Log a bank deposit</div>
+
+            <label className="mb-1 block text-[11px] font-bold text-ink-3">Which day's cash is this?</label>
+            <input
+              type="date" value={depositDate} max={todayISO()} onChange={e => setDepositDate(e.target.value)}
+              className="mb-2 w-full rounded-[10px] border border-border bg-surface px-3 py-2.5 text-[14px] font-semibold text-ink outline-none focus:border-[var(--brand-accent)]"
+            />
+
+            <div className="mb-3 rounded-[10px] border border-border bg-surface px-3.5 py-3">
+              <div className="text-[10px] font-bold uppercase tracking-[0.5px] text-ink-4">Cash for {depositDate}</div>
+              <div className="mono mt-0.5 text-[19px] font-black text-ink">
+                {loadingDateCash ? "…" : cashForDate !== null ? naira(cashForDate) : "No record for this date"}
+              </div>
+              {existingDepositForDate && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: existingDepositForDate.status === "APPROVED" ? "var(--green, #16A34A)" : existingDepositForDate.status === "REJECTED" ? "var(--red, #DC2626)" : "var(--amber, #B45309)" }}>
+                  <i className="bi bi-info-circle-fill" />
+                  A deposit of {naira(existingDepositForDate.amount)} already exists for this date ({existingDepositForDate.status.toLowerCase()})
+                </div>
+              )}
+            </div>
 
             <label className="mb-1 block text-[11px] font-bold text-ink-3">Amount deposited</label>
             <input
@@ -234,7 +300,7 @@ export default function BankDepositPage() {
               style={{ background: getStation(station).theme.gradientBtn }}
             >
               {submitting ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-check-lg" />}
-              {submitting ? "Saving…" : "Log Deposit"}
+              {submitting ? "Saving…" : "Log Deposit — Send for Approval"}
             </button>
           </div>
           ) : (
@@ -244,23 +310,35 @@ export default function BankDepositPage() {
             </div>
           )}
 
-          {/* History */}
           <div className="mt-5">
             <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.7px] text-ink-4">Deposit History</div>
             {deposits.length === 0 && !loading && (
               <div className="rounded-card border border-border bg-white p-6 text-center text-[13px] text-ink-4">No deposits logged yet.</div>
             )}
             <div className="space-y-2">
-              {deposits.map((d, i) => (
-                <div key={i} className="flex items-center justify-between rounded-card border border-border bg-white p-3.5">
-                  <div className="min-w-0 flex-1">
-                    <div className="mono text-[15px] font-extrabold text-ink">{naira(d.amount)}</div>
-                    <div className="text-[11px] text-ink-4">{d.date} · {d.submittedBy}</div>
-                    {d.notes && <div className="mt-0.5 text-[11px] text-ink-3">{d.notes}</div>}
+              {deposits.map((d, i) => {
+                const s = STATUS_STYLE[d.status] || STATUS_STYLE.APPROVED
+                return (
+                  <div key={i} className="rounded-card border border-border bg-white p-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="mono text-[15px] font-extrabold text-ink">{naira(d.amount)}</span>
+                          <span className={`rounded-full px-2 py-[1px] text-[9.5px] font-bold ${s.bg} ${s.text}`}>{s.label}</span>
+                        </div>
+                        <div className="text-[11px] text-ink-4">{d.date} · {d.submittedBy}</div>
+                        {d.notes && <div className="mt-0.5 text-[11px] text-ink-3">{d.notes}</div>}
+                      </div>
+                      <ProofPhotoViewer label="View slip" fileId={d.proofFileId} />
+                    </div>
+                    {d.status !== "PENDING" && d.reviewedBy && (
+                      <div className="mt-2 border-t border-surface pt-2 text-[10.5px] text-ink-4">
+                        {d.status === "APPROVED" ? "Approved" : "Rejected"} by {d.reviewedBy}
+                      </div>
+                    )}
                   </div>
-                  <ProofPhotoViewer label="View slip" fileId={d.proofFileId} />
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

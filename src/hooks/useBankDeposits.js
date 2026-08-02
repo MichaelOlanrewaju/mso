@@ -65,6 +65,36 @@ export function useBankDeposits(station) {
 
   useEffect(() => { load() }, [load])
 
+  /* The amount for a SPECIFIC date being deposited — different from the
+     running cashAtHand total above. Someone depositing today's takings
+     needs to know what TODAY brought in, not the whole undeposited
+     balance across every day since tracking started. */
+  const [cashForDate, setCashForDate] = useState(null)
+  const [existingDepositForDate, setExistingDepositForDate] = useState(null)
+  const [loadingDateCash, setLoadingDateCash] = useState(false)
+
+  const loadCashForDate = useCallback((date) => {
+    if (!SCRIPT_URL || !station || !date) return
+    setLoadingDateCash(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getCashAtHandForDate")
+    url.searchParams.set("station", station)
+    url.searchParams.set("date", date)
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          setCashForDate(d.cashForDate)
+          setExistingDepositForDate(d.existingDeposit)
+        } else {
+          setCashForDate(null)
+          setExistingDepositForDate(null)
+        }
+      })
+      .catch(() => { setCashForDate(null); setExistingDepositForDate(null) })
+      .finally(() => setLoadingDateCash(false))
+  }, [station])
+
   const submitStartPoint = useCallback(async ({ startDate, startingBalance }) => {
     if (!SCRIPT_URL || !station) return { ok: false }
     try {
@@ -82,9 +112,10 @@ export function useBankDeposits(station) {
     }
   }, [load, station])
 
-  const submitDeposit = useCallback(async ({ amount, photoFile, notes }) => {
+  const submitDeposit = useCallback(async ({ date, amount, photoFile, notes }) => {
     if (!station) return { ok: false, error: "No station selected." }
     if (!SCRIPT_URL) return { ok: false }
+    if (!date) return { ok: false, error: "Select which day's cash this deposit is for." }
     if (!photoFile) return { ok: false, error: "A photo of the deposit slip is required." }
     setSubmitting(true)
     try {
@@ -100,7 +131,7 @@ export function useBankDeposits(station) {
       const photoRes = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "savePhoto", token: getToken(), station, session: "BankDeposit", subject: "deposit-slip", mimeType: "image/jpeg", base64 }),
+        body: JSON.stringify({ action: "savePhoto", token: getToken(), station, date, session: "BankDeposit", subject: "deposit-slip", mimeType: "image/jpeg", base64 }),
       }).then(r => r.json())
 
       if (!photoRes.ok || !photoRes.fileId) return { ok: false, error: "Couldn't upload the deposit slip photo." }
@@ -108,10 +139,10 @@ export function useBankDeposits(station) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveBankDeposit", token: getToken(), station, amount, proofFileId: photoRes.fileId, notes }),
+        body: JSON.stringify({ action: "saveBankDeposit", token: getToken(), station, date, amount, proofFileId: photoRes.fileId, notes }),
       })
       const d = await res.json()
-      if (d.ok) load()
+      if (d.ok) { load(); loadCashForDate(date) }
       return d
     } catch (e) {
       /* A bare catch here is exactly what turned a real code bug (calling
@@ -123,7 +154,60 @@ export function useBankDeposits(station) {
     } finally {
       setSubmitting(false)
     }
-  }, [load, station])
+  }, [load, station, loadCashForDate])
 
-  return { needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting, submitDeposit, submitStartPoint, refresh: load }
+  return {
+    needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting,
+    submitDeposit, submitStartPoint, refresh: load,
+    cashForDate, existingDepositForDate, loadingDateCash, loadCashForDate,
+  }
+}
+
+/* GM/CEO/Owner's review queue — pending deposits awaiting approval. Cash At
+   Hand only actually reflects a deposit once one of these gets approved. */
+export function useBankDepositApprovals(station, username) {
+  const [pending, setPending] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [deciding, setDeciding] = useState(false)
+
+  const load = useCallback(() => {
+    if (!SCRIPT_URL || !station || !username) { setLoading(false); return }
+    setLoading(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "getPendingBankDeposits")
+    url.searchParams.set("station", station)
+    url.searchParams.set("username", username)
+    url.searchParams.set("token", getToken())
+    fetch(url.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => setPending(d.ok ? (d.pending || []) : []))
+      .catch(() => setPending([]))
+      .finally(() => setLoading(false))
+  }, [station, username])
+
+  useEffect(() => { load() }, [load])
+
+  const decide = useCallback((rowIndex, approve) => {
+    setDeciding(true)
+    return fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: approve ? "approveBankDeposit" : "rejectBankDeposit",
+        station, token: getToken(), username, rowIndex,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        setDeciding(false)
+        if (d.ok) load()
+        return d
+      })
+      .catch(() => {
+        setDeciding(false)
+        return { ok: false, error: "Network error — check connection" }
+      })
+  }, [station, username, load])
+
+  return { pending, loading, deciding, decide, refresh: load }
 }
