@@ -14,6 +14,7 @@ import { TankStepPanel } from "../components/dip/StepPanels"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useDipData } from "../hooks/useDipData"
+import { useSettings } from "../hooks/useSettings"
 /* Tanks come from the station config now — M&M has no TK3, so a shared list
    would render a dip field for a tank that isn't there. */
 import { tanksFor, getStation } from "../config/stations"
@@ -38,6 +39,8 @@ function DipInner() {
     checkPendingDischarge, resolveDischargeTank,
   } = useDipData(auth.username, date)
   const { prices } = usePrices()
+  const { settings } = useSettings()
+  const photoUploadEnabled = settings.photoUploadEnabled !== "false"
 
   const navigate = useNavigate()
   const toast = useToast()
@@ -326,7 +329,7 @@ function DipInner() {
                 />
               )}
 
-              {status !== "loading" && !isLocked && (
+              {status !== "loading" && !isLocked && photoUploadEnabled && (
                 <PhotoCapture
                   photo={photos[stepKey]}
                   onCapture={handlePhoto}
@@ -334,6 +337,11 @@ function DipInner() {
                   sub="Optional evidence photo"
                   progress={uploadProgress[stepKey]}
                 />
+              )}
+              {status !== "loading" && !isLocked && !photoUploadEnabled && (
+                <div className="flex items-center gap-2 rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-[12px] text-ink-4">
+                  <i className="bi bi-camera-video-off" /> Photo upload is currently switched off
+                </div>
               )}
             </div>
           </div>

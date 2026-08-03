@@ -18,6 +18,7 @@ import { usePrices } from "../hooks/usePrices"
 import { usePriceCutover } from "../hooks/usePriceCutover"
 import { useSalesEntry } from "../hooks/useSalesEntry"
 import { useAttendants } from "../hooks/useAttendants"
+import { useSettings } from "../hooks/useSettings"
 import { usePageTitle } from "../hooks/usePageTitle"
 /* Tanks and pumps are per-station now — M&M has no TK3, and its pumps map
    to different tanks. Reading a shared config that assumed MSO's layout would
@@ -53,6 +54,8 @@ function SalesInner() {
     attendantId, setAttendantId, attendantName, setAttendantName,
   } = useSalesEntry(auth.username, auth.name, date)
   const { prices } = usePrices()
+  const { settings } = useSettings()
+  const photoUploadEnabled = settings.photoUploadEnabled !== "false"
   const { attendants } = useAttendants(auth.username)
 
   /* Run the cutover: one reading per pump closes the old-price session and
@@ -381,7 +384,7 @@ function SalesInner() {
                 />
               )}
 
-              {status !== "loading" && !isLocked && (
+              {status !== "loading" && !isLocked && photoUploadEnabled && (
                 <PhotoCapture
                   photo={photos[stepKey]}
                   onCapture={handlePhoto}
@@ -389,6 +392,11 @@ function SalesInner() {
                   sub="Optional evidence photo"
                   progress={uploadProgress[stepKey]}
                 />
+              )}
+              {status !== "loading" && !isLocked && !photoUploadEnabled && (
+                <div className="flex items-center gap-2 rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-[12px] text-ink-4">
+                  <i className="bi bi-camera-video-off" /> Photo upload is currently switched off
+                </div>
               )}
             </div>
           </div>
