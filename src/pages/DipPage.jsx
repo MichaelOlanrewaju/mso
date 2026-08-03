@@ -51,6 +51,7 @@ function DipInner() {
   const [photos, setPhotos] = useState({})
   const [uploadProgress, setUploadProgress] = useState({})
   const [editRequested, setEditRequested] = useState(false)
+  const [dischargePrompt, setDischargePrompt] = useState(null) // [{tank, actual, supplier, answer}]
 
   // When data finishes loading for a date, jump mode to whichever stage
   // already has data — matches original setMode('close', true) on load.
@@ -135,7 +136,6 @@ function DipInner() {
     })
   }
 
-  const [dischargePrompt, setDischargePrompt] = useState(null) // [{tank, actual, supplier, answer}]
 
   const doSubmit = async () => {
     setSaving(true)
