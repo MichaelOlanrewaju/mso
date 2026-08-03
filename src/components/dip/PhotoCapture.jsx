@@ -31,7 +31,7 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
 
   return (
     <>
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleChange} />
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleChange} />
       <div
         className={`relative mt-3.5 flex w-full items-center gap-3 overflow-hidden rounded-[14px] border-[1.5px] px-3.5 py-3 transition-all ${
           done ? "border-green-light bg-green-light" : "border-dashed border-border bg-surface"
