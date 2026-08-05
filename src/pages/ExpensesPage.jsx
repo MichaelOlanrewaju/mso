@@ -21,7 +21,12 @@ function ExpensesInner() {
 
   const [searchParams] = useSearchParams()
   const [date, setDate] = useState(searchParams.get("date") || todayISO())
-  const { status, items, total, refresh, desc, setDesc, amt, setAmt, addExpense, saving } = useExpensesData(auth.username, date)
+  const {
+    status, items, total, refresh, desc, setDesc, amt, setAmt, addExpense, saving,
+    expenseUnlocked, editExpense, removeExpense, requestEditForExpense, requestingEdit,
+  } = useExpensesData(auth.username, date)
+  const [editingRow, setEditingRow] = useState(null) // { rowIndex, description, amount }
+  const [confirmDeleteRow, setConfirmDeleteRow] = useState(null)
 
   if (auth.loading || !auth.user) {
     return <div className="min-h-screen bg-pagebg" />
@@ -34,6 +39,36 @@ function ExpensesInner() {
       return
     }
     toast.showToast("Added", "Expense logged successfully", "ok")
+  }
+
+  const handleRequestEdit = async () => {
+    const res = await requestEditForExpense(`Correct an expense on ${date}`)
+    if (res.ok) {
+      toast.showToast("Request sent", "GM/CEO will be notified for approval.", "ok")
+    } else {
+      toast.showToast("Could not send request", res.error || "Please try again", "err")
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingRow) return
+    const res = await editExpense(editingRow.rowIndex, editingRow.description, editingRow.amount)
+    if (res.ok) {
+      toast.showToast("Saved", "Expense corrected", "ok")
+      setEditingRow(null)
+    } else {
+      toast.showToast("Could not save", res.error || "Please try again", "err")
+    }
+  }
+
+  const handleDelete = async (rowIndex) => {
+    const res = await removeExpense(rowIndex)
+    if (res.ok) {
+      toast.showToast("Deleted", "Expense removed", "ok")
+      setConfirmDeleteRow(null)
+    } else {
+      toast.showToast("Could not delete", res.error || "Please try again", "err")
+    }
   }
 
   return (
@@ -113,6 +148,31 @@ function ExpensesInner() {
           <div className="text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">{date === todayISO() ? "Today's" : date} Expenses</div>
           <div className="mono text-[12px] font-bold text-red">{items.length ? naira(total) : "—"}</div>
         </div>
+
+        {/* This day is past today's own live entry — correcting or removing
+            an expense here needs GM/CEO approval first, same as dip/pump.
+            Only worth showing once there's actually something to correct. */}
+        {items.length > 0 && !expenseUnlocked && (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-card border border-amber/25 bg-amber-light px-3.5 py-2.5">
+            <div className="flex items-center gap-2 text-[11.5px] text-amber">
+              <i className="bi bi-lock-fill" />
+              <span>Locked — request approval to correct or remove an entry</span>
+            </div>
+            <button
+              type="button" onClick={handleRequestEdit} disabled={requestingEdit}
+              className="flex-shrink-0 rounded-[8px] bg-amber px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+            >
+              {requestingEdit ? "Sending…" : "Request Edit"}
+            </button>
+          </div>
+        )}
+        {items.length > 0 && expenseUnlocked && (
+          <div className="mb-2 flex items-center gap-2 rounded-card border border-green/25 bg-green-light px-3.5 py-2.5 text-[11.5px] text-green">
+            <i className="bi bi-unlock-fill" />
+            <span>Unlocked — you can correct or remove an entry now. This closes again after one change.</span>
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
           {status === "loading" && (
             <div className="flex items-center justify-center py-10 text-[13px] text-ink-4">
@@ -134,9 +194,66 @@ function ExpensesInner() {
           )}
           {status === "ready" &&
             items.map((e, i) => (
-              <div key={i} className="flex items-center justify-between border-b border-surface px-4 py-3 last:border-none">
-                <span className="text-[13px] text-ink-2">{e.description || "—"}</span>
-                <span className="mono text-[13.5px] font-bold text-ink">{naira(e.amount)}</span>
+              <div key={i} className="border-b border-surface px-4 py-3 last:border-none">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{e.description || "—"}</span>
+                  <span className="mono flex-shrink-0 text-[13.5px] font-bold text-ink">{naira(e.amount)}</span>
+                  {expenseUnlocked && (
+                    <div className="flex flex-shrink-0 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingRow({ rowIndex: e.rowIndex, description: e.description, amount: String(e.amount) })}
+                        className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-border text-ink-3"
+                      >
+                        <i className="bi bi-pencil text-[11px]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteRow(e.rowIndex)}
+                        className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-red/25 bg-red-light text-red"
+                      >
+                        <i className="bi bi-trash3 text-[11px]" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {editingRow?.rowIndex === e.rowIndex && (
+                  <div className="mt-2.5 rounded-[10px] border border-cyan/25 bg-cyan-light p-3">
+                    <input
+                      type="text" value={editingRow.description}
+                      onChange={ev => setEditingRow(r => ({ ...r, description: ev.target.value }))}
+                      className="mb-2 w-full rounded-[8px] border border-border bg-white px-2.5 py-2 text-[13px] text-ink outline-none"
+                    />
+                    <input
+                      type="number" inputMode="decimal" value={editingRow.amount}
+                      onChange={ev => setEditingRow(r => ({ ...r, amount: ev.target.value }))}
+                      className="mono mb-2 w-full rounded-[8px] border border-border bg-white px-2.5 py-2 text-right text-[14px] font-bold text-ink outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setEditingRow(null)} className="flex-1 rounded-[8px] border border-border py-2 text-[11.5px] font-semibold text-ink-3">
+                        Cancel
+                      </button>
+                      <button type="button" onClick={handleSaveEdit} disabled={saving} className="flex-1 rounded-[8px] bg-cyan py-2 text-[11.5px] font-bold text-white disabled:opacity-50">
+                        {saving ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {confirmDeleteRow === e.rowIndex && (
+                  <div className="mt-2.5 rounded-[10px] border border-red/25 bg-red-light p-3">
+                    <div className="mb-2 text-[12px] font-semibold text-red">Delete this expense? This can't be undone.</div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setConfirmDeleteRow(null)} className="flex-1 rounded-[8px] border border-border bg-white py-2 text-[11.5px] font-semibold text-ink-3">
+                        Cancel
+                      </button>
+                      <button type="button" onClick={() => handleDelete(e.rowIndex)} disabled={saving} className="flex-1 rounded-[8px] bg-red py-2 text-[11.5px] font-bold text-white disabled:opacity-50">
+                        {saving ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
         </div>

@@ -15,6 +15,11 @@ export function useExpensesData(username, date) {
   const [desc, setDesc] = useState("")
   const [amt, setAmt] = useState("")
   const [saving, setSaving] = useState(false)
+  /* Same edit-request gate as dip/pump — an already-submitted day's
+     expenses can't be silently corrected or removed. This tracks whether
+     GM/CEO has approved a not-yet-used edit for this specific date. */
+  const [expenseUnlocked, setExpenseUnlocked] = useState(false)
+  const [requestingEdit, setRequestingEdit] = useState(false)
 
   const load = useCallback(() => {
     if (!SCRIPT_URL || !date) {
@@ -43,6 +48,17 @@ export function useExpensesData(username, date) {
         setStatus("ready")
       })
       .catch(() => setStatus("error"))
+
+    // Separate call, since lock status isn't part of getDailyReport's
+    // payload — same endpoint the Dip page already uses for this.
+    const lockUrl = new URL(SCRIPT_URL)
+    lockUrl.searchParams.set("action", "getEditLockStatus")
+    lockUrl.searchParams.set("station", activeStation())
+    lockUrl.searchParams.set("date", date)
+    fetch(lockUrl.toString(), { method: "GET", redirect: "follow" })
+      .then(res => res.json())
+      .then(d => setExpenseUnlocked(d.ok ? !!d.expenseUnlocked : false))
+      .catch(() => setExpenseUnlocked(false))
   }, [username, date])
 
   useEffect(() => {
@@ -76,12 +92,11 @@ export function useExpensesData(username, date) {
         if (d.ok) {
           setDesc("")
           setAmt("")
-          // Optimistically append rather than re-fetching the whole
-          // report — saveExpense doesn't return the new row, and a
-          // full getDailyReport round-trip just to show one new line
-          // is unnecessary network cost for what the user already
-          // knows they just typed.
-          setItems(prev => [...prev, { description: desc.trim(), amount }])
+          // Refreshing rather than optimistically appending — saveExpense
+          // doesn't return the new row's index, and without it the freshly
+          // added expense couldn't be edited or deleted until some other
+          // refresh happened to come along and backfill it.
+          load()
         }
         return d
       })
@@ -89,11 +104,75 @@ export function useExpensesData(username, date) {
         setSaving(false)
         return { ok: false, error: "Network error — check connection" }
       })
-  }, [desc, amt, username, date])
+  }, [desc, amt, username, date, load])
+
+  const editExpense = useCallback((rowIndex, description, amount) => {
+    if (!description.trim() || !(Number(amount) > 0)) {
+      return Promise.resolve({ ok: false, error: "Enter a description and amount" })
+    }
+    setSaving(true)
+    return fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "updateExpense", station: activeStation(), username, date, rowIndex, description: description.trim(), amount: Number(amount) }),
+      redirect: "follow",
+    })
+      .then(res => res.json())
+      .then(d => {
+        setSaving(false)
+        if (d.ok) load()
+        return d
+      })
+      .catch(() => {
+        setSaving(false)
+        return { ok: false, error: "Network error — check connection" }
+      })
+  }, [username, date, load])
+
+  const removeExpense = useCallback((rowIndex) => {
+    setSaving(true)
+    return fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "deleteExpense", station: activeStation(), username, date, rowIndex }),
+      redirect: "follow",
+    })
+      .then(res => res.json())
+      .then(d => {
+        setSaving(false)
+        if (d.ok) load()
+        return d
+      })
+      .catch(() => {
+        setSaving(false)
+        return { ok: false, error: "Network error — check connection" }
+      })
+  }, [username, date, load])
+
+  const requestEditForExpense = useCallback((message) => {
+    setRequestingEdit(true)
+    return fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "saveEditRequest", station: activeStation(), username, date, type: "expense", message: message || "Correct an expense entry" }),
+      redirect: "follow",
+    })
+      .then(res => res.json())
+      .then(d => {
+        setRequestingEdit(false)
+        return d
+      })
+      .catch(() => {
+        setRequestingEdit(false)
+        return { ok: false, error: "Network error — check connection" }
+      })
+  }, [username, date])
 
   return {
     status, items, total, refresh: load,
     desc, setDesc, amt, setAmt, addExpense, saving,
+    expenseUnlocked, editExpense, removeExpense,
+    requestEditForExpense, requestingEdit,
     configured: Boolean(SCRIPT_URL),
   }
 }

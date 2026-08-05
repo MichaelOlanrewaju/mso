@@ -177,10 +177,15 @@
   }
 
   /* The header must not inherit a narrow content column from the page it
-     sits in — it spans the full printable width, so the logo hits the left
-     margin and the title block hits the right. */
+     sits in — it spans the full printable width, so the centred letterhead
+     actually centres on the page rather than a squashed mobile column.
+     The logo itself is deliberately NOT unrestricted here (previous
+     version forced max-width:none on it) — an unconstrained logo can
+     exceed its own container and get clipped by the page's printable
+     margin, which is exactly what "cut off" was. The 220px cap set inline
+     on the image itself is what keeps it fully visible and centred. */
   .print-header img {
-    max-width: none !important;
+    max-width: 180px !important;
   }
 
   /* The Summary page renders inside a narrow max-w-[480px] mobile column,
@@ -204,6 +209,57 @@
   .print-avoid-break {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* ── Fit on one page, read bold and clear ──────────────────────
+     The complaint: the daily summary printed across two pages with the
+     second mostly empty, and the text came out faint/thin — hard to
+     read at a glance. Two separate problems, one shared cause: screen
+     spacing and screen-weight text (400-600) translate directly to paper,
+     where there's no need for touch-target-sized gaps and where light
+     grays read as barely-there ink. Scoped to .print-release only, so
+     none of this touches the app's normal on-screen appearance. */
+  .print-release {
+    font-size: 12.5px !important;
+  }
+
+  /* Every card/row/section on this page uses Tailwind's mb-3/mb-4/mb-5
+     and p-3/p-4/p-5 spacing scale, sized for finger-sized tap targets on
+     a phone screen. None of that headroom is needed on paper — this
+     compresses it uniformly rather than hunting down each element. */
+  .print-release .mb-5 { margin-bottom: 10px !important; }
+  .print-release .mb-4 { margin-bottom: 8px !important; }
+  .print-release .mb-3 { margin-bottom: 6px !important; }
+  .print-release .mb-2\.5 { margin-bottom: 5px !important; }
+  .print-release .mb-2 { margin-bottom: 4px !important; }
+  .print-release .p-5 { padding: 10px !important; }
+  .print-release .p-4 { padding: 8px !important; }
+  .print-release .p-3\.5 { padding: 7px !important; }
+  .print-release .p-3 { padding: 6px !important; }
+  .print-release .py-5 { padding-top: 10px !important; padding-bottom: 10px !important; }
+  .print-release .py-4 { padding-top: 8px !important; padding-bottom: 8px !important; }
+  .print-release .gap-2\.5 { gap: 5px !important; }
+  .print-release .gap-2 { gap: 4px !important; }
+  .print-release .space-y-2 > * + * { margin-top: 4px !important; }
+  .print-release .rounded-card { border-radius: 8px !important; }
+
+  /* Bold and dark, not screen-weight gray. font-weight below 600 and any
+     of the app's lighter ink tones (ink-3/ink-4, used throughout for
+     secondary labels) both come out faint on a printed page in a way
+     they never do backlit on a screen. */
+  .print-release,
+  .print-release * {
+    font-weight: 600 !important;
+    color: #000 !important;
+  }
+  .print-release .font-black,
+  .print-release .font-extrabold {
+    font-weight: 800 !important;
+  }
+  /* Values (the actual figures) get the heaviest weight available so the
+     numbers themselves are what draws the eye on the page. */
+  .print-release .mono {
+    font-weight: 800 !important;
   }
 
   @page {

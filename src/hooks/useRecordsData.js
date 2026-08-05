@@ -33,7 +33,18 @@ export function useRecordsData(username, selectedDate) {
       url.searchParams.set("date", date)
       url.searchParams.set("username", username || "")
 
-      fetch(url.toString(), { method: "GET", redirect: "follow" })
+      /* This used to have no timeout at all — a slow or hanging request
+         left the page stuck on "loading" indefinitely, with nothing ever
+         rejecting and nothing to show in the console. That's exactly the
+         same class of bug fixed earlier this session on pump/dip/cashup
+         submission, just on the READ side here instead of the write side.
+         25 seconds is generous for a normal request but short enough that
+         a genuinely stuck connection surfaces as a real, actionable
+         "error" state instead of spinning forever. */
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 25000)
+
+      fetch(url.toString(), { method: "GET", redirect: "follow", signal: controller.signal })
         .then(res => res.json())
         .then(d => {
           if (!isMounted.current) return
@@ -55,6 +66,7 @@ export function useRecordsData(username, selectedDate) {
           setStatus("error")
           setReport(null)
         })
+        .finally(() => clearTimeout(timeoutId))
     },
     [username]
   )

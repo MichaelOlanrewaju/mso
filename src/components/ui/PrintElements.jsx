@@ -50,7 +50,7 @@ export function PrintHeader({ title, subtitle }) {
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 24,
-        borderBottom: "2.5px solid var(--brand-primary)",
+        borderBottom: "3px solid var(--brand-primary)",
         paddingBottom: 14,
         marginBottom: 20,
       }}
@@ -64,11 +64,15 @@ export function PrintHeader({ title, subtitle }) {
             onError={() => setLogoOk(false)}
             style={{
               height: 52,
+              maxWidth: 180,
               width: "auto",
+              objectFit: "contain",
               display: "block",
               /* Browsers strip background colours and images when printing as
                  an ink-saving default — this is the usual reason a colour logo
-                 comes out grey or missing. */
+                 comes out grey or missing. Capped at maxWidth so an unusually
+                 wide source file can't spill past the printable margin and
+                 read as "cut off." */
               printColorAdjust: "exact",
               WebkitPrintColorAdjust: "exact",
             }}
@@ -77,8 +81,8 @@ export function PrintHeader({ title, subtitle }) {
         <div>
           <div
             style={{
-              fontSize: 16,
-              fontWeight: 800,
+              fontSize: 17,
+              fontWeight: 900,
               color: "var(--brand-primary)",
               lineHeight: 1.15,
               letterSpacing: "-0.01em",
@@ -88,8 +92,8 @@ export function PrintHeader({ title, subtitle }) {
           </div>
           <div
             style={{
-              fontSize: 9,
-              fontWeight: 700,
+              fontSize: 9.5,
+              fontWeight: 800,
               color: "var(--brand-accent)",
               letterSpacing: "1.2px",
               textTransform: "uppercase",
@@ -105,9 +109,9 @@ export function PrintHeader({ title, subtitle }) {
       <div style={{ textAlign: "right", flexShrink: 0 }}>
         <div
           style={{
-            fontSize: 15,
-            fontWeight: 800,
-            color: "#0F172A",
+            fontSize: 16,
+            fontWeight: 900,
+            color: "#000",
             lineHeight: 1.15,
             letterSpacing: "-0.01em",
           }}
@@ -115,11 +119,11 @@ export function PrintHeader({ title, subtitle }) {
           {title}
         </div>
         {subtitle && (
-          <div style={{ fontSize: 11, color: "#334155", marginTop: 4, fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: "#1E293B", marginTop: 4, fontWeight: 800 }}>
             {subtitle}
           </div>
         )}
-        <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 5 }}>
+        <div style={{ fontSize: 10, color: "#475569", marginTop: 5, fontWeight: 700 }}>
           Printed{" "}
           {new Date().toLocaleDateString("en-NG", {
             day: "numeric",

@@ -302,12 +302,16 @@ function RecordsInner() {
   const expenseItems = (report && report.expense_items) || []
   const expenseTotal = expenseItems.reduce((s, e) => s + (Number(e.amount) || 0), 0)
 
-  /* Expenses added back — that money was genuinely collected from customers
-     first, then spent on real business costs. Without this, a legitimate
-     expense reads as an unexplained shortage on the reconciliation. */
+  /* CASH is entered gross — CASH minus TOTAL_EXPENSES consistently equals
+     TO_BANK on every real day checked, meaning expenses are already fully
+     inside this CASH figure. Adding expenseTotal back in here (an earlier
+     version of this calculation did) double-counted every expense as if
+     it were extra income — confirmed directly on a day that was genuinely
+     balanced to within a rounding cent, which this double-count turned
+     into a fabricated ₦71,445 "surplus." */
   const actualCollected = report
     ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-      + (report.trf_mp || 0) + (report.trf_zb || 0) + expenseTotal
+      + (report.trf_mp || 0) + (report.trf_zb || 0)
     : 0
   const reconciliationVariance = actualCollected - expectedRevenue
 

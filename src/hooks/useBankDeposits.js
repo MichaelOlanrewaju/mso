@@ -167,6 +167,7 @@ export function useBankDeposits(station) {
    Hand only actually reflects a deposit once one of these gets approved. */
 export function useBankDepositApprovals(station, username) {
   const [pending, setPending] = useState([])
+  const [cashAtHandNow, setCashAtHandNow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [deciding, setDeciding] = useState(false)
 
@@ -180,7 +181,10 @@ export function useBankDepositApprovals(station, username) {
     url.searchParams.set("token", getToken())
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(r => r.json())
-      .then(d => setPending(d.ok ? (d.pending || []) : []))
+      .then(d => {
+        setPending(d.ok ? (d.pending || []) : [])
+        setCashAtHandNow(d.ok ? d.cashAtHandNow : null)
+      })
       .catch(() => setPending([]))
       .finally(() => setLoading(false))
   }, [station, username])
@@ -209,5 +213,5 @@ export function useBankDepositApprovals(station, username) {
       })
   }, [station, username, load])
 
-  return { pending, loading, deciding, decide, refresh: load }
+  return { pending, cashAtHandNow, loading, deciding, decide, refresh: load }
 }

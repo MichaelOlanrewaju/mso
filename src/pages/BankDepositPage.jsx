@@ -45,7 +45,7 @@ export default function BankDepositPage() {
   } = useBankDeposits(station)
 
   const canReview = ["ceo", "owner", "gm"].includes(auth.role)
-  const { pending, loading: loadingPending, deciding, decide } = useBankDepositApprovals(station, canReview ? auth.username : null)
+  const { pending, cashAtHandNow, loading: loadingPending, deciding, decide } = useBankDepositApprovals(station, canReview ? auth.username : null)
 
   const [settingUp, setSettingUp] = useState(false)
   const [startDate, setStartDate] = useState(todayISO())
@@ -149,29 +149,60 @@ export default function BankDepositPage() {
               <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-extrabold text-amber">
                 <i className="bi bi-hourglass-split" /> {pending.length} deposit{pending.length !== 1 ? "s" : ""} awaiting your review
               </div>
+              {cashAtHandNow !== null && (
+                <div className="mb-2.5 text-[11px] text-amber">
+                  Current running Cash At Hand: <strong>{naira(cashAtHandNow)}</strong>
+                </div>
+              )}
               <div className="space-y-2">
-                {pending.map(p => (
-                  <div key={p.rowIndex} className="rounded-[10px] border border-amber/25 bg-white p-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <div>
-                        <div className="mono text-[15px] font-extrabold text-ink">{naira(p.amount)}</div>
-                        <div className="text-[11px] text-ink-4">For {p.date} · by {p.submittedBy}</div>
+                {pending.map(p => {
+                  /* A mismatch here is exactly what the reviewer needs to
+                     see before deciding, not discover after — the whole
+                     point of showing this figure at all. A small gap is
+                     normal (rounding, a minor variance); a large one is
+                     worth asking about before approving. */
+                  const hasComparison = p.cashForDate !== null && p.cashForDate !== undefined
+                  const gap = hasComparison ? Math.abs(p.amount - p.cashForDate) : 0
+                  const bigGap = hasComparison && p.cashForDate > 0 && (gap / p.cashForDate) > 0.05
+                  return (
+                    <div key={p.rowIndex} className="rounded-[10px] border border-amber/25 bg-white p-3">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <div>
+                          <div className="mono text-[15px] font-extrabold text-ink">{naira(p.amount)}</div>
+                          <div className="text-[11px] text-ink-4">For {p.date} · by {p.submittedBy}</div>
+                        </div>
+                        <ProofPhotoViewer label="View slip" fileId={p.proofFileId} />
                       </div>
-                      <ProofPhotoViewer label="View slip" fileId={p.proofFileId} />
+
+                      {/* The actual comparison — what this day really
+                          brought in, right beside what's being claimed
+                          as deposited. */}
+                      <div className={`mb-2 flex items-center justify-between rounded-[8px] px-2.5 py-2 text-[11px] ${bigGap ? "border border-red/25 bg-red-light" : "bg-surface"}`}>
+                        <span className="text-ink-4">Cash for {p.date}</span>
+                        <span className={`mono font-bold ${bigGap ? "text-red" : "text-ink-2"}`}>
+                          {hasComparison ? naira(p.cashForDate) : "No record"}
+                        </span>
+                      </div>
+                      {bigGap && (
+                        <div className="mb-2 flex items-center gap-1.5 text-[10.5px] font-semibold text-red">
+                          <i className="bi bi-exclamation-triangle-fill" /> Claimed amount differs from that day's cash by {naira(gap)} — worth checking before approving
+                        </div>
+                      )}
+
+                      {p.notes && <div className="mb-2 text-[11.5px] text-ink-3">{p.notes}</div>}
+                      <div className="flex gap-2">
+                        <button type="button" disabled={deciding} onClick={() => handleDecide(p.rowIndex, false)}
+                          className="flex-1 rounded-[8px] border border-red/25 bg-red-light py-2 text-[12px] font-bold text-red disabled:opacity-50">
+                          Reject
+                        </button>
+                        <button type="button" disabled={deciding} onClick={() => handleDecide(p.rowIndex, true)}
+                          className="flex-1 rounded-[8px] bg-green py-2 text-[12px] font-bold text-white disabled:opacity-50">
+                          Approve
+                        </button>
+                      </div>
                     </div>
-                    {p.notes && <div className="mb-2 text-[11.5px] text-ink-3">{p.notes}</div>}
-                    <div className="flex gap-2">
-                      <button type="button" disabled={deciding} onClick={() => handleDecide(p.rowIndex, false)}
-                        className="flex-1 rounded-[8px] border border-red/25 bg-red-light py-2 text-[12px] font-bold text-red disabled:opacity-50">
-                        Reject
-                      </button>
-                      <button type="button" disabled={deciding} onClick={() => handleDecide(p.rowIndex, true)}
-                        className="flex-1 rounded-[8px] bg-green py-2 text-[12px] font-bold text-white disabled:opacity-50">
-                        Approve
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

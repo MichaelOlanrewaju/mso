@@ -171,14 +171,20 @@ function liveMarginByTank(report, station) {
 
 function reconciliationFor(report) {
   const { fuelRevenue, hasFuelData } = liveFuelData(report)
-  /* Expenses get added back here — that money was genuinely collected from
-     customers first, then spent on real business costs (fuel, transport,
-     etc). Without adding it back, a legitimate expense looks exactly like
-     an unexplained shortage — confirmed directly: a real day's ₦205,620 in
-     honest expenses was making Variance look ₦205,620 worse than it truly
-     was. */
+  /* CASH is entered gross — confirmed directly: CASH minus TOTAL_EXPENSES
+     consistently equals TO_BANK on every real day checked. That means the
+     money later spent on expenses is already fully inside this CASH
+     figure; it was never money sitting outside the count. An earlier
+     version of this function added total_expenses back in here, on the
+     theory that expenses needed to be "restored" to the collected total —
+     that was a mistake. Since CASH already includes it, adding it again
+     double-counted every expense as if it were extra income, turning
+     honestly-balanced days into a false "surplus" exactly equal to
+     whatever that day's expenses happened to be. Confirmed directly on a
+     day that was truly balanced to within a rounding cent before the
+     double-count, and showed a fabricated ₦71,445 surplus after it. */
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-    + (report.trf_mp || 0) + (report.trf_zb || 0) + (report.total_expenses || 0)
+    + (report.trf_mp || 0) + (report.trf_zb || 0)
 
   return { variance: collected - fuelRevenue, hasData: hasFuelData }
 }
@@ -413,6 +419,32 @@ function SummaryInner() {
           <div className="flex items-center justify-center py-16 text-[13px]" style={{ color: "var(--ftk-ink-faint)" }}>
             <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2" style={{ borderColor: "var(--ftk-cyan)", borderTopColor: "transparent" }} />
             Loading summary…
+          </div>
+        )}
+
+        {/* This state existed in the data hook but had no UI here at all —
+            a failed or timed-out request just showed nothing, forever,
+            with no way to tell what happened or try again. Confirmed
+            directly: this is what "the page isn't loading" actually was —
+            not a crash, a silent failure with no visible outcome either
+            way. */}
+        {status === "error" && (
+          <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
+            <i className="bi bi-wifi-off text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
+            <div className="text-[14px] font-bold" style={{ color: "var(--ftk-ink)" }}>
+              Couldn't load this summary
+            </div>
+            <div className="max-w-[280px] text-[12.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
+              The request timed out or the connection dropped. Check your connection and try again.
+            </div>
+            <button
+              type="button"
+              onClick={refresh}
+              className="mt-2 rounded-full px-4 py-2 text-[12.5px] font-bold text-white"
+              style={{ background: "var(--brand-primary)" }}
+            >
+              <i className="bi bi-arrow-clockwise mr-1.5" /> Try again
+            </button>
           </div>
         )}
 
