@@ -213,5 +213,24 @@ export function useBankDepositApprovals(station, username) {
       })
   }, [station, username, load])
 
-  return { pending, cashAtHandNow, loading, deciding, decide, refresh: load }
+  const remove = useCallback((rowIndex) => {
+    setDeciding(true)
+    return fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "deleteBankDeposit", station, token: getToken(), username, rowIndex }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        setDeciding(false)
+        if (d.ok) load()
+        return d
+      })
+      .catch(() => {
+        setDeciding(false)
+        return { ok: false, error: "Network error — check connection" }
+      })
+  }, [station, username, load])
+
+  return { pending, cashAtHandNow, loading, deciding, decide, remove, refresh: load }
 }
