@@ -311,8 +311,17 @@ function RecordsInner() {
      into a fabricated ₦71,445 "surplus." */
   const actualCollected = report
     ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-      + (report.trf_mp || 0) + (report.trf_zb || 0)
+      + (report.trf_mp || 0) + (report.trf_zb_amelia || 0) + (report.trf_fcmb_truck || 0) + (report.trf_fcmb_md || 0)
     : 0
+  /* Every field name here needs to match the backend exactly — confirmed
+     directly: trf_zb, trf_truck, and trf_md don't exist under those names
+     at all. The real fields are trf_zb_amelia, trf_fcmb_truck,
+     trf_fcmb_md. trf_zb had been silently reading undefined -> 0 this
+     whole time, masked only because Amelia transfers happened to be ₦0 on
+     every day tested so far. trf_truck and trf_md were simply absent from
+     this formula entirely until now — confirmed on a real day where a
+     ₦329,800 truck transfer, genuinely collected, produced a fabricated
+     ₦329,800 "shortage" that resolved to exactly ₦0 once fixed. */
   const reconciliationVariance = actualCollected - expectedRevenue
 
   return (
