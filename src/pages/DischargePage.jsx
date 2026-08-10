@@ -7,6 +7,7 @@ import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { naira, litres } from "../utils/format"
 import { getToken } from "../utils/session"
+import { useSettings } from "../hooks/useSettings"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -148,6 +149,17 @@ export default function DischargePage() {
 
   // GM price form
   const [pricingDate, setPricingDate] = useState(null)
+  /* Asked immediately after a discharge is submitted, for a tank whose
+     opening was already recorded today — the same question the Dip page
+     asks when discharge arrives first, now asked from this side too when
+     the order is reversed. Confirmed directly this gap existed: opening
+     submitted first, discharge added a second time on top of it, silently. */
+  const [dischargeResolutionPrompt, setDischargeResolutionPrompt] = useState(null) // { tank, actual, date, answer }
+  const { settings } = useSettings()
+  const dischargeEditEnabled = settings.dischargeEditEnabled !== "false"
+  const [editingRecord, setEditingRecord] = useState(null) // full row being edited
+  const [editForm, setEditForm] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
   const [priceInput, setPriceInput] = useState("")
 
   const isSupervisor = auth.role === "supervisor" || auth.role === "cashier"
@@ -170,13 +182,14 @@ export default function DischargePage() {
   const monthStart = useMemo(() => startOfMonth(now), [now])
 
   const sumRecords = (list) => list.reduce((acc, r) => {
+    acc.ordered += Number(r[COL.ORDERED]) || 0
     acc.litres += Number(r[COL.ACTUAL]) || 0
     acc.cost   += Number(r[COL.TOTAL]) || 0
     acc.shortageAmount += Number(r[COL.SHORTAGE_AMOUNT]) || 0
     acc.shortageLitres += Number(r[COL.SHORTAGE]) || 0
     acc.count += 1
     return acc
-  }, { litres: 0, cost: 0, shortageAmount: 0, shortageLitres: 0, count: 0 })
+  }, { ordered: 0, litres: 0, cost: 0, shortageAmount: 0, shortageLitres: 0, count: 0 })
 
   /* Per-tank breakdown — the summary strip used to only ever show one
      combined total across every tank, with no way to see which tank
@@ -251,11 +264,91 @@ export default function DischargePage() {
     setSaving(false)
     if (res.ok) {
       setFeedback({ ok: true, text: "Discharge recorded." })
+
+      /* Check right away whether this tank's opening was already recorded
+         today — if so, this discharge is sitting pending, and the person
+         who just submitted it is exactly who should answer whether that
+         opening already includes it, not left for whoever happens to open
+         Dip entry next. */
+      const tankMatch = String(form.product || "").toUpperCase().match(/TANK\s*(\d+)|TK\s*(\d+)/)
+      const tankId = tankMatch ? `TK${tankMatch[1] || tankMatch[2]}` : null
+      if (tankId) {
+        const checkUrl = new URL(SCRIPT_URL)
+        checkUrl.searchParams.set("action", "getPendingDischargeForOpening")
+        checkUrl.searchParams.set("station", activeStation())
+        checkUrl.searchParams.set("date", form.date)
+        const pendingRes = await fetch(checkUrl.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+        const thisTankPending = pendingRes.ok && (pendingRes.pending || []).find(p => p.tank === tankId)
+        if (thisTankPending) {
+          setDischargeResolutionPrompt({ tank: tankId, actual: thisTankPending.actual, date: form.date, answer: null })
+          resetForm()
+          return // hold off on navigating away until this is resolved
+        }
+      }
+
       resetForm()
       refresh()
       setTab("records")
     } else {
       setFeedback({ ok: false, text: res.error || "Save failed." })
+    }
+  }
+
+  const finishDischargeResolution = async () => {
+    if (!dischargeResolutionPrompt || dischargeResolutionPrompt.answer === null) return
+    setSaving(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "resolveDischargeAfterEntry")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("date", dischargeResolutionPrompt.date)
+    url.searchParams.set("tank", dischargeResolutionPrompt.tank)
+    url.searchParams.set("alreadyIncludesDelivery", dischargeResolutionPrompt.answer === "yes")
+    url.searchParams.set("username", auth.username)
+    url.searchParams.set("token", getToken())
+    const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+    setSaving(false)
+    setDischargeResolutionPrompt(null)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Discharge recorded and opening confirmed." })
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not resolve — check the Discharge record manually." })
+    }
+    refresh()
+    setTab("records")
+  }
+
+  const openEditRecord = (r) => {
+    setEditingRecord(r)
+    setEditForm({
+      driverName: r[COL.DRIVER] || "",
+      orderedLitres: r[COL.ORDERED] || "",
+      actualReceived: r[COL.ACTUAL] || "",
+      waybillNo: r[COL.WAYBILL] || "",
+      truckNo: r[COL.TRUCK] || "",
+      supplier: r[COL.SUPPLIER] || "",
+      notes: r[COL.NOTES] || "",
+    })
+  }
+
+  const saveEditRecord = async () => {
+    if (!editingRecord) return
+    setSavingEdit(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "updateDischarge")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("rowIndex", editingRecord.rowIndex)
+    url.searchParams.set("username", auth.username)
+    url.searchParams.set("role", auth.role)
+    url.searchParams.set("token", getToken())
+    Object.entries(editForm).forEach(([k, v]) => url.searchParams.set(k, v))
+    const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+    setSavingEdit(false)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Discharge record updated." })
+      setEditingRecord(null)
+      refresh()
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not save changes." })
     }
   }
 
@@ -402,16 +495,20 @@ export default function DischargePage() {
                   ))}
                 </div>
                 <div className="px-4 pb-1 pt-2 text-[10.5px] font-semibold text-white/50">{periodLabel} · {periodTotals.count} record{periodTotals.count !== 1 ? "s" : ""}</div>
-                <div className="grid grid-cols-3 divide-x divide-white/10 px-1 py-4">
-                  <div className="px-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Litres</div>
+                <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 px-1 py-4">
+                  <div className="px-3 pb-3 text-center">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Expected</div>
+                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.ordered > 0 ? litres(periodTotals.ordered) : "—"}</div>
+                  </div>
+                  <div className="px-3 pb-3 text-center">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Received</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{litres(periodTotals.litres)}</div>
                   </div>
-                  <div className="px-3 text-center">
+                  <div className="px-3 pt-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Amount</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{naira(periodTotals.cost)}</div>
                   </div>
-                  <div className="px-3 text-center">
+                  <div className="px-3 pt-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Variance Cost</div>
                     <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : periodTotals.shortageAmount < 0 ? "text-green" : "text-white"}`}>{periodTotals.shortageAmount < 0 ? `+${naira(Math.abs(periodTotals.shortageAmount))}` : naira(periodTotals.shortageAmount)}</div>
                   </div>
@@ -479,6 +576,9 @@ export default function DischargePage() {
                               </span>
                             )}
                           </div>
+                          {daySum.ordered > 0 && (
+                            <div className="mono text-[10.5px] font-semibold text-ink-4">Expected {litres(daySum.ordered)}</div>
+                          )}
                           <div className="mono text-[22px] font-black leading-tight text-ink">
                             {litres(daySum.litres)}
                             {daySum.shortageLitres > 0 && <span className="ml-2 text-[13px] font-bold text-red">−{litres(daySum.shortageLitres)}</span>}
@@ -519,6 +619,21 @@ export default function DischargePage() {
                                   <div className="mono text-[12.5px] font-bold text-ink">{r[COL.TOTAL] ? naira(r[COL.TOTAL]) : "—"}</div>
                                   {r[COL.PRICE] && <div className="mono text-[9.5px] text-ink-4">@{naira(r[COL.PRICE])}</div>}
                                 </div>
+                              )}
+                              {/* Unpriced only — once GM has priced it, the
+                                  total is locked to that litres figure, so
+                                  editing here would silently make it wrong.
+                                  Supervisor/cashier need the CEO/GM switch
+                                  on; GM/CEO/Owner can always edit their own
+                                  tool regardless of it. */}
+                              {!isPriced(r) && (dischargeEditEnabled || isGMOrOwner) && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEditRecord(r)}
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-border text-ink-3"
+                                >
+                                  <i className="bi bi-pencil text-[10px]" />
+                                </button>
                               )}
                             </div>
                             {(r[COL.TRUCK] || r[COL.WAYBILL] || r[COL.NOTES]) && (
@@ -749,6 +864,90 @@ export default function DischargePage() {
         onConfirm={doSubmitDischarge}
         onCancel={() => setConfirmOpen(false)}
       />
+
+      {/* This tank's opening was already recorded today — asked right here,
+          the moment it's actually decided, instead of leaving it for
+          whoever next opens Dip entry. */}
+      {dischargeResolutionPrompt && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="w-full max-w-[440px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]">
+            <div className="mb-1 text-[15px] font-extrabold text-ink">One more thing before this is done</div>
+            <div className="mb-4 text-[12.5px] text-ink-3">
+              {dischargeResolutionPrompt.tank}'s opening was already recorded today. Does that reading already include this {litres(dischargeResolutionPrompt.actual)} delivery?
+            </div>
+            <div className="mb-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDischargeResolutionPrompt(p => ({ ...p, answer: "yes" }))}
+                className={`flex-1 rounded-[9px] border-[1.5px] py-2.5 text-[12.5px] font-bold ${
+                  dischargeResolutionPrompt.answer === "yes" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-surface text-ink-3"
+                }`}
+              >
+                Yes, already included
+              </button>
+              <button
+                type="button"
+                onClick={() => setDischargeResolutionPrompt(p => ({ ...p, answer: "no" }))}
+                className={`flex-1 rounded-[9px] border-[1.5px] py-2.5 text-[12.5px] font-bold ${
+                  dischargeResolutionPrompt.answer === "no" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-surface text-ink-3"
+                }`}
+              >
+                No, add it
+              </button>
+            </div>
+            <button
+              type="button"
+              disabled={dischargeResolutionPrompt.answer === null || saving}
+              onClick={finishDischargeResolution}
+              className="flex h-[48px] w-full items-center justify-center rounded-[12px] bg-green text-[14px] font-extrabold text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Confirm"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingRecord && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setEditingRecord(null)}>
+          <div className="max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-[20px] bg-white p-5 sm:rounded-[20px]" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-[15px] font-extrabold text-ink">Edit Discharge — {editingRecord[COL.PRODUCT]}</div>
+              <button type="button" onClick={() => setEditingRecord(null)} className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-3">
+                <i className="bi bi-x-lg text-[12px]" />
+              </button>
+            </div>
+
+            {[
+              ["Supplier", "supplier", "text"],
+              ["Driver Name", "driverName", "text"],
+              ["Truck No.", "truckNo", "text"],
+              ["Waybill No.", "waybillNo", "text"],
+              ["Ordered Litres", "orderedLitres", "number"],
+              ["Actual Received", "actualReceived", "number"],
+              ["Notes", "notes", "text"],
+            ].map(([label, key, type]) => (
+              <label key={key} className="mb-3 block">
+                <span className="mb-1 block text-[11px] font-semibold text-ink-3">{label}</span>
+                <input
+                  type={type} inputMode={type === "number" ? "decimal" : undefined}
+                  value={editForm[key] ?? ""}
+                  onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-2.5 text-[14px] font-medium text-ink outline-none focus:border-cyan focus:bg-white"
+                />
+              </label>
+            ))}
+
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={() => setEditingRecord(null)} className="flex-1 rounded-[10px] border border-border py-2.5 text-[13px] font-semibold text-ink-3">
+                Cancel
+              </button>
+              <button type="button" onClick={saveEditRecord} disabled={savingEdit} className="flex-1 rounded-[10px] bg-green py-2.5 text-[13px] font-bold text-white disabled:opacity-50">
+                {savingEdit ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
