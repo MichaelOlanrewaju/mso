@@ -171,34 +171,19 @@ function liveMarginByTank(report, station) {
 
 function reconciliationFor(report) {
   const { fuelRevenue, hasFuelData } = liveFuelData(report)
-  /* CASH is entered gross — confirmed directly: CASH minus TOTAL_EXPENSES
-     consistently equals TO_BANK on every real day checked. That means the
-     money later spent on expenses is already fully inside this CASH
-     figure; it was never money sitting outside the count. An earlier
-     version of this function added total_expenses back in here, on the
-     theory that expenses needed to be "restored" to the collected total —
-     that was a mistake. Since CASH already includes it, adding it again
-     double-counted every expense as if it were extra income, turning
-     honestly-balanced days into a false "surplus" exactly equal to
-     whatever that day's expenses happened to be. Confirmed directly on a
-     day that was truly balanced to within a rounding cent before the
-     double-count, and showed a fabricated ₦71,445 surplus after it. */
-  /* Every field name here needs to match the backend exactly —
-     confirmed directly: trf_zb, trf_truck, and trf_md don't exist under
-     those names at all. The real fields are trf_zb_amelia,
-     trf_fcmb_truck, trf_fcmb_md. trf_zb (the short name) had been silently
-     reading undefined -> 0 this whole time, masked only because Amelia
-     transfers happened to be ₦0 on every day tested so far — this would
-     have produced the exact same false-shortage bug the moment a real
-     Amelia transfer occurred. trf_truck and trf_md were simply absent
-     from this formula entirely until now. */
+  /* Expenses get added back here — that money was genuinely collected from
+     customers first, then spent on real business costs (fuel, transport,
+     etc). Without adding it back, a legitimate expense looks exactly like
+     an unexplained shortage — confirmed directly: a real day's ₦205,620 in
+     honest expenses was making Variance look ₦205,620 worse than it truly
+     was. */
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-    + (report.trf_mp || 0) + (report.trf_zb_amelia || 0) + (report.trf_fcmb_truck || 0) + (report.trf_fcmb_md || 0)
+    + (report.trf_mp || 0) + (report.trf_zb || 0) + (report.total_expenses || 0)
 
   return { variance: collected - fuelRevenue, hasData: hasFuelData }
 }
 
-function buildSummaryText(report, date, canSeeMarginAmount) {
+function buildSummaryText(report, date) {
   const { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue } = liveFuelData(report)
   const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
   const station = activeStation()
@@ -219,9 +204,7 @@ function buildSummaryText(report, date, canSeeMarginAmount) {
     `Grand Total: ${naira(displayGrandTotal)}`,
     `PMS: ${litres(pmsLitres, { maximumFractionDigits: 2 })} @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(pmsRevenue)}`,
     `AGO: ${litres(agoLitres, { maximumFractionDigits: 2 })} @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(agoRevenue)}`,
-    canSeeMarginAmount
-      ? `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} (${naira(livePmsMarginAmount)}) · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })} (${naira(liveAgoMarginAmount)})`
-      : `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })}`,
+    `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} (${naira(livePmsMarginAmount)}) · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })} (${naira(liveAgoMarginAmount)})`,
     ``,
     `Tank Dips:`,
     ...tankRows(report, marginByTank).map(
@@ -305,11 +288,6 @@ function Row({ label, value, bold, tone, sub }) {
 
 function SummaryInner() {
   const auth = useAuth({ requireAuth: true })
-  /* Margin amount (the naira value) is a financial figure — supervisors
-     and cashiers shouldn't see it, same principle already applied to
-     discharge pricing. The margin in litres is fine to show, since that's
-     an operational figure, not a money one. */
-  const canSeeMarginAmount = ["ceo", "owner", "gm"].includes(auth.role)
   const navigate = useNavigate()
   const today = todayISO()
   const [date, setDate] = useState(today)
@@ -365,7 +343,7 @@ function SummaryInner() {
 
   const handleShare = async () => {
     if (!report) return
-    const text = buildSummaryText(report, date, canSeeMarginAmount)
+    const text = buildSummaryText(report, date)
     if (navigator.share) {
       try {
         await navigator.share({ title: "MSO Daily Summary", text })
@@ -505,8 +483,8 @@ function SummaryInner() {
                 <div className="text-[11px] opacity-70">Grand Total</div>
                 {(livePmsMargin !== 0 || liveAgoMargin !== 0) && (
                   <div className="mt-3 flex gap-4 border-t border-white/20 pt-3 text-[11px] opacity-90">
-                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(livePmsMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` (${naira(livePmsMarginAmount)})`}</span></div>
-                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(liveAgoMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` (${naira(liveAgoMarginAmount)})`}</span></div>
+                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(livePmsMargin, { maximumFractionDigits: 2 })} ({naira(livePmsMarginAmount)})</span></div>
+                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(liveAgoMargin, { maximumFractionDigits: 2 })} ({naira(liveAgoMarginAmount)})</span></div>
                   </div>
                 )}
               </div>
@@ -534,7 +512,7 @@ function SummaryInner() {
                   </div>
                   <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.litres, { maximumFractionDigits: 2 })}</div>
                   <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(f.revenue)} @ {f.price > 0 ? `${naira(f.price)}/L` : "— /L"}</div>
-                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litres(f.margin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(f.marginAmt)}`}</div>
+                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litres(f.margin, { maximumFractionDigits: 2 })} · {naira(f.marginAmt)}</div>
                   {f.tiers?.length > 1 && (
                     <div className="mt-2 space-y-0.5 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
                       {f.tiers.map((t, i) => (
@@ -719,23 +697,6 @@ function SummaryInner() {
                       <span className="ftk-mono flex-shrink-0 font-semibold">−{naira(Number(e.amount) || 0)}</span>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* Extra cash found or deposited beyond what the day's normal
-                  figures explain — was already feeding Cash At Hand, but
-                  never actually visible on the day it happened until now. */}
-              {report.excess_items && report.excess_items.length > 0 && (
-                <div className="mt-1 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <Row label="Excess" value={`+${naira(report.excess_items.reduce((s, e) => s + (Number(e.amount) || 0), 0))}`} tone="green" />
-                  <div className="ml-3 space-y-1 border-l-2 pl-3" style={{ borderColor: "rgba(22,163,74,0.2)" }}>
-                    {report.excess_items.map((e, i) => (
-                      <div key={i} className="flex items-start justify-between gap-3 py-0.5 text-[12px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                        <span className="min-w-0 flex-1 break-words">{e.description || "Excess"}</span>
-                        <span className="ftk-mono flex-shrink-0 font-semibold" style={{ color: "#16A34A" }}>+{naira(Number(e.amount) || 0)}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
 

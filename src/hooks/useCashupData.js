@@ -202,17 +202,10 @@ export function useCashupData(username, name, initialDate) {
        - Cash to Bank: what's left to deposit AFTER expenses were paid out
          of physical cash — correctly SUBTRACTS expenses.
        - Variance: did the payment channels match what the pumps say was
-         sold. CASH is entered gross — CASH minus TOTAL_EXPENSES
-         consistently equals TO_BANK on every real day checked, which
-         means the money later spent on expenses is already fully inside
-         this CASH figure. So variance uses gross cash, untouched by
-         expenses in either direction: not subtracted (that's what
-         cashToBank is for), and not added back either — an earlier
-         version of this file did add expenses back here, on the mistaken
-         idea that they'd been excluded from CASH and needed restoring.
-         Since they were never excluded, adding them back double-counted
-         every expense as extra income, turning honestly-balanced days
-         into a false "surplus" exactly equal to that day's expenses. */
+         sold — expenses were money genuinely collected first, then spent
+         on real costs, so they need to be back IN this total, not
+         subtracted. Using the cashToBank number here made a legitimate
+         expense look exactly like an unexplained shortage. */
   const collectedForCashToBank = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash - totalExpenses
   const collectedForVariance = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash
 

@@ -1,32 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { activeStation, hasChosenStation, setActiveStation, clearActiveStation } from "../utils/station"
+import { setActiveStation, clearActiveStation } from "../utils/station"
 
 const SESSION_KEY = "mso_session"
 const LEGACY_KEY = "mso_u"
 const EXPIRY_MS = 30 * 24 * 60 * 60 * 1000 // 30 days, matches mso-auth.js
 
 export function dashboardPathFor(sessionUser) {
+  const station = sessionUser.station
   const role = sessionUser.role
   const username = sessionUser.u || sessionUser.username
-  let station = sessionUser.station
-
-  /* A "both"-station account (owner, CEO, some GMs) deliberately never gets
-     one fixed station on the login record — that's what lets them switch.
-     But that meant every single app reopen sent them back to the picker,
-     even after they'd already chosen a station and been using it for days
-     — confirmed directly. hasChosenStation() checks for a genuine PAST
-     choice specifically, not activeStation()'s own "mso" fallback — a
-     brand-new multi-station login with nothing chosen yet still correctly
-     lands on the picker, same as always. */
-  if (!station || station === "both" || station === "null") {
-    if (hasChosenStation()) {
-      station = activeStation()
-    } else {
-      return "/select"
-    }
-  }
-
+  // Owner or multi-station user with no station selected yet → station picker
+  if (!station || station === "both" || station === "null") return "/select"
   if (role === "supervisor") return `/dashboard-supervisor/${station}`
   if (role === "gm") return `/dashboard-gm/${station}`
   if (role === "cashier") return `/dashboard-cashier/${station}`

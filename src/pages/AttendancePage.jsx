@@ -28,19 +28,6 @@ function AttendanceInner() {
   // supervisor only needs to tap the exceptions.
   const [marks, setMarks] = useState({})
   const [pumpAllocations, setPumpAllocations] = useState({}) // { attendantId: ["P1","P2"] }
-
-  /* Belt-and-braces: clear immediately the moment the date changes, before
-     the new date's records have even come back. The seeding effect below
-     already guards on recStatus === "ready" so it shouldn't act on stale
-     data — but this removes any possibility of yesterday's selections
-     staying visible for even a moment while today's fetch is still in
-     flight, confirmed as the actual complaint: pump chips showing
-     selected on a genuinely fresh, unmarked day. */
-  useEffect(() => {
-    setMarks({})
-    setPumpAllocations({})
-  }, [date])
-
   useEffect(() => {
     if (recStatus !== "ready" || attStatus !== "ready") return
     const seeded = {}

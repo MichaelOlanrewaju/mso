@@ -302,26 +302,13 @@ function RecordsInner() {
   const expenseItems = (report && report.expense_items) || []
   const expenseTotal = expenseItems.reduce((s, e) => s + (Number(e.amount) || 0), 0)
 
-  /* CASH is entered gross — CASH minus TOTAL_EXPENSES consistently equals
-     TO_BANK on every real day checked, meaning expenses are already fully
-     inside this CASH figure. Adding expenseTotal back in here (an earlier
-     version of this calculation did) double-counted every expense as if
-     it were extra income — confirmed directly on a day that was genuinely
-     balanced to within a rounding cent, which this double-count turned
-     into a fabricated ₦71,445 "surplus." */
+  /* Expenses added back — that money was genuinely collected from customers
+     first, then spent on real business costs. Without this, a legitimate
+     expense reads as an unexplained shortage on the reconciliation. */
   const actualCollected = report
     ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-      + (report.trf_mp || 0) + (report.trf_zb_amelia || 0) + (report.trf_fcmb_truck || 0) + (report.trf_fcmb_md || 0)
+      + (report.trf_mp || 0) + (report.trf_zb || 0) + expenseTotal
     : 0
-  /* Every field name here needs to match the backend exactly — confirmed
-     directly: trf_zb, trf_truck, and trf_md don't exist under those names
-     at all. The real fields are trf_zb_amelia, trf_fcmb_truck,
-     trf_fcmb_md. trf_zb had been silently reading undefined -> 0 this
-     whole time, masked only because Amelia transfers happened to be ₦0 on
-     every day tested so far. trf_truck and trf_md were simply absent from
-     this formula entirely until now — confirmed on a real day where a
-     ₦329,800 truck transfer, genuinely collected, produced a fabricated
-     ₦329,800 "shortage" that resolved to exactly ₦0 once fixed. */
   const reconciliationVariance = actualCollected - expectedRevenue
 
   return (

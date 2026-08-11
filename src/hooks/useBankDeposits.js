@@ -156,35 +156,10 @@ export function useBankDeposits(station) {
     }
   }, [load, station, loadCashForDate])
 
-  /* Same edit-request/approval gate as everything else — the submitter
-     asks, GM/CEO approves, then a one-time edit window opens. Reuses the
-     generic EditRequests mechanism with type "bank_deposit". */
-  const requestEditForDeposit = useCallback((date, username, message) => {
-    return fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "saveEditRequest", station, token: getToken(), username, date, type: "bank_deposit", message: message || `Correct a bank deposit on ${date}` }),
-    })
-      .then(r => r.json())
-      .catch(() => ({ ok: false, error: "Network error — check connection" }))
-  }, [station])
-
-  const editDeposit = useCallback((rowIndex, amount, notes, username) => {
-    return fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "updateBankDeposit", station, token: getToken(), username, rowIndex, amount, notes }),
-    })
-      .then(r => r.json())
-      .then(d => { if (d.ok) load(); return d })
-      .catch(() => ({ ok: false, error: "Network error — check connection" }))
-  }, [station, load])
-
   return {
     needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting,
     submitDeposit, submitStartPoint, refresh: load,
     cashForDate, existingDepositForDate, loadingDateCash, loadCashForDate,
-    requestEditForDeposit, editDeposit,
   }
 }
 
@@ -238,24 +213,5 @@ export function useBankDepositApprovals(station, username) {
       })
   }, [station, username, load])
 
-  const remove = useCallback((rowIndex) => {
-    setDeciding(true)
-    return fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "deleteBankDeposit", station, token: getToken(), username, rowIndex }),
-    })
-      .then(r => r.json())
-      .then(d => {
-        setDeciding(false)
-        if (d.ok) load()
-        return d
-      })
-      .catch(() => {
-        setDeciding(false)
-        return { ok: false, error: "Network error — check connection" }
-      })
-  }, [station, username, load])
-
-  return { pending, cashAtHandNow, loading, deciding, decide, remove, refresh: load }
+  return { pending, cashAtHandNow, loading, deciding, decide, refresh: load }
 }

@@ -18,13 +18,8 @@ export default function CashupApprovalPreview({ date, onApprove, onReject, onClo
   const loading = status === "loading"
 
   const expected = (report?.pms_revenue || 0) + (report?.ago_revenue || 0)
-  /* Same bug found and fixed in Summary/Records: trf_zb doesn't exist under
-     that name (the real field is trf_zb_amelia), and trf_fcmb_truck /
-     trf_fcmb_md were entirely absent — confirmed directly on a real day
-     where a ₦329,800 truck transfer produced a fabricated shortage here
-     too, since this preview never picked up the earlier fix. */
   const collected = (report?.pos_mp || 0) + (report?.pos_zm || 0) + (report?.cash || 0)
-    + (report?.trf_mp || 0) + (report?.trf_zb_amelia || 0) + (report?.trf_fcmb_truck || 0) + (report?.trf_fcmb_md || 0)
+    + (report?.trf_mp || 0) + (report?.trf_zb || 0)
   const variance = collected - expected
   const varianceLabel = Math.abs(variance) < 1 ? "Balanced" : variance < 0 ? "Shortage" : "Surplus"
   const varianceColor = Math.abs(variance) < 1 ? "text-green" : variance < 0 ? "text-red" : "text-cyan"
