@@ -160,7 +160,9 @@ export default function DischargePage() {
   const [editingRecord, setEditingRecord] = useState(null) // full row being edited
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
-  const [priceInput, setPriceInput] = useState("")
+  const [confirmDeleteDischarge, setConfirmDeleteDischarge] = useState(null)
+  const [requestingDischargeEdit, setRequestingDischargeEdit] = useState(null)
+  const [priceInputs, setPriceInputs] = useState({}) // { PMS: "1229", AGO: "1649" }
 
   const isSupervisor = auth.role === "supervisor" || auth.role === "cashier"
   const isGM         = auth.role === "gm"
@@ -173,9 +175,20 @@ export default function DischargePage() {
     truckNumber: "", waybillNo: "", notes: "",
   })
 
-  const pending = useMemo(() => records.filter(r => !isPriced(r)), [records])
-
   const [period, setPeriod] = useState("week") // "week" | "month" | "all"
+  /* PMS and AGO are never blended into one figure — same principle as the
+     fuel-stock hero never combining PMS-on-hand with AGO-on-hand. GM/CEO
+     pick which one they're looking at; everything downstream (History,
+     period totals, Pricing) respects that choice rather than mixing both
+     products into a single misleading number. */
+  const [productFilter, setProductFilter] = useState("PMS") // "PMS" | "AGO"
+  const stationTanksTop = tanksFor(activeStation())
+  const productForTankId = (tankId) => stationTanksTop.find(t => t.id === tankId)?.product || tankId
+
+  const pending = useMemo(
+    () => records.filter(r => !isPriced(r) && productForTankId(r[COL.PRODUCT]) === productFilter),
+    [records, productFilter]
+  )
 
   const now = useMemo(() => new Date(), [])
   const weekStart = useMemo(() => startOfWeek(now), [now])
@@ -207,7 +220,12 @@ export default function DischargePage() {
     return Object.values(byTank).sort((a, b) => b.litres - a.litres)
   }
 
-  const weekRecords = useMemo(() => records.filter(r => {
+  const productFilteredRecords = useMemo(
+    () => records.filter(r => productForTankId(r[COL.PRODUCT]) === productFilter),
+    [records, productFilter]
+  )
+
+  const weekRecords = useMemo(() => productFilteredRecords.filter(r => {
     const d = parseSheetDate(r[COL.DATE])
     return d && d >= weekStart
   }), [records, weekStart])
@@ -220,14 +238,14 @@ export default function DischargePage() {
   const periodTotals = useMemo(() => {
     if (period === "week") return sumRecords(weekRecords)
     if (period === "month") return sumRecords(monthRecords)
-    return sumRecords(records)
-  }, [period, records, weekRecords, monthRecords])
+    return sumRecords(productFilteredRecords)
+  }, [period, productFilteredRecords, weekRecords, monthRecords])
 
   const periodByTank = useMemo(() => {
     if (period === "week") return sumByTank(weekRecords)
     if (period === "month") return sumByTank(monthRecords)
-    return sumByTank(records)
-  }, [period, records, weekRecords, monthRecords])
+    return sumByTank(productFilteredRecords)
+  }, [period, productFilteredRecords, weekRecords, monthRecords])
 
   const periodLabel = period === "week"
     ? `Since ${weekStart.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}`
@@ -239,7 +257,7 @@ export default function DischargePage() {
   const groupedRecords = useMemo(() => {
     const groups = []
     const byDate = {}
-    records.forEach(r => {
+    productFilteredRecords.forEach(r => {
       const key = String(r[COL.DATE] || "").slice(0, 10)
       if (!byDate[key]) {
         byDate[key] = { date: r[COL.DATE], items: [] }
@@ -317,6 +335,24 @@ export default function DischargePage() {
     setTab("records")
   }
 
+  const handleRequestDischargeEdit = async (r) => {
+    setRequestingDischargeEdit(r.rowIndex)
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "saveEditRequest", station: activeStation(), token: getToken(), username: auth.username,
+        date: r[COL.DATE], type: "discharge", message: `Correct a discharge record on ${r[COL.DATE]}`,
+      }),
+    }).then(r2 => r2.json()).catch(() => ({ ok: false, error: "Network error — check connection" }))
+    setRequestingDischargeEdit(null)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Request sent — GM/CEO will be notified for approval." })
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not send request." })
+    }
+  }
+
   const openEditRecord = (r) => {
     setEditingRecord(r)
     setEditForm({
@@ -349,6 +385,26 @@ export default function DischargePage() {
       refresh()
     } else {
       setFeedback({ ok: false, text: res.error || "Could not save changes." })
+    }
+  }
+
+  const handleDeleteDischarge = async () => {
+    if (!confirmDeleteDischarge) return
+    setSavingEdit(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "deleteDischarge")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("rowIndex", confirmDeleteDischarge.rowIndex)
+    url.searchParams.set("username", auth.username)
+    url.searchParams.set("token", getToken())
+    const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+    setSavingEdit(false)
+    setConfirmDeleteDischarge(null)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Discharge record deleted." })
+      refresh()
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not delete record." })
     }
   }
 
@@ -402,32 +458,38 @@ export default function DischargePage() {
   /* GM prices a whole day at once, not each tank separately — confirmed
      directly: she wants the day's total, the per-tank breakdown, and one
      price applied across all of it in a single action. */
-
-  const handlePriceDay = async (date) => {
+  const handlePriceDay = async (date, productsNeeded) => {
     if (!isGM) {
       setFeedback({ ok: false, text: "Only GM can add pricing." })
       return
     }
-    if (!priceInput || pricingDate !== date) return
+    if (pricingDate !== date) return
+    const missing = productsNeeded.filter(p => !priceInputs[p])
+    if (missing.length) return
     setSaving(true)
     setFeedback(null)
+    const pricesByProduct = {}
+    productsNeeded.forEach(p => { pricesByProduct[p] = Number(priceInputs[p]) })
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "priceDischargeDay")
     url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
-    url.searchParams.set("pricePerLitre", priceInput)
+    url.searchParams.set("pricesByProduct", JSON.stringify(pricesByProduct))
     url.searchParams.set("username", auth.username)
     url.searchParams.set("token", getToken())
     const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
     setSaving(false)
     if (res.ok) {
+      const byProductText = Object.entries(res.totalsByProduct || {})
+        .map(([fuel, t]) => `${fuel}: ${naira(t.cost)}`)
+        .join(" · ")
       setFeedback({
         ok: true,
-        text: `Priced ${res.tanksPriced} tank${res.tanksPriced !== 1 ? "s" : ""} for ${formatDateLabel(date)}. Total: ${naira(res.totalCost)}` +
+        text: `Priced ${res.tanksPriced} tank${res.tanksPriced !== 1 ? "s" : ""} for ${formatDateLabel(date)}. ${byProductText}` +
               (res.totalShortageAmount ? ` (shortage cost ${naira(res.totalShortageAmount)})` : ""),
       })
       setPricingDate(null)
-      setPriceInput("")
+      setPriceInputs({})
       refresh()
     } else {
       setFeedback({ ok: false, text: res.error || "Failed to add price." })
@@ -480,11 +542,29 @@ export default function DischargePage() {
           </div>
         )}
 
+        {/* PMS/AGO toggle — never blended, same as the fuel-stock hero never
+            combines PMS-on-hand with AGO-on-hand. Governs History, period
+            totals, and Pricing below, whichever tab is active. */}
+        {(tab === "records" || tab === "pricing") && (
+          <div className="mb-4 flex gap-2">
+            {["PMS", "AGO"].map(p => (
+              <button
+                key={p} type="button" onClick={() => setProductFilter(p)}
+                className={`flex-1 rounded-[12px] py-2.5 text-[13px] font-bold transition ${
+                  productFilter === p ? "bg-navy text-white shadow-lift" : "border border-border bg-white text-ink-3"
+                }`}
+              >
+                <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : "bi-droplet-fill"} mr-1.5`} />{p}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ── RECORDS TAB ── */}
         {tab === "records" && (
           <>
             {/* Owner/GM summary strip — running totals by period, front and center */}
-            {isGMOrOwner && !loading && records.length > 0 && (
+            {isGMOrOwner && !loading && productFilteredRecords.length > 0 && (
               <div className="mb-4 overflow-hidden rounded-[16px] shadow-lift" style={{ background: "var(--brand-gradient-btn)" }}>
                 <div className="flex gap-1 px-3 pt-3">
                   {[["week", "This Week"], ["month", "This Month"], ["all", "All Time"]].map(([k, l]) => (
@@ -546,14 +626,14 @@ export default function DischargePage() {
                 <div className="text-[12px] text-ink-4">Loading records…</div>
               </div>
             )}
-            {!loading && records.length === 0 && (
+            {!loading && productFilteredRecords.length === 0 && (
               <div className="flex flex-col items-center gap-3 rounded-[16px] bg-white py-16 text-center shadow-sm">
                 <i className="bi bi-fuel-pump text-4xl text-ink-4" />
                 <div className="text-[14px] font-bold text-ink">No discharge records yet</div>
                 <div className="text-[12.5px] text-ink-4">Records will appear here once a supervisor logs a discharge.</div>
               </div>
             )}
-            {!loading && records.length > 0 && (
+            {!loading && productFilteredRecords.length > 0 && (
               <div className="space-y-3">
                 {groupedRecords.map((group, gi) => {
                   const daySum = sumRecords(group.items)
@@ -576,13 +656,29 @@ export default function DischargePage() {
                               </span>
                             )}
                           </div>
-                          {daySum.ordered > 0 && (
-                            <div className="mono text-[10.5px] font-semibold text-ink-4">Expected {litres(daySum.ordered)}</div>
+                          {/* One line, not a redundant received-total sitting
+                              right underneath an Expected figure that already
+                              implies it — confirmed directly this was
+                              cluttered. Also fixes a real bug here: the old
+                              check only fired for positive (shortage) values,
+                              so a day with an overage silently showed no
+                              badge at all — same sign issue already fixed on
+                              the entry form, still present here until now. */}
+                          {daySum.ordered > 0 ? (
+                            <>
+                              <div className="text-[11px] font-semibold text-ink-4">Expected</div>
+                              <div className="mono text-[22px] font-black leading-tight text-ink">
+                                {litres(daySum.ordered)}
+                                {daySum.shortageLitres !== 0 && (
+                                  <span className={`ml-2 text-[15px] font-bold ${daySum.shortageLitres > 0 ? "text-red" : "text-green"}`}>
+                                    {daySum.shortageLitres > 0 ? "−" : "+"}{litres(Math.abs(daySum.shortageLitres))}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="mono text-[22px] font-black leading-tight text-ink">{litres(daySum.litres)}</div>
                           )}
-                          <div className="mono text-[22px] font-black leading-tight text-ink">
-                            {litres(daySum.litres)}
-                            {daySum.shortageLitres > 0 && <span className="ml-2 text-[13px] font-bold text-red">−{litres(daySum.shortageLitres)}</span>}
-                          </div>
                           {isGMOrOwner && daySum.cost > 0 && (
                             <div className="mono text-[13px] font-bold text-ink-3">{naira(daySum.cost)} total</div>
                           )}
@@ -620,19 +716,57 @@ export default function DischargePage() {
                                   {r[COL.PRICE] && <div className="mono text-[9.5px] text-ink-4">@{naira(r[COL.PRICE])}</div>}
                                 </div>
                               )}
-                              {/* Unpriced only — once GM has priced it, the
-                                  total is locked to that litres figure, so
-                                  editing here would silently make it wrong.
-                                  Supervisor/cashier need the CEO/GM switch
-                                  on; GM/CEO/Owner can always edit their own
-                                  tool regardless of it. */}
-                              {!isPriced(r) && (dischargeEditEnabled || isGMOrOwner) && (
+                              {/* Edit is supervisor-only here — GM/CEO have
+                                  Delete instead, not both. Unpriced only:
+                                  once GM has priced it, the total is locked
+                                  to that litres figure, so editing would
+                                  silently make it wrong. */}
+                              {!isPriced(r) && !isGMOrOwner && dischargeEditEnabled && (
                                 <button
                                   type="button"
                                   onClick={() => openEditRecord(r)}
                                   className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-border text-ink-3"
                                 >
                                   <i className="bi bi-pencil text-[10px]" />
+                                </button>
+                              )}
+                              {/* Toggle off, supervisor — same request/approve
+                                  path as everywhere else, not just a dead
+                                  end. Request once; the actual Edit attempt
+                                  either succeeds once GM/CEO has approved it,
+                                  or the backend explains it's still locked. */}
+                              {!isPriced(r) && !isGMOrOwner && !dischargeEditEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRequestDischargeEdit(r)}
+                                  disabled={requestingDischargeEdit === r.rowIndex}
+                                  className="flex h-6 items-center gap-1 rounded-[6px] border border-amber/30 bg-amber-light px-2 text-[9.5px] font-bold text-amber"
+                                >
+                                  <i className="bi bi-hourglass-split text-[9px]" /> {requestingDischargeEdit === r.rowIndex ? "…" : "Request Edit"}
+                                </button>
+                              )}
+                              {!isPriced(r) && !isGMOrOwner && !dischargeEditEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEditRecord(r)}
+                                  title="Try editing — works once GM/CEO has approved your request"
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-border text-ink-3"
+                                >
+                                  <i className="bi bi-pencil text-[10px]" />
+                                </button>
+                              )}
+                              {/* Delete is CEO/GM/Owner-only here — a genuine
+                                  mistake (wrong tank, test entry, duplicate),
+                                  not something a supervisor removes
+                                  themselves. No edit icon shown to this
+                                  group here; they have Delete instead. */}
+                              {isGMOrOwner && (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteDischarge(r)}
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-red/25 bg-red-light text-red"
+                                >
+                                  <i className="bi bi-trash3 text-[10px]" />
                                 </button>
                               )}
                             </div>
@@ -713,24 +847,28 @@ export default function DischargePage() {
                       <input type="number" inputMode="decimal" placeholder="0" value={form.actualReceived} onChange={e => setForm(f => ({...f, actualReceived: e.target.value}))} className={inputCls + " font-bold"} />
                     </label>
                   </div>
-                  <label className="block">
-                    {/* One signed field covers both directions. A separate
-                        "overage" input would let someone fill in both and
-                        contradict themselves. */}
-                    <span className={labelCls}>Variance (L) — shortage or overage</span>
-                    <input type="number" inputMode="decimal" placeholder="0" value={form.shortage} onChange={e => setForm(f => ({...f, shortage: e.target.value}))} className={inputCls} />
-                    <span className="mt-1 block text-[10.5px] text-ink-4">
-                      {form.orderedLitres && form.actualReceived
-                        ? (() => {
-                            const v = Number(form.orderedLitres) - Number(form.actualReceived)
-                            if (v === 0) return "Leave blank to auto-calculate: exact match"
-                            return v > 0
-                              ? `Leave blank to auto-calculate: ${litres(v)} short`
-                              : `Leave blank to auto-calculate: ${litres(Math.abs(v))} over`
-                          })()
-                        : "Leave blank to auto-calculate from Ordered − Actual"}
-                    </span>
-                  </label>
+                  <div className="rounded-[10px] border border-border bg-surface px-3.5 py-3">
+                    {/* Auto-calculated only, never manually typed —
+                        confirmed directly: a supervisor typing a positive
+                        number meaning "this much extra" was silently
+                        recorded as a shortage instead, since positive is
+                        this system's shortage convention and there's no
+                        intuitive reason a person would guess that without
+                        being told. Removing the manual field removes the
+                        chance of typing the sign wrong — Ordered and
+                        Actual are already both entered, so this can always
+                        be computed correctly instead of guessed at. */}
+                    <span className={labelCls}>Variance (auto-calculated from Ordered − Actual)</span>
+                    {form.orderedLitres && form.actualReceived ? (() => {
+                      const v = Number(form.orderedLitres) - Number(form.actualReceived)
+                      if (v === 0) return <div className="mono text-[15px] font-bold text-ink">Exact match</div>
+                      return v > 0
+                        ? <div className="mono text-[15px] font-bold text-red">{litres(v)} short</div>
+                        : <div className="mono text-[15px] font-bold text-green">{litres(Math.abs(v))} over</div>
+                    })() : (
+                      <div className="text-[12.5px] text-ink-4">Enter Ordered and Actual Received above to see this</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -774,11 +912,11 @@ export default function DischargePage() {
               </div>
             )}
             <div className="space-y-3">
-              {/* Grouped by day — GM sets one price for everything that
-                  arrived that day, not per tank. Days with more than one
-                  delivery show the total up top and each tank's own
-                  litres/shortage underneath, so the breakdown is still
-                  fully visible without needing a separate price per row. */}
+              {/* Grouped by day, then by product within the day — PMS and
+                  AGO are never the same price, confirmed directly this was
+                  wrong to lump into one figure. A day with only PMS asks
+                  for one price; a day with both asks for both, each
+                  applied only to that product's own tanks. */}
               {Object.entries(
                 pending.reduce((groups, r) => {
                   const d = r[COL.DATE]
@@ -787,11 +925,18 @@ export default function DischargePage() {
                   return groups
                 }, {})
               ).map(([date, items]) => {
+                const stationTanks = tanksFor(activeStation())
+                const productFor = (tankId) => stationTanks.find(t => t.id === tankId)?.product || tankId
+                const itemsByProduct = items.reduce((acc, r) => {
+                  const p = productFor(r[COL.PRODUCT])
+                  if (!acc[p]) acc[p] = []
+                  acc[p].push(r)
+                  return acc
+                }, {})
+                const productsNeeded = Object.keys(itemsByProduct)
                 const dayTotalLitres = items.reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
-                const dayTotalShortage = items.reduce((s, r) => s + (Number(r[COL.SHORTAGE]) || 0), 0)
                 const isPricingThisDay = pricingDate === date
-                const previewTotal = isPricingThisDay && priceInput ? dayTotalLitres * Number(priceInput) : null
-                const previewShortageCost = isPricingThisDay && priceInput && dayTotalShortage > 0 ? dayTotalShortage * Number(priceInput) : null
+                const allPricesFilled = isPricingThisDay && productsNeeded.every(p => priceInputs[p])
 
                 return (
                   <div key={date} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
@@ -805,45 +950,58 @@ export default function DischargePage() {
                       </div>
                     </div>
 
-                    {/* Per-tank breakdown — litres and shortage, no price yet
-                        since it's set once for the whole day below. */}
-                    <div className="divide-y divide-surface">
-                      {items.map((r, i) => (
-                        <div key={i} className="flex items-center gap-2.5 px-4 py-2.5">
-                          <i className={`bi ${productIcon(r[COL.PRODUCT])} text-[13px] text-ink-4`} />
-                          <div className="flex-1 text-[12.5px] font-semibold text-ink">{r[COL.PRODUCT]}</div>
-                          <div className="mono text-[12.5px] font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
-                          {Number(r[COL.SHORTAGE]) !== 0 && (
-                            <span className={`rounded-full px-2 py-[2px] text-[10px] font-bold ${Number(r[COL.SHORTAGE]) > 0 ? "bg-red-light text-red" : "bg-green-light text-green"}`}>
-                              {Number(r[COL.SHORTAGE]) > 0 ? "−" : "+"}{litres(Math.abs(Number(r[COL.SHORTAGE])))}
-                            </span>
-                          )}
+                    {/* One block per product — its own tanks listed, its own
+                        price input, its own preview. */}
+                    {productsNeeded.map(product => {
+                      const productItems = itemsByProduct[product]
+                      const productLitres = productItems.reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
+                      const productShortage = productItems.reduce((s, r) => s + (Number(r[COL.SHORTAGE]) || 0), 0)
+                      const priceVal = isPricingThisDay ? (priceInputs[product] || "") : ""
+                      const previewTotal = priceVal ? productLitres * Number(priceVal) : null
+                      const previewShortageCost = priceVal && productShortage > 0 ? productShortage * Number(priceVal) : null
+
+                      return (
+                        <div key={product} className="border-b border-surface">
+                          <div className="divide-y divide-surface">
+                            {productItems.map((r, i) => (
+                              <div key={i} className="flex items-center gap-2.5 px-4 py-2.5">
+                                <i className={`bi ${productIcon(r[COL.PRODUCT])} text-[13px] text-ink-4`} />
+                                <div className="flex-1 text-[12.5px] font-semibold text-ink">{r[COL.PRODUCT]} <span className="text-ink-4">({product})</span></div>
+                                <div className="mono text-[12.5px] font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
+                                {Number(r[COL.SHORTAGE]) !== 0 && (
+                                  <span className={`rounded-full px-2 py-[2px] text-[10px] font-bold ${Number(r[COL.SHORTAGE]) > 0 ? "bg-red-light text-red" : "bg-green-light text-green"}`}>
+                                    {Number(r[COL.SHORTAGE]) > 0 ? "−" : "+"}{litres(Math.abs(Number(r[COL.SHORTAGE])))}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="px-4 pb-4 pt-3">
+                            <label className="mb-2 block">
+                              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4">{product} Price Per Litre (₦)</span>
+                              <input type="number" inputMode="decimal" placeholder="e.g. 1229"
+                                value={priceVal}
+                                onFocus={() => setPricingDate(date)}
+                                onChange={e => { setPricingDate(date); setPriceInputs(v => ({ ...v, [product]: e.target.value })) }}
+                                className="mono w-full rounded-[10px] border-2 border-cyan bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
+                            </label>
+                            {previewTotal !== null && (
+                              <div className="space-y-1 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
+                                <div>{litres(productLitres)} × {naira(Number(priceVal))} = <strong className="text-navy">{naira(previewTotal)}</strong></div>
+                                {previewShortageCost !== null && (
+                                  <div>{litres(productShortage)} shortage × {naira(Number(priceVal))} = <strong className="text-red">{naira(previewShortageCost)}</strong> shortage cost</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      )
+                    })}
 
                     <div className="px-4 pb-4 pt-3">
-                      <label className="mb-3 block">
-                        <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4">Amount Bought Per Litre (₦) — applies to this whole day</span>
-                        <input type="number" inputMode="decimal" placeholder="e.g. 850"
-                          value={isPricingThisDay ? priceInput : ""}
-                          onFocus={() => setPricingDate(date)}
-                          onChange={e => { setPricingDate(date); setPriceInput(e.target.value) }}
-                          className="mono w-full rounded-[10px] border-2 border-cyan bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
-                      </label>
-                      {previewTotal !== null && (
-                        <div className="mb-3 space-y-1.5 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
-                          <div>{litres(dayTotalLitres)} × {naira(Number(priceInput))} = <strong className="text-navy">{naira(previewTotal)}</strong> total for the day</div>
-                          {previewShortageCost !== null && (
-                            <div>
-                              {litres(dayTotalShortage)} shortage × {naira(Number(priceInput))} = <strong className="text-red">{naira(previewShortageCost)}</strong> shortage cost
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <button type="button" onClick={() => handlePriceDay(date)} disabled={saving || !isPricingThisDay || !priceInput}
+                      <button type="button" onClick={() => handlePriceDay(date, productsNeeded)} disabled={saving || !allPricesFilled}
                         className="flex w-full items-center justify-center gap-2 rounded-[11px] bg-green py-3 text-[13px] font-bold text-white shadow-lift disabled:opacity-40">
-                        {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <><i className="bi bi-check2" /> Confirm Price for This Day</>}
+                        {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <><i className="bi bi-check2" /> Confirm Price{productsNeeded.length > 1 ? "s" : ""} for This Day</>}
                       </button>
                     </div>
                   </div>
@@ -943,6 +1101,25 @@ export default function DischargePage() {
               </button>
               <button type="button" onClick={saveEditRecord} disabled={savingEdit} className="flex-1 rounded-[10px] bg-green py-2.5 text-[13px] font-bold text-white disabled:opacity-50">
                 {savingEdit ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteDischarge && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setConfirmDeleteDischarge(null)}>
+          <div className="w-full max-w-[400px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]" onClick={e => e.stopPropagation()}>
+            <div className="mb-1 text-[15px] font-extrabold text-ink">Delete this discharge record?</div>
+            <div className="mb-4 text-[12.5px] text-ink-3">
+              {confirmDeleteDischarge[COL.PRODUCT]} — {litres(confirmDeleteDischarge[COL.ACTUAL])} on {formatDateLabel(confirmDeleteDischarge[COL.DATE])}. This can't be undone.
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmDeleteDischarge(null)} className="flex-1 rounded-[10px] border border-border py-2.5 text-[13px] font-semibold text-ink-3">
+                Cancel
+              </button>
+              <button type="button" onClick={handleDeleteDischarge} disabled={savingEdit} className="flex-1 rounded-[10px] bg-red py-2.5 text-[13px] font-bold text-white disabled:opacity-50">
+                {savingEdit ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>

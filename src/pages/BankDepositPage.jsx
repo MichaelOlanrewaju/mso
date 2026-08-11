@@ -42,6 +42,7 @@ export default function BankDepositPage() {
     needsSetup, cashAtHand, totalContributed, totalDeposited, lastDepositDate, deposits, loading, submitting,
     submitDeposit, submitStartPoint,
     cashForDate, existingDepositForDate, loadingDateCash, loadCashForDate,
+    requestEditForDeposit, editDeposit,
   } = useBankDeposits(station)
 
   const canReview = ["ceo", "owner", "gm"].includes(auth.role)
@@ -58,6 +59,8 @@ export default function BankDepositPage() {
   const [photoPreview, setPhotoPreview] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [confirmDeleteRow, setConfirmDeleteRow] = useState(null)
+  const [editingDeposit, setEditingDeposit] = useState(null) // { rowIndex, amount, notes }
+  const [requestingEditFor, setRequestingEditFor] = useState(null)
   const inputRef = useRef(null)
 
   const canSubmit = canLogBankDeposit(auth.username, auth.role)
@@ -118,6 +121,28 @@ export default function BankDepositPage() {
       setConfirmDeleteRow(null)
     } else {
       toast.showToast("Couldn't delete", res.error || "Please try again", "err")
+    }
+  }
+
+  const handleRequestDepositEdit = async (date, rowIndex) => {
+    setRequestingEditFor(rowIndex)
+    const res = await requestEditForDeposit(date, auth.username)
+    setRequestingEditFor(null)
+    if (res.ok) {
+      toast.showToast("Request sent", "GM/CEO will be notified for approval.", "ok")
+    } else {
+      toast.showToast("Couldn't send request", res.error || "Please try again", "err")
+    }
+  }
+
+  const handleSaveDepositEdit = async () => {
+    if (!editingDeposit) return
+    const res = await editDeposit(editingDeposit.rowIndex, editingDeposit.amount, editingDeposit.notes, auth.username)
+    if (res.ok) {
+      toast.showToast("Saved", "Deposit corrected", "ok")
+      setEditingDeposit(null)
+    } else {
+      toast.showToast("Couldn't save", res.error || "This deposit may still be locked — request an edit first.", "err")
     }
   }
 
@@ -398,6 +423,48 @@ export default function BankDepositPage() {
                     {d.status !== "PENDING" && d.reviewedBy && (
                       <div className="mt-2 border-t border-surface pt-2 text-[10.5px] text-ink-4">
                         {d.status === "APPROVED" ? "Approved" : "Rejected"} by {d.reviewedBy}
+                      </div>
+                    )}
+
+                    {/* Correcting a mistake in an already-approved deposit —
+                        same request/approve gate as everywhere else. Only
+                        makes sense once it's actually approved; a pending
+                        or rejected one is better fixed by deleting and
+                        re-submitting. */}
+                    {d.status === "APPROVED" && (d.submittedBy === auth.username || canReview) && editingDeposit?.rowIndex !== d.rowIndex && (
+                      <button
+                        type="button"
+                        onClick={() => handleRequestDepositEdit(d.date, d.rowIndex)}
+                        disabled={requestingEditFor === d.rowIndex}
+                        className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[8px] border border-border py-2 text-[11px] font-semibold text-ink-3 disabled:opacity-50"
+                      >
+                        <i className="bi bi-pencil-square" /> {requestingEditFor === d.rowIndex ? "Sending…" : "Request Edit"}
+                      </button>
+                    )}
+                    {d.status === "APPROVED" && (d.submittedBy === auth.username || canReview) && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingDeposit(prev => prev?.rowIndex === d.rowIndex ? null : { rowIndex: d.rowIndex, amount: String(d.amount), notes: d.notes || "" })}
+                        className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-[8px] bg-cyan-light py-2 text-[11px] font-semibold text-cyan-dark"
+                      >
+                        <i className="bi bi-unlock" /> {editingDeposit?.rowIndex === d.rowIndex ? "Cancel Edit" : "Approved? Edit Now"}
+                      </button>
+                    )}
+                    {editingDeposit?.rowIndex === d.rowIndex && (
+                      <div className="mt-2 rounded-[10px] border border-cyan/25 bg-cyan-light p-3">
+                        <input
+                          type="number" inputMode="decimal" value={editingDeposit.amount}
+                          onChange={e => setEditingDeposit(ed => ({ ...ed, amount: e.target.value }))}
+                          className="mono mb-2 w-full rounded-[8px] border border-border bg-white px-2.5 py-2 text-right text-[14px] font-bold text-ink outline-none"
+                        />
+                        <input
+                          type="text" placeholder="Notes (optional)" value={editingDeposit.notes}
+                          onChange={e => setEditingDeposit(ed => ({ ...ed, notes: e.target.value }))}
+                          className="mb-2 w-full rounded-[8px] border border-border bg-white px-2.5 py-2 text-[13px] text-ink outline-none"
+                        />
+                        <button type="button" onClick={handleSaveDepositEdit} className="w-full rounded-[8px] bg-green py-2 text-[11.5px] font-bold text-white">
+                          Save Correction
+                        </button>
                       </div>
                     )}
                   </div>
