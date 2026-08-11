@@ -153,8 +153,32 @@ export default function DischargePage() {
      opening was already recorded today — the same question the Dip page
      asks when discharge arrives first, now asked from this side too when
      the order is reversed. Confirmed directly this gap existed: opening
-     submitted first, discharge added a second time on top of it, silently. */
-  const [dischargeResolutionPrompt, setDischargeResolutionPrompt] = useState(null) // { tank, actual, date, answer }
+     submitted first, discharge added a second time on top of it, silently.
+
+     Array, not a single object — same shape as the Dip page's version,
+     since more than one tank can be pending at once. Also checked on page
+     load now, not just right after a fresh submission — confirmed
+     directly this was a real gap: a discharge submitted earlier, with
+     nobody present to answer the prompt at that exact moment (browser
+     closed, page navigated away), had no other way to ever get resolved. */
+  const [dischargeResolutionPrompt, setDischargeResolutionPrompt] = useState(null) // [{tank, actual, date, answer}]
+
+  useEffect(() => {
+    if (!auth.username || auth.loading) return
+    const checkUrl = new URL(SCRIPT_URL)
+    checkUrl.searchParams.set("action", "getPendingDischargeForOpening")
+    checkUrl.searchParams.set("station", activeStation())
+    checkUrl.searchParams.set("date", new Date().toISOString().split("T")[0])
+    fetch(checkUrl.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok && (d.pending || []).length > 0) {
+          setDischargeResolutionPrompt(d.pending.map(p => ({ tank: p.tank, actual: p.actual, date: d.date, answer: null })))
+        }
+      })
+      .catch(() => {})
+  }, [auth.username, auth.loading])
+
   const { settings } = useSettings()
   const dischargeEditEnabled = settings.dischargeEditEnabled !== "false"
   const [editingRecord, setEditingRecord] = useState(null) // full row being edited
@@ -298,7 +322,7 @@ export default function DischargePage() {
         const pendingRes = await fetch(checkUrl.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
         const thisTankPending = pendingRes.ok && (pendingRes.pending || []).find(p => p.tank === tankId)
         if (thisTankPending) {
-          setDischargeResolutionPrompt({ tank: tankId, actual: thisTankPending.actual, date: form.date, answer: null })
+          setDischargeResolutionPrompt([{ tank: tankId, actual: thisTankPending.actual, date: form.date, answer: null }])
           resetForm()
           return // hold off on navigating away until this is resolved
         }
@@ -313,23 +337,27 @@ export default function DischargePage() {
   }
 
   const finishDischargeResolution = async () => {
-    if (!dischargeResolutionPrompt || dischargeResolutionPrompt.answer === null) return
+    if (!dischargeResolutionPrompt || dischargeResolutionPrompt.some(p => p.answer === null)) return
     setSaving(true)
-    const url = new URL(SCRIPT_URL)
-    url.searchParams.set("action", "resolveDischargeAfterEntry")
-    url.searchParams.set("station", activeStation())
-    url.searchParams.set("date", dischargeResolutionPrompt.date)
-    url.searchParams.set("tank", dischargeResolutionPrompt.tank)
-    url.searchParams.set("alreadyIncludesDelivery", dischargeResolutionPrompt.answer === "yes")
-    url.searchParams.set("username", auth.username)
-    url.searchParams.set("token", getToken())
-    const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+    let allOk = true
+    for (const p of dischargeResolutionPrompt) {
+      const url = new URL(SCRIPT_URL)
+      url.searchParams.set("action", "resolveDischargeAfterEntry")
+      url.searchParams.set("station", activeStation())
+      url.searchParams.set("date", p.date)
+      url.searchParams.set("tank", p.tank)
+      url.searchParams.set("alreadyIncludesDelivery", p.answer === "yes")
+      url.searchParams.set("username", auth.username)
+      url.searchParams.set("token", getToken())
+      const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+      if (!res.ok) allOk = false
+    }
     setSaving(false)
     setDischargeResolutionPrompt(null)
-    if (res.ok) {
-      setFeedback({ ok: true, text: "Discharge recorded and opening confirmed." })
+    if (allOk) {
+      setFeedback({ ok: true, text: "Opening confirmed for all pending tanks." })
     } else {
-      setFeedback({ ok: false, text: res.error || "Could not resolve — check the Discharge record manually." })
+      setFeedback({ ok: false, text: "Some tanks could not be resolved — check the Discharge record manually." })
     }
     refresh()
     setTab("records")
@@ -1031,31 +1059,38 @@ export default function DischargePage() {
           <div className="w-full max-w-[440px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]">
             <div className="mb-1 text-[15px] font-extrabold text-ink">One more thing before this is done</div>
             <div className="mb-4 text-[12.5px] text-ink-3">
-              {dischargeResolutionPrompt.tank}'s opening was already recorded today. Does that reading already include this {litres(dischargeResolutionPrompt.actual)} delivery?
+              {dischargeResolutionPrompt.length > 1 ? "These tanks already have" : "This tank already has"} an opening recorded today. Does {dischargeResolutionPrompt.length > 1 ? "each reading" : "that reading"} already include the delivery?
             </div>
-            <div className="mb-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDischargeResolutionPrompt(p => ({ ...p, answer: "yes" }))}
-                className={`flex-1 rounded-[9px] border-[1.5px] py-2.5 text-[12.5px] font-bold ${
-                  dischargeResolutionPrompt.answer === "yes" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-surface text-ink-3"
-                }`}
-              >
-                Yes, already included
-              </button>
-              <button
-                type="button"
-                onClick={() => setDischargeResolutionPrompt(p => ({ ...p, answer: "no" }))}
-                className={`flex-1 rounded-[9px] border-[1.5px] py-2.5 text-[12.5px] font-bold ${
-                  dischargeResolutionPrompt.answer === "no" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-surface text-ink-3"
-                }`}
-              >
-                No, add it
-              </button>
+            <div className="mb-4 space-y-3">
+              {dischargeResolutionPrompt.map((p, i) => (
+                <div key={p.tank} className="rounded-[12px] border border-border bg-surface p-3.5">
+                  <div className="mb-2 text-[13px] font-bold text-ink">{p.tank} — {litres(p.actual)} delivered</div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDischargeResolutionPrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "yes" } : x))}
+                      className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
+                        p.answer === "yes" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                      }`}
+                    >
+                      Yes, already included
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDischargeResolutionPrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "no" } : x))}
+                      className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
+                        p.answer === "no" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                      }`}
+                    >
+                      No, add it
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
             <button
               type="button"
-              disabled={dischargeResolutionPrompt.answer === null || saving}
+              disabled={dischargeResolutionPrompt.some(p => p.answer === null) || saving}
               onClick={finishDischargeResolution}
               className="flex h-[48px] w-full items-center justify-center rounded-[12px] bg-green text-[14px] font-extrabold text-white disabled:opacity-50"
             >
