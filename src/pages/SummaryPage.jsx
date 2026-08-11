@@ -198,7 +198,7 @@ function reconciliationFor(report) {
   return { variance: collected - fuelRevenue, hasData: hasFuelData }
 }
 
-function buildSummaryText(report, date) {
+function buildSummaryText(report, date, canSeeMarginAmount) {
   const { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue } = liveFuelData(report)
   const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
   const station = activeStation()
@@ -219,7 +219,9 @@ function buildSummaryText(report, date) {
     `Grand Total: ${naira(displayGrandTotal)}`,
     `PMS: ${litres(pmsLitres, { maximumFractionDigits: 2 })} @ ${report.pms_price > 0 ? naira(report.pms_price) : "—"}/L = ${naira(pmsRevenue)}`,
     `AGO: ${litres(agoLitres, { maximumFractionDigits: 2 })} @ ${report.ago_price > 0 ? naira(report.ago_price) : "—"}/L = ${naira(agoRevenue)}`,
-    `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} (${naira(livePmsMarginAmount)}) · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })} (${naira(liveAgoMarginAmount)})`,
+    canSeeMarginAmount
+      ? `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} (${naira(livePmsMarginAmount)}) · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })} (${naira(liveAgoMarginAmount)})`
+      : `PMS Margin: ${litres(livePmsMargin, { maximumFractionDigits: 2 })} · AGO Margin: ${litres(liveAgoMargin, { maximumFractionDigits: 2 })}`,
     ``,
     `Tank Dips:`,
     ...tankRows(report, marginByTank).map(
@@ -303,6 +305,11 @@ function Row({ label, value, bold, tone, sub }) {
 
 function SummaryInner() {
   const auth = useAuth({ requireAuth: true })
+  /* Margin amount (the naira value) is a financial figure — supervisors
+     and cashiers shouldn't see it, same principle already applied to
+     discharge pricing. The margin in litres is fine to show, since that's
+     an operational figure, not a money one. */
+  const canSeeMarginAmount = ["ceo", "owner", "gm"].includes(auth.role)
   const navigate = useNavigate()
   const today = todayISO()
   const [date, setDate] = useState(today)
@@ -358,7 +365,7 @@ function SummaryInner() {
 
   const handleShare = async () => {
     if (!report) return
-    const text = buildSummaryText(report, date)
+    const text = buildSummaryText(report, date, canSeeMarginAmount)
     if (navigator.share) {
       try {
         await navigator.share({ title: "MSO Daily Summary", text })
@@ -498,8 +505,8 @@ function SummaryInner() {
                 <div className="text-[11px] opacity-70">Grand Total</div>
                 {(livePmsMargin !== 0 || liveAgoMargin !== 0) && (
                   <div className="mt-3 flex gap-4 border-t border-white/20 pt-3 text-[11px] opacity-90">
-                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(livePmsMargin, { maximumFractionDigits: 2 })} ({naira(livePmsMarginAmount)})</span></div>
-                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(liveAgoMargin, { maximumFractionDigits: 2 })} ({naira(liveAgoMarginAmount)})</span></div>
+                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(livePmsMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` (${naira(livePmsMarginAmount)})`}</span></div>
+                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(liveAgoMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` (${naira(liveAgoMarginAmount)})`}</span></div>
                   </div>
                 )}
               </div>
@@ -527,7 +534,7 @@ function SummaryInner() {
                   </div>
                   <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.litres, { maximumFractionDigits: 2 })}</div>
                   <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(f.revenue)} @ {f.price > 0 ? `${naira(f.price)}/L` : "— /L"}</div>
-                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litres(f.margin, { maximumFractionDigits: 2 })} · {naira(f.marginAmt)}</div>
+                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litres(f.margin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(f.marginAmt)}`}</div>
                   {f.tiers?.length > 1 && (
                     <div className="mt-2 space-y-0.5 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
                       {f.tiers.map((t, i) => (
@@ -712,6 +719,23 @@ function SummaryInner() {
                       <span className="ftk-mono flex-shrink-0 font-semibold">−{naira(Number(e.amount) || 0)}</span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Extra cash found or deposited beyond what the day's normal
+                  figures explain — was already feeding Cash At Hand, but
+                  never actually visible on the day it happened until now. */}
+              {report.excess_items && report.excess_items.length > 0 && (
+                <div className="mt-1 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
+                  <Row label="Excess" value={`+${naira(report.excess_items.reduce((s, e) => s + (Number(e.amount) || 0), 0))}`} tone="green" />
+                  <div className="ml-3 space-y-1 border-l-2 pl-3" style={{ borderColor: "rgba(22,163,74,0.2)" }}>
+                    {report.excess_items.map((e, i) => (
+                      <div key={i} className="flex items-start justify-between gap-3 py-0.5 text-[12px]" style={{ color: "var(--ftk-ink-faint)" }}>
+                        <span className="min-w-0 flex-1 break-words">{e.description || "Excess"}</span>
+                        <span className="ftk-mono flex-shrink-0 font-semibold" style={{ color: "#16A34A" }}>+{naira(Number(e.amount) || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
