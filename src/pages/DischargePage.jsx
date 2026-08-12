@@ -7,6 +7,7 @@ import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { naira, litres } from "../utils/format"
 import { getToken } from "../utils/session"
+import { useSettings } from "../hooks/useSettings"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -147,8 +148,52 @@ export default function DischargePage() {
   })
 
   // GM price form
-  const [pricingRow, setPricingRow] = useState(null)
-  const [priceInput, setPriceInput] = useState("")
+  const [pricingDate, setPricingDate] = useState(null)
+  /* Asked immediately after a discharge is submitted, for a tank whose
+     opening was already recorded today — the same question the Dip page
+     asks when discharge arrives first, now asked from this side too when
+     the order is reversed. Confirmed directly this gap existed: opening
+     submitted first, discharge added a second time on top of it, silently.
+
+     Array, not a single object — same shape as the Dip page's version,
+     since more than one tank can be pending at once. Also checked on page
+     load now, not just right after a fresh submission — confirmed
+     directly this was a real gap: a discharge submitted earlier, with
+     nobody present to answer the prompt at that exact moment (browser
+     closed, page navigated away), had no other way to ever get resolved. */
+  const [dischargeResolutionPrompt, setDischargeResolutionPrompt] = useState(null) // [{tank, actual, date, answer}]
+
+  useEffect(() => {
+    /* Only on the History tab — confirmed directly this was interrupting
+       someone actively filling in a brand-new, unrelated discharge on the
+       Record tab, popping up over their in-progress form before they'd
+       even submitted anything. The immediate post-submission check
+       (further down, inside doSubmitDischarge) still covers the case
+       where THIS record itself needs resolving right away. */
+    if (tab !== "records") return
+    if (!auth.username || auth.loading) return
+    const checkUrl = new URL(SCRIPT_URL)
+    checkUrl.searchParams.set("action", "getPendingDischargeForOpening")
+    checkUrl.searchParams.set("station", activeStation())
+    checkUrl.searchParams.set("date", new Date().toISOString().split("T")[0])
+    fetch(checkUrl.toString(), { method: "GET", redirect: "follow" })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok && (d.pending || []).length > 0) {
+          setDischargeResolutionPrompt(d.pending.map(p => ({ tank: p.tank, actual: p.actual, date: d.date, answer: null })))
+        }
+      })
+      .catch(() => {})
+  }, [auth.username, auth.loading, tab])
+
+  const { settings } = useSettings()
+  const dischargeEditEnabled = settings.dischargeEditEnabled !== "false"
+  const [editingRecord, setEditingRecord] = useState(null) // full row being edited
+  const [editForm, setEditForm] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [confirmDeleteDischarge, setConfirmDeleteDischarge] = useState(null)
+  const [requestingDischargeEdit, setRequestingDischargeEdit] = useState(null)
+  const [priceInputs, setPriceInputs] = useState({}) // { PMS: "1229", AGO: "1649" }
 
   const isSupervisor = auth.role === "supervisor" || auth.role === "cashier"
   const isGM         = auth.role === "gm"
@@ -161,22 +206,54 @@ export default function DischargePage() {
     truckNumber: "", waybillNo: "", notes: "",
   })
 
-  const pending = useMemo(() => records.filter(r => !isPriced(r)), [records])
-
   const [period, setPeriod] = useState("week") // "week" | "month" | "all"
+  /* PMS and AGO are never blended into one figure — same principle as the
+     fuel-stock hero never combining PMS-on-hand with AGO-on-hand. GM/CEO
+     pick which one they're looking at; everything downstream (History,
+     period totals, Pricing) respects that choice rather than mixing both
+     products into a single misleading number. */
+  const [productFilter, setProductFilter] = useState("PMS") // "PMS" | "AGO"
+  const stationTanksTop = tanksFor(activeStation())
+  const productForTankId = (tankId) => stationTanksTop.find(t => t.id === tankId)?.product || tankId
+
+  const pending = useMemo(
+    () => records.filter(r => !isPriced(r) && productForTankId(r[COL.PRODUCT]) === productFilter),
+    [records, productFilter]
+  )
 
   const now = useMemo(() => new Date(), [])
   const weekStart = useMemo(() => startOfWeek(now), [now])
   const monthStart = useMemo(() => startOfMonth(now), [now])
 
+  /* Last 7 days, one bar per day — the real "at a glance" job this page
+     needs to do: is delivery volume steady, or did something change.
+     Uses productFilteredRecords further down, so it respects the PMS/AGO
+     toggle same as everything else on this page. Defined here as a plain
+     function (not a hook) since it's called after productFilteredRecords
+     is ready, further down in the component body. */
+  const last7DaysTrend = (filteredRecords) => {
+    const days = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const key = d.toISOString().split("T")[0]
+      const dayLitres = filteredRecords
+        .filter(r => String(r[COL.DATE]).slice(0, 10) === key)
+        .reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
+      days.push({ key, label: d.toLocaleDateString("en-NG", { weekday: "short" }).slice(0, 1), litres: dayLitres })
+    }
+    return days
+  }
+
   const sumRecords = (list) => list.reduce((acc, r) => {
+    acc.ordered += Number(r[COL.ORDERED]) || 0
     acc.litres += Number(r[COL.ACTUAL]) || 0
     acc.cost   += Number(r[COL.TOTAL]) || 0
     acc.shortageAmount += Number(r[COL.SHORTAGE_AMOUNT]) || 0
     acc.shortageLitres += Number(r[COL.SHORTAGE]) || 0
     acc.count += 1
     return acc
-  }, { litres: 0, cost: 0, shortageAmount: 0, shortageLitres: 0, count: 0 })
+  }, { ordered: 0, litres: 0, cost: 0, shortageAmount: 0, shortageLitres: 0, count: 0 })
 
   /* Per-tank breakdown — the summary strip used to only ever show one
      combined total across every tank, with no way to see which tank
@@ -194,7 +271,15 @@ export default function DischargePage() {
     return Object.values(byTank).sort((a, b) => b.litres - a.litres)
   }
 
-  const weekRecords = useMemo(() => records.filter(r => {
+  const productFilteredRecords = useMemo(
+    () => records.filter(r => productForTankId(r[COL.PRODUCT]) === productFilter),
+    [records, productFilter]
+  )
+
+  const trendDays = useMemo(() => last7DaysTrend(productFilteredRecords), [productFilteredRecords])
+  const todayLitres = trendDays.length ? trendDays[trendDays.length - 1].litres : 0
+
+  const weekRecords = useMemo(() => productFilteredRecords.filter(r => {
     const d = parseSheetDate(r[COL.DATE])
     return d && d >= weekStart
   }), [records, weekStart])
@@ -207,14 +292,14 @@ export default function DischargePage() {
   const periodTotals = useMemo(() => {
     if (period === "week") return sumRecords(weekRecords)
     if (period === "month") return sumRecords(monthRecords)
-    return sumRecords(records)
-  }, [period, records, weekRecords, monthRecords])
+    return sumRecords(productFilteredRecords)
+  }, [period, productFilteredRecords, weekRecords, monthRecords])
 
   const periodByTank = useMemo(() => {
     if (period === "week") return sumByTank(weekRecords)
     if (period === "month") return sumByTank(monthRecords)
-    return sumByTank(records)
-  }, [period, records, weekRecords, monthRecords])
+    return sumByTank(productFilteredRecords)
+  }, [period, productFilteredRecords, weekRecords, monthRecords])
 
   const periodLabel = period === "week"
     ? `Since ${weekStart.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}`
@@ -226,7 +311,7 @@ export default function DischargePage() {
   const groupedRecords = useMemo(() => {
     const groups = []
     const byDate = {}
-    records.forEach(r => {
+    productFilteredRecords.forEach(r => {
       const key = String(r[COL.DATE] || "").slice(0, 10)
       if (!byDate[key]) {
         byDate[key] = { date: r[COL.DATE], items: [] }
@@ -251,11 +336,132 @@ export default function DischargePage() {
     setSaving(false)
     if (res.ok) {
       setFeedback({ ok: true, text: "Discharge recorded." })
+
+      /* Check right away whether this tank's opening was already recorded
+         today — if so, this discharge is sitting pending, and the person
+         who just submitted it is exactly who should answer whether that
+         opening already includes it, not left for whoever happens to open
+         Dip entry next. */
+      const tankMatch = String(form.product || "").toUpperCase().match(/TANK\s*(\d+)|TK\s*(\d+)/)
+      const tankId = tankMatch ? `TK${tankMatch[1] || tankMatch[2]}` : null
+      if (tankId) {
+        const checkUrl = new URL(SCRIPT_URL)
+        checkUrl.searchParams.set("action", "getPendingDischargeForOpening")
+        checkUrl.searchParams.set("station", activeStation())
+        checkUrl.searchParams.set("date", form.date)
+        const pendingRes = await fetch(checkUrl.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+        const thisTankPending = pendingRes.ok && (pendingRes.pending || []).find(p => p.tank === tankId)
+        if (thisTankPending) {
+          setDischargeResolutionPrompt([{ tank: tankId, actual: thisTankPending.actual, date: form.date, answer: null }])
+          resetForm()
+          return // hold off on navigating away until this is resolved
+        }
+      }
+
       resetForm()
       refresh()
       setTab("records")
     } else {
       setFeedback({ ok: false, text: res.error || "Save failed." })
+    }
+  }
+
+  const finishDischargeResolution = async () => {
+    if (!dischargeResolutionPrompt || dischargeResolutionPrompt.some(p => p.answer === null)) return
+    setSaving(true)
+    let allOk = true
+    for (const p of dischargeResolutionPrompt) {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "resolveDischargeAfterEntry", station: activeStation(), token: getToken(), username: auth.username,
+          date: p.date, tank: p.tank, alreadyIncludesDelivery: p.answer === "yes",
+        }),
+      }).then(r => r.json()).catch(() => ({ ok: false }))
+      if (!res.ok) allOk = false
+    }
+    setSaving(false)
+    setDischargeResolutionPrompt(null)
+    if (allOk) {
+      setFeedback({ ok: true, text: "Opening confirmed for all pending tanks." })
+    } else {
+      setFeedback({ ok: false, text: "Some tanks could not be resolved — check the Discharge record manually." })
+    }
+    refresh()
+    setTab("records")
+  }
+
+  const handleRequestDischargeEdit = async (r) => {
+    setRequestingDischargeEdit(r.rowIndex)
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "saveEditRequest", station: activeStation(), token: getToken(), username: auth.username,
+        date: r[COL.DATE], type: "discharge", message: `Correct a discharge record on ${r[COL.DATE]}`,
+      }),
+    }).then(r2 => r2.json()).catch(() => ({ ok: false, error: "Network error — check connection" }))
+    setRequestingDischargeEdit(null)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Request sent — GM/CEO will be notified for approval." })
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not send request." })
+    }
+  }
+
+  const openEditRecord = (r) => {
+    setEditingRecord(r)
+    setEditForm({
+      driverName: r[COL.DRIVER] || "",
+      orderedLitres: r[COL.ORDERED] || "",
+      actualReceived: r[COL.ACTUAL] || "",
+      waybillNo: r[COL.WAYBILL] || "",
+      truckNo: r[COL.TRUCK] || "",
+      supplier: r[COL.SUPPLIER] || "",
+      notes: r[COL.NOTES] || "",
+    })
+  }
+
+  const saveEditRecord = async () => {
+    if (!editingRecord) return
+    setSavingEdit(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "updateDischarge")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("rowIndex", editingRecord.rowIndex)
+    url.searchParams.set("username", auth.username)
+    url.searchParams.set("role", auth.role)
+    url.searchParams.set("token", getToken())
+    Object.entries(editForm).forEach(([k, v]) => url.searchParams.set(k, v))
+    const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+    setSavingEdit(false)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Discharge record updated." })
+      setEditingRecord(null)
+      refresh()
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not save changes." })
+    }
+  }
+
+  const handleDeleteDischarge = async () => {
+    if (!confirmDeleteDischarge) return
+    setSavingEdit(true)
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "deleteDischarge")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("rowIndex", confirmDeleteDischarge.rowIndex)
+    url.searchParams.set("username", auth.username)
+    url.searchParams.set("token", getToken())
+    const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+    setSavingEdit(false)
+    setConfirmDeleteDischarge(null)
+    if (res.ok) {
+      setFeedback({ ok: true, text: "Discharge record deleted." })
+      refresh()
+    } else {
+      setFeedback({ ok: false, text: res.error || "Could not delete record." })
     }
   }
 
@@ -306,27 +512,41 @@ export default function DischargePage() {
     }
   }
 
-  const handleAddPrice = async () => {
+  /* GM prices a whole day at once, not each tank separately — confirmed
+     directly: she wants the day's total, the per-tank breakdown, and one
+     price applied across all of it in a single action. */
+  const handlePriceDay = async (date, productsNeeded) => {
     if (!isGM) {
       setFeedback({ ok: false, text: "Only GM can add pricing." })
       return
     }
-    if (!priceInput || !pricingRow) return
+    if (pricingDate !== date) return
+    const missing = productsNeeded.filter(p => !priceInputs[p])
+    if (missing.length) return
     setSaving(true)
     setFeedback(null)
+    const pricesByProduct = {}
+    productsNeeded.forEach(p => { pricesByProduct[p] = Number(priceInputs[p]) })
     const url = new URL(SCRIPT_URL)
-    url.searchParams.set("action", "addDischargePrice")
+    url.searchParams.set("action", "priceDischargeDay")
     url.searchParams.set("station", activeStation())
-    url.searchParams.set("rowIndex", pricingRow.rowIndex)
-    url.searchParams.set("pricePerLitre", priceInput)
+    url.searchParams.set("date", date)
+    url.searchParams.set("pricesByProduct", JSON.stringify(pricesByProduct))
     url.searchParams.set("username", auth.username)
     url.searchParams.set("token", getToken())
     const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
     setSaving(false)
     if (res.ok) {
-      setFeedback({ ok: true, text: res.warning ? `Price added. Total cost: ${naira(res.totalCost)}. ${res.warning}` : `Price added. Total cost: ${naira(res.totalCost)}` })
-      setPricingRow(null)
-      setPriceInput("")
+      const byProductText = Object.entries(res.totalsByProduct || {})
+        .map(([fuel, t]) => `${fuel}: ${naira(t.cost)}`)
+        .join(" · ")
+      setFeedback({
+        ok: true,
+        text: `Priced ${res.tanksPriced} tank${res.tanksPriced !== 1 ? "s" : ""} for ${formatDateLabel(date)}. ${byProductText}` +
+              (res.totalShortageAmount ? ` (shortage cost ${naira(res.totalShortageAmount)})` : ""),
+      })
+      setPricingDate(null)
+      setPriceInputs({})
       refresh()
     } else {
       setFeedback({ ok: false, text: res.error || "Failed to add price." })
@@ -337,37 +557,98 @@ export default function DischargePage() {
   const labelCls = "mb-1 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4"
 
   return (
-    <div className="min-h-screen bg-pagebg pb-16">
+    <div className="fintech-dark min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
+
+      {/* Compact and sticky — always reachable, never eats permanent
+          screen space the way the richer stat card below would if it
+          stayed pinned too. */}
+      <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2 transition hover:bg-border/40">
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border transition hover:bg-surface"
+            style={{ borderColor: "var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
             <i className="bi bi-arrow-left" />
           </button>
           <div className="flex-1">
-            <div className="text-[16px] font-extrabold text-ink">Discharge</div>
-            <div className="text-[10px] text-ink-4">Fuel discharge recording — {getStation(activeStation()).name}</div>
+            <div className="text-[16px] font-extrabold tracking-tight" style={{ color: "var(--ftk-ink)" }}>Discharge</div>
+            <div className="text-[10.5px] font-medium" style={{ color: "var(--ftk-ink-faint)" }}>{getStation(activeStation()).name}</div>
           </div>
           {isGMOrOwner && (
-            <div className="flex items-center gap-1.5 rounded-full bg-navy/5 px-3 py-1.5 text-[10.5px] font-bold text-navy">
+            <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10.5px] font-bold" style={{ background: "rgba(19,6,86,0.06)", color: "var(--ftk-ink-dim)" }}>
               <i className="bi bi-droplet-half" /> {litres(sumRecords(records).litres)} all-time
             </div>
           )}
         </div>
-        <div className="flex border-t border-border">
+        <div className="flex gap-1.5 border-t px-3 py-2" style={{ borderColor: "var(--ftk-card-border)" }}>
           {[
             ["records", "Records", records.length],
             ...(isSupervisor ? [["record", "Record Discharge", null]] : []),
             ...(isGM ? [["pricing", pending.length > 0 ? `Price Discharge (${pending.length})` : "Price Discharge", null]] : []),
           ].map(([k, l]) => (
             <button key={k} type="button" onClick={() => { setTab(k); setFeedback(null) }}
-              className={`flex-1 py-2.5 text-[12px] font-bold transition ${tab === k ? "border-b-2 border-navy text-navy" : "text-ink-4 hover:text-ink-2"}`}>
+              className="flex-1 rounded-full py-1.5 text-[11.5px] font-bold transition"
+              style={tab === k
+                ? { background: "var(--ftk-ink)", color: "#fff" }
+                : { background: "var(--ftk-bg)", color: "var(--ftk-ink-dim)" }}>
               {l}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Scrolls away naturally — a hero moment, not a permanent fixture.
+          The real "at a glance" job this page needs to do: today's volume
+          as the headline figure, with the last 7 days right beside it, so
+          a genuine change in pattern is visible immediately rather than
+          buried in a list someone has to scroll to notice. */}
+      {isGMOrOwner && !loading && tab === "records" && (
+        <div className="relative overflow-hidden px-4 pb-1 pt-4" style={{ background: "var(--ftk-bg-hero)" }}>
+          <div className="rounded-[18px] p-4" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", boxShadow: "0 1px 2px rgba(19,6,86,0.04), 0 8px 24px -12px rgba(19,6,86,0.12)" }}>
+            <div className="mb-3 flex items-end justify-between">
+              <div>
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>Today — {productFilter}</div>
+                <div className="ftk-mono text-[28px] font-black leading-none" style={{ color: "var(--ftk-ink)" }}>
+                  {todayLitres > 0 ? litres(todayLitres) : "—"}
+                </div>
+              </div>
+              {pending.length > 0 && (
+                <div className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: "rgba(217,119,6,0.12)", color: "var(--ftk-amber)" }}>
+                  <i className="bi bi-hourglass-split text-[9px]" /> {pending.length} needs price
+                </div>
+              )}
+            </div>
+
+            {/* Seven bars, today highlighted — a real trend, not decoration.
+                Height is proportional within the window, so a genuinely
+                quiet week and a genuinely busy one both read honestly. */}
+            <div className="flex items-end gap-1.5" style={{ height: 44 }}>
+              {trendDays.map((d, i) => {
+                const max = Math.max(...trendDays.map(t => t.litres), 1)
+                const h = d.litres > 0 ? Math.max(6, Math.round((d.litres / max) * 44)) : 3
+                const isToday = i === trendDays.length - 1
+                return (
+                  <div key={d.key} className="flex flex-1 flex-col items-center justify-end gap-1">
+                    <div
+                      className="w-full rounded-[3px] transition-all"
+                      style={{
+                        height: h,
+                        background: isToday ? "var(--ftk-cyan)" : d.litres > 0 ? "rgba(19,6,86,0.16)" : "rgba(19,6,86,0.06)",
+                      }}
+                      title={`${d.key}: ${litres(d.litres)}`}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-1.5 flex gap-1.5">
+              {trendDays.map(d => (
+                <div key={d.key} className="flex-1 text-center text-[9px] font-bold" style={{ color: "var(--ftk-ink-faint)" }}>{d.label}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-[640px] px-4 py-4">
         {/* Feedback */}
@@ -379,11 +660,29 @@ export default function DischargePage() {
           </div>
         )}
 
+        {/* PMS/AGO toggle — never blended, same as the fuel-stock hero never
+            combines PMS-on-hand with AGO-on-hand. Governs History, period
+            totals, and Pricing below, whichever tab is active. */}
+        {(tab === "records" || tab === "pricing") && (
+          <div className="mb-4 flex gap-2">
+            {["PMS", "AGO"].map(p => (
+              <button
+                key={p} type="button" onClick={() => setProductFilter(p)}
+                className={`flex-1 rounded-[12px] py-2.5 text-[13px] font-bold transition ${
+                  productFilter === p ? "bg-navy text-white shadow-lift" : "border border-border bg-white text-ink-3"
+                }`}
+              >
+                <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : "bi-droplet-fill"} mr-1.5`} />{p}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ── RECORDS TAB ── */}
         {tab === "records" && (
           <>
             {/* Owner/GM summary strip — running totals by period, front and center */}
-            {isGMOrOwner && !loading && records.length > 0 && (
+            {isGMOrOwner && !loading && productFilteredRecords.length > 0 && (
               <div className="mb-4 overflow-hidden rounded-[16px] shadow-lift" style={{ background: "var(--brand-gradient-btn)" }}>
                 <div className="flex gap-1 px-3 pt-3">
                   {[["week", "This Week"], ["month", "This Month"], ["all", "All Time"]].map(([k, l]) => (
@@ -394,16 +693,20 @@ export default function DischargePage() {
                   ))}
                 </div>
                 <div className="px-4 pb-1 pt-2 text-[10.5px] font-semibold text-white/50">{periodLabel} · {periodTotals.count} record{periodTotals.count !== 1 ? "s" : ""}</div>
-                <div className="grid grid-cols-3 divide-x divide-white/10 px-1 py-4">
-                  <div className="px-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Litres</div>
+                <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 px-1 py-4">
+                  <div className="px-3 pb-3 text-center">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Expected</div>
+                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.ordered > 0 ? litres(periodTotals.ordered) : "—"}</div>
+                  </div>
+                  <div className="px-3 pb-3 text-center">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Received</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{litres(periodTotals.litres)}</div>
                   </div>
-                  <div className="px-3 text-center">
+                  <div className="px-3 pt-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Amount</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{naira(periodTotals.cost)}</div>
                   </div>
-                  <div className="px-3 text-center">
+                  <div className="px-3 pt-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Variance Cost</div>
                     <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : periodTotals.shortageAmount < 0 ? "text-green" : "text-white"}`}>{periodTotals.shortageAmount < 0 ? `+${naira(Math.abs(periodTotals.shortageAmount))}` : naira(periodTotals.shortageAmount)}</div>
                   </div>
@@ -441,121 +744,172 @@ export default function DischargePage() {
                 <div className="text-[12px] text-ink-4">Loading records…</div>
               </div>
             )}
-            {!loading && records.length === 0 && (
+            {!loading && productFilteredRecords.length === 0 && (
               <div className="flex flex-col items-center gap-3 rounded-[16px] bg-white py-16 text-center shadow-sm">
                 <i className="bi bi-fuel-pump text-4xl text-ink-4" />
                 <div className="text-[14px] font-bold text-ink">No discharge records yet</div>
                 <div className="text-[12.5px] text-ink-4">Records will appear here once a supervisor logs a discharge.</div>
               </div>
             )}
-            {!loading && records.length > 0 && (
-              <div className="space-y-5">
+            {!loading && productFilteredRecords.length > 0 && (
+              <div className="space-y-3">
                 {groupedRecords.map((group, gi) => {
                   const daySum = sumRecords(group.items)
-                  const dayByTank = sumByTank(group.items)
+                  const allPriced = group.items.every(isPriced)
                   return (
-                  <div key={gi}>
-                    <div className="mb-2 flex items-center gap-2 px-1">
-                      <div className="text-[11.5px] font-extrabold text-ink-2">{formatDateLabel(group.date)}</div>
-                      <div className="h-px flex-1 bg-border" />
-                      <div className="mono text-[10.5px] font-bold text-ink-4">
-                        {litres(daySum.litres)}
-                        {isGMOrOwner && daySum.cost > 0 && <> · {naira(daySum.cost)}</>}
-                        {daySum.shortageLitres > 0 && <span className="text-red"> · {litres(daySum.shortageLitres)} short</span>}
-                      </div>
-                    </div>
-                    {/* Per-tank breakdown for this day — only shown when more
-                        than one tank received fuel the same day (like a
-                        delivery split across TK1/TK2/TK3). A single-tank day
-                        already says everything it needs to in the combined
-                        line above; this is for the day that needs untangling. */}
-                    {dayByTank.length > 1 && (
-                      <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 px-1">
-                        {dayByTank.map(t => (
-                          <span key={t.label} className="text-[10.5px] font-semibold text-ink-3">
-                            {t.label}: <span className="font-mono font-bold text-ink-2">{litres(t.litres)}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="space-y-3">
-                      {group.items.map((r, i) => (
-                        <div key={i} className="overflow-hidden rounded-[14px] bg-white shadow-sm transition hover:shadow-md">
-                          <div className="flex items-center justify-between border-b border-surface px-4 py-3">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy/5 text-[15px] text-navy">
-                                <i className={`bi ${productIcon(r[COL.PRODUCT])}`} />
-                              </div>
-                              <div>
-                                <div className="text-[13.5px] font-bold text-ink">{r[COL.PRODUCT]}</div>
-                                <div className="text-[10.5px] text-ink-4">
-                                  {r[COL.SUPPLIER] && <span className="font-semibold text-ink-2">{r[COL.SUPPLIER]}</span>}
-                                  {r[COL.SUPPLIER] && r[COL.DRIVER] && " · "}
-                                  {r[COL.DRIVER] && <>Driver: {r[COL.DRIVER]}</>}
-                                  {(r[COL.SUPPLIER] || r[COL.DRIVER]) && " · "}
-                                  Submitted by {r[COL.SUBMITTED_BY]}
-                                </div>
-                              </div>
-                            </div>
+                    <div key={gi} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
+                      {/* One card per day — the day's total is the headline,
+                          not each tank buried in its own separate card. */}
+                      <div className="flex items-center gap-3 border-b border-surface px-4 py-3.5">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-navy/8 text-[16px] text-navy">
+                          <i className="bi bi-calendar3" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-3">
+                            {formatDateLabel(group.date)} · {group.items.length} tank{group.items.length !== 1 ? "s" : ""}
                             {isGMOrOwner && (
-                              <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold ${isPriced(r) ? "bg-green-light text-green" : "bg-amber-light text-amber"}`}>
-                                <i className={`bi ${isPriced(r) ? "bi-check-circle-fill" : "bi-hourglass-split"} text-[9px]`} />
-                                {isPriced(r) ? "Priced" : "Needs Price"}
+                              <span className={`ml-auto flex items-center gap-1 rounded-full px-2 py-[2px] text-[9.5px] font-bold ${allPriced ? "bg-green-light text-green" : "bg-amber-light text-amber"}`}>
+                                <i className={`bi ${allPriced ? "bi-check-circle-fill" : "bi-hourglass-split"} text-[8px]`} />
+                                {allPriced ? "Priced" : "Needs Price"}
                               </span>
                             )}
                           </div>
-
-                          {/* Supervisor/cashier view — no financials, ever */}
-                          {isSupervisor && (
-                            <div className="grid grid-cols-2 gap-px bg-border">
-                              {[["Litres Received", `${litres(r[COL.ACTUAL])}`, "text-navy"],
-                                ["Variance", varianceLabel(r[COL.SHORTAGE]).text, varianceLabel(r[COL.SHORTAGE]).cls]].map(([l, v, c]) => (
-                                <div key={l} className="bg-white px-3 py-2.5">
-                                  <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
-                                  <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
-                                </div>
-                              ))}
-                            </div>
+                          {/* One line, not a redundant received-total sitting
+                              right underneath an Expected figure that already
+                              implies it — confirmed directly this was
+                              cluttered. Also fixes a real bug here: the old
+                              check only fired for positive (shortage) values,
+                              so a day with an overage silently showed no
+                              badge at all — same sign issue already fixed on
+                              the entry form, still present here until now. */}
+                          {daySum.ordered > 0 ? (
+                            <>
+                              <div className="text-[11px] font-semibold text-ink-4">Expected</div>
+                              <div className="mono text-[22px] font-black leading-tight text-ink">
+                                {litres(daySum.ordered)}
+                                {daySum.shortageLitres !== 0 && (
+                                  <span className={`ml-2 text-[15px] font-bold ${daySum.shortageLitres > 0 ? "text-red" : "text-green"}`}>
+                                    {daySum.shortageLitres > 0 ? "−" : "+"}{litres(Math.abs(daySum.shortageLitres))}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="mono text-[22px] font-black leading-tight text-ink">{litres(daySum.litres)}</div>
                           )}
-
-                          {/* GM/Owner view — full financials */}
-                          {isGMOrOwner && (
-                            <div className="grid grid-cols-3 gap-px bg-border">
-                              {[["Litres Received", `${litres(r[COL.ACTUAL])}`, "text-navy"],
-                                ["Price/Litre", r[COL.PRICE] ? naira(r[COL.PRICE]) : "—", "text-ink"],
-                                ["Total Amount", r[COL.TOTAL] ? naira(r[COL.TOTAL]) : "—", "text-ink font-extrabold"],
-                                ["Variance", varianceLabel(r[COL.SHORTAGE]).text, varianceLabel(r[COL.SHORTAGE]).cls],
-                                ["Variance Cost", varianceMoney(r[COL.SHORTAGE_AMOUNT]).text, varianceMoney(r[COL.SHORTAGE_AMOUNT]).cls],
-                                ["Ordered", r[COL.ORDERED] ? `${litres(r[COL.ORDERED])}` : "—", "text-ink"]].map(([l, v, c]) => (
-                                <div key={l} className="bg-white px-3 py-2.5">
-                                  <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
-                                  <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {(r[COL.TRUCK] || r[COL.WAYBILL]) && (
-                            <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-surface px-4 py-2 text-[11px] text-ink-4">
-                              {r[COL.TRUCK] && <span><i className="bi bi-truck mr-1 opacity-60" />Truck: <strong className="text-ink-2">{r[COL.TRUCK]}</strong></span>}
-                              {r[COL.WAYBILL] && <span><i className="bi bi-receipt mr-1 opacity-60" />Waybill: <strong className="text-ink-2">{r[COL.WAYBILL]}</strong></span>}
-                            </div>
-                          )}
-                          {r[COL.NOTES] && (
-                            <div className="border-t border-surface bg-surface/50 px-4 py-2 text-[11px] text-ink-3">
-                              <i className="bi bi-sticky mr-1 opacity-60" />{r[COL.NOTES]}
-                            </div>
-                          )}
-                          {isGM && !isPriced(r) && (
-                            <button type="button" onClick={() => { setPricingRow(r); setTab("pricing") }}
-                              className="flex w-full items-center justify-center gap-2 border-t border-surface py-2.5 text-[12px] font-bold text-cyan-dark transition hover:bg-cyan/5">
-                              <i className="bi bi-tag" /> Add Price per Litre
-                            </button>
+                          {isGMOrOwner && daySum.cost > 0 && (
+                            <div className="mono text-[13px] font-bold text-ink-3">{naira(daySum.cost)} total</div>
                           )}
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Per-tank breakdown, consolidated — every tank that
+                          received fuel this day, in one list, not separate
+                          cards. Supervisor sees litres/variance only; GM/Owner
+                          also sees price and amount. */}
+                      <div className="divide-y divide-surface">
+                        {group.items.map((r, i) => (
+                          <div key={i} className="px-4 py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <i className={`bi ${productIcon(r[COL.PRODUCT])} flex-shrink-0 text-[13px] text-ink-4`} />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[12.5px] font-bold text-ink">{r[COL.PRODUCT]}</div>
+                                {(r[COL.SUPPLIER] || r[COL.DRIVER]) && (
+                                  <div className="truncate text-[10px] text-ink-4">
+                                    {r[COL.SUPPLIER]}{r[COL.SUPPLIER] && r[COL.DRIVER] && " · "}{r[COL.DRIVER] && `Driver: ${r[COL.DRIVER]}`}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <div className="mono text-[12.5px] font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
+                                {Number(r[COL.SHORTAGE]) !== 0 && (
+                                  <div className={`mono text-[10px] font-bold ${Number(r[COL.SHORTAGE]) > 0 ? "text-red" : "text-green"}`}>
+                                    {Number(r[COL.SHORTAGE]) > 0 ? "−" : "+"}{litres(Math.abs(Number(r[COL.SHORTAGE])))}
+                                  </div>
+                                )}
+                              </div>
+                              {isGMOrOwner && (
+                                <div className="flex-shrink-0 text-right">
+                                  <div className="mono text-[12.5px] font-bold text-ink">{r[COL.TOTAL] ? naira(r[COL.TOTAL]) : "—"}</div>
+                                  {r[COL.PRICE] && <div className="mono text-[9.5px] text-ink-4">@{naira(r[COL.PRICE])}</div>}
+                                </div>
+                              )}
+                              {/* Edit is supervisor-only here — GM/CEO have
+                                  Delete instead, not both. Unpriced only:
+                                  once GM has priced it, the total is locked
+                                  to that litres figure, so editing would
+                                  silently make it wrong. */}
+                              {!isPriced(r) && !isGMOrOwner && dischargeEditEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEditRecord(r)}
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-border text-ink-3"
+                                >
+                                  <i className="bi bi-pencil text-[10px]" />
+                                </button>
+                              )}
+                              {/* Toggle off, supervisor — same request/approve
+                                  path as everywhere else, not just a dead
+                                  end. Request once; the actual Edit attempt
+                                  either succeeds once GM/CEO has approved it,
+                                  or the backend explains it's still locked. */}
+                              {!isPriced(r) && !isGMOrOwner && !dischargeEditEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRequestDischargeEdit(r)}
+                                  disabled={requestingDischargeEdit === r.rowIndex}
+                                  className="flex h-6 items-center gap-1 rounded-[6px] border border-amber/30 bg-amber-light px-2 text-[9.5px] font-bold text-amber"
+                                >
+                                  <i className="bi bi-hourglass-split text-[9px]" /> {requestingDischargeEdit === r.rowIndex ? "…" : "Request Edit"}
+                                </button>
+                              )}
+                              {!isPriced(r) && !isGMOrOwner && !dischargeEditEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEditRecord(r)}
+                                  title="Try editing — works once GM/CEO has approved your request"
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-border text-ink-3"
+                                >
+                                  <i className="bi bi-pencil text-[10px]" />
+                                </button>
+                              )}
+                              {/* Delete is CEO/GM/Owner-only here — a genuine
+                                  mistake (wrong tank, test entry, duplicate),
+                                  not something a supervisor removes
+                                  themselves. No edit icon shown to this
+                                  group here; they have Delete instead. */}
+                              {isGMOrOwner && (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteDischarge(r)}
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-red/25 bg-red-light text-red"
+                                >
+                                  <i className="bi bi-trash3 text-[10px]" />
+                                </button>
+                              )}
+                            </div>
+                            {(r[COL.TRUCK] || r[COL.WAYBILL] || r[COL.NOTES]) && (
+                              <div className="mt-1 pl-[21px] text-[10px] text-ink-4">
+                                {r[COL.TRUCK] && <span className="mr-2"><i className="bi bi-truck mr-0.5 opacity-60" />{r[COL.TRUCK]}</span>}
+                                {r[COL.WAYBILL] && <span className="mr-2"><i className="bi bi-receipt mr-0.5 opacity-60" />{r[COL.WAYBILL]}</span>}
+                                {r[COL.NOTES] && <span><i className="bi bi-sticky mr-0.5 opacity-60" />{r[COL.NOTES]}</span>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="border-t border-surface px-4 py-2 text-[10px] text-ink-4">
+                        Submitted by {group.items[0][COL.SUBMITTED_BY]}
+                      </div>
+
+                      {isGM && !allPriced && (
+                        <button type="button" onClick={() => { setPricingDate(group.date); setTab("pricing") }}
+                          className="flex w-full items-center justify-center gap-2 border-t border-surface py-2.5 text-[12px] font-bold text-cyan-dark transition hover:bg-cyan/5">
+                          <i className="bi bi-tag" /> Add Price for This Day
+                        </button>
+                      )}
                     </div>
-                  </div>
                   )
                 })}
               </div>
@@ -611,24 +965,28 @@ export default function DischargePage() {
                       <input type="number" inputMode="decimal" placeholder="0" value={form.actualReceived} onChange={e => setForm(f => ({...f, actualReceived: e.target.value}))} className={inputCls + " font-bold"} />
                     </label>
                   </div>
-                  <label className="block">
-                    {/* One signed field covers both directions. A separate
-                        "overage" input would let someone fill in both and
-                        contradict themselves. */}
-                    <span className={labelCls}>Variance (L) — shortage or overage</span>
-                    <input type="number" inputMode="decimal" placeholder="0" value={form.shortage} onChange={e => setForm(f => ({...f, shortage: e.target.value}))} className={inputCls} />
-                    <span className="mt-1 block text-[10.5px] text-ink-4">
-                      {form.orderedLitres && form.actualReceived
-                        ? (() => {
-                            const v = Number(form.orderedLitres) - Number(form.actualReceived)
-                            if (v === 0) return "Leave blank to auto-calculate: exact match"
-                            return v > 0
-                              ? `Leave blank to auto-calculate: ${litres(v)} short`
-                              : `Leave blank to auto-calculate: ${litres(Math.abs(v))} over`
-                          })()
-                        : "Leave blank to auto-calculate from Ordered − Actual"}
-                    </span>
-                  </label>
+                  <div className="rounded-[10px] border border-border bg-surface px-3.5 py-3">
+                    {/* Auto-calculated only, never manually typed —
+                        confirmed directly: a supervisor typing a positive
+                        number meaning "this much extra" was silently
+                        recorded as a shortage instead, since positive is
+                        this system's shortage convention and there's no
+                        intuitive reason a person would guess that without
+                        being told. Removing the manual field removes the
+                        chance of typing the sign wrong — Ordered and
+                        Actual are already both entered, so this can always
+                        be computed correctly instead of guessed at. */}
+                    <span className={labelCls}>Variance (auto-calculated from Ordered − Actual)</span>
+                    {form.orderedLitres && form.actualReceived ? (() => {
+                      const v = Number(form.orderedLitres) - Number(form.actualReceived)
+                      if (v === 0) return <div className="mono text-[15px] font-bold text-ink">Exact match</div>
+                      return v > 0
+                        ? <div className="mono text-[15px] font-bold text-red">{litres(v)} short</div>
+                        : <div className="mono text-[15px] font-bold text-green">{litres(Math.abs(v))} over</div>
+                    })() : (
+                      <div className="text-[12.5px] text-ink-4">Enter Ordered and Actual Received above to see this</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -672,76 +1030,101 @@ export default function DischargePage() {
               </div>
             )}
             <div className="space-y-3">
-              {pending.map((r, i) => (
-                <div key={i} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
-                  <div className="flex items-center gap-2.5 border-b border-surface px-4 py-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-light text-[15px] text-amber">
-                      <i className={`bi ${productIcon(r[COL.PRODUCT])}`} />
-                    </div>
-                    <div>
-                      <div className="text-[13.5px] font-bold text-ink">{r[COL.PRODUCT]}</div>
-                      <div className="text-[10.5px] text-ink-4">{formatDateLabel(r[COL.DATE])} · Submitted by {r[COL.SUBMITTED_BY]}</div>
-                    </div>
-                  </div>
+              {/* Grouped by day, then by product within the day — PMS and
+                  AGO are never the same price, confirmed directly this was
+                  wrong to lump into one figure. A day with only PMS asks
+                  for one price; a day with both asks for both, each
+                  applied only to that product's own tanks. */}
+              {Object.entries(
+                pending.reduce((groups, r) => {
+                  const d = r[COL.DATE]
+                  if (!groups[d]) groups[d] = []
+                  groups[d].push(r)
+                  return groups
+                }, {})
+              ).map(([date, items]) => {
+                const stationTanks = tanksFor(activeStation())
+                const productFor = (tankId) => stationTanks.find(t => t.id === tankId)?.product || tankId
+                const itemsByProduct = items.reduce((acc, r) => {
+                  const p = productFor(r[COL.PRODUCT])
+                  if (!acc[p]) acc[p] = []
+                  acc[p].push(r)
+                  return acc
+                }, {})
+                const productsNeeded = Object.keys(itemsByProduct)
+                const dayTotalLitres = items.reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
+                const isPricingThisDay = pricingDate === date
+                const allPricesFilled = isPricingThisDay && productsNeeded.every(p => priceInputs[p])
 
-                  {/* Full recorded detail — exactly what the supervisor logged, before GM sets a price */}
-                  <div className="grid grid-cols-2 gap-px bg-border text-[12px]">
-                    {[["Supplier", r[COL.SUPPLIER] || "—", "bi-shop"],
-                      ["Driver", r[COL.DRIVER] || "—", "bi-person"],
-                      ["Truck No.", r[COL.TRUCK] || "—", "bi-truck"],
-                      ["Waybill No.", r[COL.WAYBILL] || "—", "bi-receipt"]].map(([l, v, icon]) => (
-                      <div key={l} className="bg-white px-3 py-2">
-                        <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4"><i className={`bi ${icon} opacity-60`} />{l}</div>
-                        <div className="mt-0.5 truncate text-[12.5px] font-bold text-ink">{v}</div>
+                return (
+                  <div key={date} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
+                    <div className="flex items-center gap-3 border-b border-surface px-4 py-3.5">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-amber-light text-[16px] text-amber">
+                        <i className="bi bi-calendar3" />
                       </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-px bg-border text-[12px]">
-                    {[["Ordered", r[COL.ORDERED] ? `${litres(r[COL.ORDERED])}` : "—", "text-ink"],
-                      ["Actual Received", `${litres(r[COL.ACTUAL])}`, "text-navy"],
-                      ["Variance", varianceLabel(r[COL.SHORTAGE]).text, varianceLabel(r[COL.SHORTAGE]).cls]].map(([l, v, c]) => (
-                      <div key={l} className="bg-white px-3 py-2.5">
-                        <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
-                        <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
+                      <div className="flex-1">
+                        <div className="text-[12px] font-semibold text-ink-3">{formatDateLabel(date)} · {items.length} tank{items.length !== 1 ? "s" : ""}</div>
+                        <div className="mono text-[22px] font-black leading-tight text-ink">{litres(dayTotalLitres)}</div>
                       </div>
-                    ))}
-                  </div>
-                  {r[COL.NOTES] && (
-                    <div className="border-t border-surface bg-surface/50 px-4 py-2 text-[11px] text-ink-3">
-                      <i className="bi bi-sticky mr-1 opacity-60" />{r[COL.NOTES]}
                     </div>
-                  )}
 
-                  <div className="px-4 pb-4 pt-3">
-                    <label className="mb-3 block">
-                      <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4">Amount Bought Per Litre (₦)</span>
-                      <input type="number" inputMode="decimal" placeholder="e.g. 850"
-                        value={pricingRow?.rowIndex === r.rowIndex ? priceInput : ""}
-                        onFocus={() => setPricingRow(r)}
-                        onChange={e => { setPricingRow(r); setPriceInput(e.target.value) }}
-                        className="mono w-full rounded-[10px] border-2 border-cyan bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
-                    </label>
-                    {pricingRow?.rowIndex === r.rowIndex && priceInput && (
-                      <div className="mb-3 space-y-1.5 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
-                        <div>{litres(r[COL.ACTUAL])} × {naira(Number(priceInput))} = <strong className="text-navy">{naira(Number(r[COL.ACTUAL]) * Number(priceInput))}</strong> total amount</div>
-                        {Number(r[COL.SHORTAGE]) > 0 && (
-                          <div>
-                            {litres(Math.abs(Number(r[COL.SHORTAGE])))} {Number(r[COL.SHORTAGE]) > 0 ? "shortage" : "overage"} × {naira(Number(priceInput))} ={" "}
-                            <strong className={Number(r[COL.SHORTAGE]) > 0 ? "text-red" : "text-green"}>
-                              {Number(r[COL.SHORTAGE]) > 0 ? naira(Number(r[COL.SHORTAGE]) * Number(priceInput)) : `+${naira(Math.abs(Number(r[COL.SHORTAGE]) * Number(priceInput)))}`}
-                            </strong>{" "}
-                            {Number(r[COL.SHORTAGE]) > 0 ? "shortage cost" : "value received"}
+                    {/* One block per product — its own tanks listed, its own
+                        price input, its own preview. */}
+                    {productsNeeded.map(product => {
+                      const productItems = itemsByProduct[product]
+                      const productLitres = productItems.reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
+                      const productShortage = productItems.reduce((s, r) => s + (Number(r[COL.SHORTAGE]) || 0), 0)
+                      const priceVal = isPricingThisDay ? (priceInputs[product] || "") : ""
+                      const previewTotal = priceVal ? productLitres * Number(priceVal) : null
+                      const previewShortageCost = priceVal && productShortage > 0 ? productShortage * Number(priceVal) : null
+
+                      return (
+                        <div key={product} className="border-b border-surface">
+                          <div className="divide-y divide-surface">
+                            {productItems.map((r, i) => (
+                              <div key={i} className="flex items-center gap-2.5 px-4 py-2.5">
+                                <i className={`bi ${productIcon(r[COL.PRODUCT])} text-[13px] text-ink-4`} />
+                                <div className="flex-1 text-[12.5px] font-semibold text-ink">{r[COL.PRODUCT]} <span className="text-ink-4">({product})</span></div>
+                                <div className="mono text-[12.5px] font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
+                                {Number(r[COL.SHORTAGE]) !== 0 && (
+                                  <span className={`rounded-full px-2 py-[2px] text-[10px] font-bold ${Number(r[COL.SHORTAGE]) > 0 ? "bg-red-light text-red" : "bg-green-light text-green"}`}>
+                                    {Number(r[COL.SHORTAGE]) > 0 ? "−" : "+"}{litres(Math.abs(Number(r[COL.SHORTAGE])))}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        )}
-                      </div>
-                    )}
-                    <button type="button" onClick={handleAddPrice} disabled={saving || pricingRow?.rowIndex !== r.rowIndex || !priceInput}
-                      className="flex w-full items-center justify-center gap-2 rounded-[11px] bg-green py-3 text-[13px] font-bold text-white shadow-lift disabled:opacity-40">
-                      {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <><i className="bi bi-check2" /> Confirm Price</>}
-                    </button>
+                          <div className="px-4 pb-4 pt-3">
+                            <label className="mb-2 block">
+                              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4">{product} Price Per Litre (₦)</span>
+                              <input type="number" inputMode="decimal" placeholder="e.g. 1229"
+                                value={priceVal}
+                                onFocus={() => setPricingDate(date)}
+                                onChange={e => { setPricingDate(date); setPriceInputs(v => ({ ...v, [product]: e.target.value })) }}
+                                className="mono w-full rounded-[10px] border-2 border-cyan bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
+                            </label>
+                            {previewTotal !== null && (
+                              <div className="space-y-1 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
+                                <div>{litres(productLitres)} × {naira(Number(priceVal))} = <strong className="text-navy">{naira(previewTotal)}</strong></div>
+                                {previewShortageCost !== null && (
+                                  <div>{litres(productShortage)} shortage × {naira(Number(priceVal))} = <strong className="text-red">{naira(previewShortageCost)}</strong> shortage cost</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    <div className="px-4 pb-4 pt-3">
+                      <button type="button" onClick={() => handlePriceDay(date, productsNeeded)} disabled={saving || !allPricesFilled}
+                        className="flex w-full items-center justify-center gap-2 rounded-[11px] bg-green py-3 text-[13px] font-bold text-white shadow-lift disabled:opacity-40">
+                        {saving ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <><i className="bi bi-check2" /> Confirm Price{productsNeeded.length > 1 ? "s" : ""} for This Day</>}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </>
         )}
@@ -757,6 +1140,116 @@ export default function DischargePage() {
         onConfirm={doSubmitDischarge}
         onCancel={() => setConfirmOpen(false)}
       />
+
+      {/* This tank's opening was already recorded today — asked right here,
+          the moment it's actually decided, instead of leaving it for
+          whoever next opens Dip entry. */}
+      {dischargeResolutionPrompt && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="w-full max-w-[440px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]">
+            <div className="mb-1 text-[15px] font-extrabold text-ink">One more thing before this is done</div>
+            <div className="mb-4 text-[12.5px] text-ink-3">
+              {dischargeResolutionPrompt.length > 1 ? "These tanks already have" : "This tank already has"} an opening recorded today. Does {dischargeResolutionPrompt.length > 1 ? "each reading" : "that reading"} already include the delivery?
+            </div>
+            <div className="mb-4 space-y-3">
+              {dischargeResolutionPrompt.map((p, i) => (
+                <div key={p.tank} className="rounded-[12px] border border-border bg-surface p-3.5">
+                  <div className="mb-2 text-[13px] font-bold text-ink">{p.tank} — {litres(p.actual)} delivered</div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDischargeResolutionPrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "yes" } : x))}
+                      className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
+                        p.answer === "yes" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                      }`}
+                    >
+                      Yes, already included
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDischargeResolutionPrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "no" } : x))}
+                      className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
+                        p.answer === "no" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                      }`}
+                    >
+                      No, add it
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={dischargeResolutionPrompt.some(p => p.answer === null) || saving}
+              onClick={finishDischargeResolution}
+              className="flex h-[48px] w-full items-center justify-center rounded-[12px] bg-green text-[14px] font-extrabold text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Confirm"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingRecord && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setEditingRecord(null)}>
+          <div className="max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-[20px] bg-white p-5 sm:rounded-[20px]" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-[15px] font-extrabold text-ink">Edit Discharge — {editingRecord[COL.PRODUCT]}</div>
+              <button type="button" onClick={() => setEditingRecord(null)} className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-ink-3">
+                <i className="bi bi-x-lg text-[12px]" />
+              </button>
+            </div>
+
+            {[
+              ["Supplier", "supplier", "text"],
+              ["Driver Name", "driverName", "text"],
+              ["Truck No.", "truckNo", "text"],
+              ["Waybill No.", "waybillNo", "text"],
+              ["Ordered Litres", "orderedLitres", "number"],
+              ["Actual Received", "actualReceived", "number"],
+              ["Notes", "notes", "text"],
+            ].map(([label, key, type]) => (
+              <label key={key} className="mb-3 block">
+                <span className="mb-1 block text-[11px] font-semibold text-ink-3">{label}</span>
+                <input
+                  type={type} inputMode={type === "number" ? "decimal" : undefined}
+                  value={editForm[key] ?? ""}
+                  onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-2.5 text-[14px] font-medium text-ink outline-none focus:border-cyan focus:bg-white"
+                />
+              </label>
+            ))}
+
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={() => setEditingRecord(null)} className="flex-1 rounded-[10px] border border-border py-2.5 text-[13px] font-semibold text-ink-3">
+                Cancel
+              </button>
+              <button type="button" onClick={saveEditRecord} disabled={savingEdit} className="flex-1 rounded-[10px] bg-green py-2.5 text-[13px] font-bold text-white disabled:opacity-50">
+                {savingEdit ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteDischarge && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setConfirmDeleteDischarge(null)}>
+          <div className="w-full max-w-[400px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]" onClick={e => e.stopPropagation()}>
+            <div className="mb-1 text-[15px] font-extrabold text-ink">Delete this discharge record?</div>
+            <div className="mb-4 text-[12.5px] text-ink-3">
+              {confirmDeleteDischarge[COL.PRODUCT]} — {litres(confirmDeleteDischarge[COL.ACTUAL])} on {formatDateLabel(confirmDeleteDischarge[COL.DATE])}. This can't be undone.
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmDeleteDischarge(null)} className="flex-1 rounded-[10px] border border-border py-2.5 text-[13px] font-semibold text-ink-3">
+                Cancel
+              </button>
+              <button type="button" onClick={handleDeleteDischarge} disabled={savingEdit} className="flex-1 rounded-[10px] bg-red py-2.5 text-[13px] font-bold text-white disabled:opacity-50">
+                {savingEdit ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
