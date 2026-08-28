@@ -43,6 +43,7 @@ const PriceCorrectionPage    = lazy(() => import("./pages/PriceCorrectionPage"))
 const ForgotPasswordPage     = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage      = lazy(() => import("./pages/ResetPasswordPage"))
 const DischargePage          = lazy(() => import("./pages/DischargePage"))
+const AdminDashboardPage     = lazy(() => import("./pages/AdminDashboardPage"))
 const ShiftsPage             = lazy(() => import("./pages/ShiftsPage"))
 const DebtorsPage            = lazy(() => import("./pages/DebtorsPage"))
 const OrdersPage             = lazy(() => import("./pages/OrdersPage"))
@@ -111,6 +112,7 @@ export default function App() {
           <Route path="/shortage/:station" element={<StationGuard><ShortagePage /></StationGuard>} />
           <Route path="/activity/:station" element={<StationGuard><ActivityLogPage /></StationGuard>} />
           <Route path="/discharge/:station" element={<StationGuard><DischargePage /></StationGuard>} />
+          <Route path="/admin/:station" element={<StationGuard><AdminDashboardPage /></StationGuard>} />
           <Route path="/shifts/:station" element={<StationGuard><ShiftsPage /></StationGuard>} />
           <Route path="/debtors/:station" element={<StationGuard><DebtorsPage /></StationGuard>} />
           <Route path="/orders/:station" element={<StationGuard><OrdersPage /></StationGuard>} />

@@ -253,19 +253,41 @@ function RecordsInner() {
   let hasAnyPumpData = false
   let pmsPumpLitres = 0
   let agoPumpLitres = 0
+  let pmsPumpRevenue = 0
+  let agoPumpRevenue = 0
   if (report) {
     tanksFor(activeStation()).forEach(t => {
+      // Same LPG-separation as the pump loop below — TK5 (LPG) stays out
+      // of this stock/theft check entirely, not mixed with fuel tanks.
+      if (t.product === "LPG") return
       dipDiffTotal += report[`${t.id.toLowerCase()}_diff`] || 0
     })
+    /* Was only reading sessions[0] — the FIRST session for the day, full
+       stop. A pump with a second session from a mid-day price change had
+       that second session's litres and revenue silently missing
+       entirely, not just mispriced. Confirmed the same root cause as the
+       Summary page's live revenue calculation — every session for the
+       pump needs summing, each priced at what it actually sold for, not
+       just the first one found. */
     pumpsFor(activeStation()).forEach(p => {
+      /* Same bug as the Summary page's live revenue calculation — this
+         only ever checked for AGO, so an LPG pump (correctly labeled
+         "LPG" right here in the station config) fell into the PMS
+         bucket by default. Confirmed against a real paper report that
+         LPG stays fully separate from fuel Variance, the same as
+         Lubricant. Skipping it here entirely, rather than routing it
+         into either bucket, is what actually matches that. */
+      if (p.product === "LPG") return
       const key = stateKey(p)
-      const session = report.pumpMetres && report.pumpMetres[key] && report.pumpMetres[key].sessions && report.pumpMetres[key].sessions[0]
-      if (session) {
+      const sessions = (report.pumpMetres && report.pumpMetres[key] && report.pumpMetres[key].sessions) || []
+      sessions.forEach(session => {
         pumpDiffTotal += session.diff || 0
         if (session.open > 0 || session.close > 0) hasAnyPumpData = true
-        if (p.product === "AGO") agoPumpLitres += session.diff || 0
-        else pmsPumpLitres += session.diff || 0
-      }
+        const diff = Number(session.diff || 0)
+        const amount = Number(session.amount || 0) || diff * Number(session.price || 0)
+        if (p.product === "AGO") { agoPumpLitres += diff; agoPumpRevenue += amount }
+        else { pmsPumpLitres += diff; pmsPumpRevenue += amount }
+      })
     })
   }
   const computedMargin = dipDiffTotal - pumpDiffTotal
@@ -278,8 +300,8 @@ function RecordsInner() {
   // if pump-specific data isn't available yet for this date.
   const pmsLitresForRevenue = hasAnyPumpData ? pmsPumpLitres : (report && report.pms_litres) || 0
   const agoLitresForRevenue = hasAnyPumpData ? agoPumpLitres : (report && report.ago_litres) || 0
-  const pmsExpected = report ? pmsLitresForRevenue * (report.pms_price || 0) : 0
-  const agoExpected = report ? agoLitresForRevenue * (report.ago_price || 0) : 0
+  const pmsExpected = hasAnyPumpData && pmsPumpRevenue > 0 ? pmsPumpRevenue : (report ? pmsLitresForRevenue * (report.pms_price || 0) : 0)
+  const agoExpected = hasAnyPumpData && agoPumpRevenue > 0 ? agoPumpRevenue : (report ? agoLitresForRevenue * (report.ago_price || 0) : 0)
 
   // Live margin, aggregated by product — same fix as the per-tank table
   // below, applied here for the PMS/AGO summary row too.

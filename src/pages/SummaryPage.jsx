@@ -110,23 +110,52 @@ function pumpRows(report) {
    single live computation instead of trusting a field that can go stale. */
 function liveFuelData(report) {
   const map = report.pumpMetres || {}
-  let pmsPumpLitres = 0, agoPumpLitres = 0, hasPumpSessionData = false
+  let pmsPumpLitres = 0, agoPumpLitres = 0, pmsPumpRevenue = 0, agoPumpRevenue = 0, hasPumpSessionData = false
   Object.keys(map).forEach(pump => {
     const sessions = map[pump].sessions || []
-    const diff = sessions.length
-      ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
-      : Number(map[pump].litres || 0)
-    if (sessions.some(s => Number(s.open) > 0 || Number(s.close) > 0) || diff > 0) hasPumpSessionData = true
-    const isAgo = pump.toUpperCase().includes("AGO") || map[pump].product === "AGO"
-    if (isAgo) agoPumpLitres += diff
-    else pmsPumpLitres += diff
+    const upperPump = pump.toUpperCase()
+    const product = map[pump].product
+    /* LPG was silently falling into the PMS bucket here — this check
+       only ever distinguished AGO from "everything else," so an LPG
+       pump (named "LPG1", never containing "AGO") got treated as PMS by
+       default. Confirmed directly against a real paper report: LPG is
+       meant to stay fully separate from fuel Variance, the same as
+       Lubricant — collected and remitted on its own, never part of
+       Grand Total. Skipping LPG pumps entirely here, rather than
+       routing them into either bucket, is what actually matches that. */
+    const isLpg = upperPump.includes("LPG") || product === "LPG"
+    if (isLpg) return
+    const isAgo = upperPump.includes("AGO") || product === "AGO"
+    if (sessions.length) {
+      /* Summed per-session — a mid-day price change means later sessions
+         sold the same litres at a different price, so litres-times-a-
+         single-price at the end was wrong on any multi-tier day.
+         Confirmed directly: a day with a second price tier came out
+         ₦68,830 short here specifically, because the total litres across
+         both tiers were being multiplied by only the first tier's price.
+         Each session already carries its own price and amount from the
+         backend — summing those directly is the only way this comes out
+         right regardless of how many price changes happened that day. */
+      sessions.forEach(s => {
+        const diff = Number(s.diff || 0)
+        const amount = Number(s.amount || 0) || diff * Number(s.price || 0)
+        if (isAgo) { agoPumpLitres += diff; agoPumpRevenue += amount }
+        else { pmsPumpLitres += diff; pmsPumpRevenue += amount }
+      })
+      if (sessions.some(s => Number(s.open) > 0 || Number(s.close) > 0 || Number(s.diff) > 0)) hasPumpSessionData = true
+    } else {
+      const diff = Number(map[pump].litres || 0)
+      if (isAgo) agoPumpLitres += diff
+      else pmsPumpLitres += diff
+      if (diff > 0) hasPumpSessionData = true
+    }
   })
 
   const hasFuelData = hasPumpSessionData || (report.pms_litres || 0) > 0 || (report.ago_litres || 0) > 0
   const pmsLitres = hasPumpSessionData ? pmsPumpLitres : (report.pms_litres || 0)
   const agoLitres = hasPumpSessionData ? agoPumpLitres : (report.ago_litres || 0)
-  const pmsRevenue = pmsLitres * (report.pms_price || 0)
-  const agoRevenue = agoLitres * (report.ago_price || 0)
+  const pmsRevenue = hasPumpSessionData && pmsPumpRevenue > 0 ? pmsPumpRevenue : pmsLitres * (report.pms_price || 0)
+  const agoRevenue = hasPumpSessionData && agoPumpRevenue > 0 ? agoPumpRevenue : agoLitres * (report.ago_price || 0)
 
   return { hasFuelData, pmsLitres, agoLitres, pmsRevenue, agoRevenue, fuelRevenue: pmsRevenue + agoRevenue }
 }
@@ -327,10 +356,18 @@ function SummaryInner() {
     url.searchParams.set("dateFrom", date)
     url.searchParams.set("dateTo", date)
     url.searchParams.set("token", getToken())
-    fetch(url.toString(), { method: "GET", redirect: "follow" })
+    /* No timeout here before — confirmed this as a real gap: a hung
+       request on this call had no way to ever resolve, and could tie up
+       the browser's limited connection pool for this domain, effectively
+       delaying the main report fetch too even though that one was fast
+       on its own. */
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    fetch(url.toString(), { method: "GET", redirect: "follow", signal: controller.signal })
       .then(r => r.json())
       .then(d => setDischargeToday(d.ok ? (d.discharge || []) : []))
       .catch(() => setDischargeToday([]))
+      .finally(() => clearTimeout(timeoutId))
   }, [date])
   const [photos, setPhotos] = useState([])
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
@@ -343,7 +380,9 @@ function SummaryInner() {
     url.searchParams.set("action", "getPhotos")
     url.searchParams.set("station", activeStation())
     url.searchParams.set("date", date)
-    fetch(url.toString(), { method: "GET", redirect: "follow" })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    fetch(url.toString(), { method: "GET", redirect: "follow", signal: controller.signal })
       .then(res => res.json())
       .then(d => {
         if (d.ok) setPhotos(d.photos || [])
@@ -351,6 +390,7 @@ function SummaryInner() {
       .catch(() => {
         // silent — the rest of the summary still works without photos
       })
+      .finally(() => clearTimeout(timeoutId))
   }, [date])
 
   const lightboxImage = useDriveImage(lightboxPhoto ? lightboxPhoto.fileId : null)

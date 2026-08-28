@@ -52,7 +52,40 @@ export function usePriceCutover(username) {
     }
   }, [username])
 
-  return { runCutover, saving }
+  /* Different situation from a normal cutover: this pump's session is
+     already fully closed, and the price then changed again afterward,
+     with more fuel still to be sold. Starts a brand-new session from the
+     existing closing reading — the already-closed session is never
+     touched or re-logged. One call per pump, since each pump's already-
+     closed state needs to be confirmed individually rather than assumed
+     for a whole batch. */
+  const reopenPump = useCallback(async ({ date, pumpId, newPrice }) => {
+    if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
+    setSaving(true)
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        redirect: "follow",
+        body: JSON.stringify({
+          action: "reopenPumpForNewPriceSession",
+          station: activeStation(),
+          username,
+          token: getToken(),
+          date,
+          pumpId,
+          newPrice,
+        }),
+      })
+      return await res.json()
+    } catch (e) {
+      return { ok: false, error: "Network error: " + (e.message || String(e)) }
+    } finally {
+      setSaving(false)
+    }
+  }, [username])
+
+  return { runCutover, reopenPump, saving }
 }
 
 export default usePriceCutover

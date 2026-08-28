@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import CashupApprovalPreview from "../components/dashboard/CashupApprovalPreview"
 import CashAtHandCard from "../components/dashboard/CashAtHandCard"
 import PhotoUploadToggleCard from "../components/dashboard/PhotoUploadToggleCard"
@@ -48,6 +49,7 @@ function delay(step) {
 
 function DashboardInner() {
   const auth = useAuth({ requireAuth: true })
+  const navigate = useNavigate()
   const { status, data, loading, refresh } = useDashboardData(auth.username)
   const { shortages, reviewShortage } = useShortages({ all: false })
   const { pending: pendingPayroll, approve: pendingPayrollApprove } = usePendingPayroll(auth.username)
@@ -203,6 +205,25 @@ function DashboardInner() {
             <div className="enter" style={delay(1)}>
               <DischargeEditToggleCard role={auth.role} username={auth.username} />
             </div>
+
+            {["ceo", "owner"].includes(auth.role) && (
+              <div className="enter mb-3" style={delay(1)}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/${activeStation()}`)}
+                  className="flex w-full items-center gap-3 rounded-card border border-border bg-white p-4 text-left shadow-card transition hover:shadow-lift"
+                >
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[11px]" style={{ background: "rgba(19,6,86,0.08)" }}>
+                    <i className="bi bi-sliders" style={{ color: "var(--brand-primary)" }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-bold text-ink">Admin Dashboard</div>
+                    <div className="text-[11px] text-ink-4">Look up and directly correct any day's data</div>
+                  </div>
+                  <i className="bi bi-chevron-right text-ink-4" />
+                </button>
+              </div>
+            )}
 
             {/* The morning's actual numbers — the first real work of the day,
                 and previously invisible on this page. Sits directly under the

@@ -26,10 +26,17 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
-const STEPS = tanksFor(activeStation()).map(cfg => ({ type: "tank", cfg }))
-
 function DipInner() {
   const auth = useAuth({ requireAuth: true })
+  /* Was computed once at module load time, before this component even
+     mounted — meaning STEPS permanently reflected whichever station
+     happened to be active the first time this file was ever loaded, and
+     never updated again for the rest of the session. Same bug found and
+     fixed on the Sales/Pump page — confirmed directly there: worked fine
+     for MSO (loaded first), silently kept showing MSO's tank list even
+     after switching to M&M. Moved inside the component so it re-reads
+     the current station on every render instead. */
+  const STEPS = tanksFor(activeStation()).map(cfg => ({ type: "tank", cfg }))
   const [date, setDate] = useState(todayISO())
 
   const {

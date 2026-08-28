@@ -105,7 +105,15 @@ export function useCashupData(username, name, initialDate) {
             ? sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
             : Number(map[pump].litres || 0)
           if (sessions.some(s => Number(s.open) > 0 || Number(s.close) > 0) || diff > 0) hasLive = true
-          const isAgo = pump.toUpperCase().includes("AGO") || map[pump].product === "AGO"
+          const upperPump = pump.toUpperCase()
+          const product = map[pump].product
+          /* Same LPG-into-PMS bug found and fixed on the Summary and
+             Records pages — this only ever checked for AGO, so an LPG
+             pump fell into the PMS bucket by default, inflating the
+             cashier's expected reconciliation total by LPG's amount.
+             LPG stays fully separate from fuel Variance. */
+          if (upperPump.includes("LPG") || product === "LPG") return
+          const isAgo = upperPump.includes("AGO") || product === "AGO"
           if (isAgo) agoLitresLive += diff
           else pmsLitresLive += diff
         })

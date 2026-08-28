@@ -30,14 +30,18 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
-// Each pump keeps its true unique id (config/pumps.js guarantees this,
-// even where two physical pumps share the same signage label like "P1"
-// on different tanks). Display components read pump.pumpId for the
-// human-facing label; never overwrite pump.id with it.
-const STEPS = pumpsFor(activeStation()).map(p => ({ pump: p }))
-
 function SalesInner() {
   const auth = useAuth({ requireAuth: true })
+  /* Was computed once at module load time, before this component even
+     mounted — meaning STEPS permanently reflected whichever station
+     happened to be active the first time this file was ever loaded, and
+     never updated again for the rest of the session. Confirmed directly:
+     this worked fine for MSO (loaded first) but silently kept showing
+     MSO's pump list even after switching to M&M, since a plain
+     module-level const like this only ever runs that one time. Moved
+     inside the component so it re-reads the current station on every
+     render instead. */
+  const STEPS = pumpsFor(activeStation()).map(p => ({ pump: p }))
   const [date, setDate] = useState(todayISO())
 
   /* A price change sends the supervisor here with ?cutover=pms (or ago). That
@@ -45,7 +49,7 @@ function SalesInner() {
      actually moved. */
   const [searchParams, setSearchParams] = useSearchParams()
   const cutoverProduct = (searchParams.get("cutover") || "").toUpperCase()
-  const { runCutover, saving: cuttingOver } = usePriceCutover(auth.username)
+  const { runCutover, reopenPump, saving: cuttingOver } = usePriceCutover(auth.username)
 
   const {
     status, readings, hasOpening, hasClosing, existingPhotos,
@@ -89,6 +93,14 @@ function SalesInner() {
   const [photos, setPhotos] = useState({})
   const [uploadProgress, setUploadProgress] = useState({})
   const [editRequested, setEditRequested] = useState({}) // { [pumpKey]: true }
+  /* Different from the normal edit-request flow above — that one is for
+     correcting a mistake in an already-approved reading. This is for a
+     genuinely new situation: the pump is correctly closed, but the price
+     has changed again since, and there's more fuel to record at the new
+     price. No approval needed here since nothing already-recorded gets
+     touched — this only ever adds a new session on top. */
+  const [reopenPromptOpen, setReopenPromptOpen] = useState(false)
+  const [reopenNewPrice, setReopenNewPrice] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   useEffect(() => {
@@ -144,6 +156,23 @@ function SalesInner() {
     }
     setEditRequested(prev => ({ ...prev, [`${step.pump.id}_${mode}`]: true }))
     toast.showToast("Edit requested", "Waiting for GM or Owner to approve", "ok")
+  }
+
+  const handleReopenForNewPrice = async () => {
+    const price = Number(reopenNewPrice)
+    if (!price) {
+      toast.showToast("Enter the new price", "Price is required", "err")
+      return
+    }
+    const result = await reopenPump({ date, pumpId: step.pump.id, newPrice: price })
+    if (!result.ok) {
+      toast.showToast("Couldn't reopen", result.error || "Please try again", "err")
+      return
+    }
+    toast.showToast("Reopened", result.message || `${step.pump.pumpId || step.pump.id} ready for the new price`, "ok")
+    setReopenPromptOpen(false)
+    setReopenNewPrice("")
+    refresh()
   }
 
   const handleDateChange = newDate => {
@@ -372,6 +401,44 @@ function SalesInner() {
                       {requestingEdit ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : <i className="bi bi-pencil-square" />}
                       Request Edit
                     </button>
+                  )}
+
+                  {/* A genuinely different situation from a mistake needing
+                      correction: the reading is correct, but the price has
+                      changed again since it was saved, and there's more
+                      fuel to record. No approval needed — nothing already
+                      saved gets touched, this only adds a new session. */}
+                  {mode === "close" && !reopenPromptOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setReopenPromptOpen(true)}
+                      className="mt-1 flex items-center gap-2 rounded-[11px] border-2 border-cyan/30 bg-cyan-light px-5 py-2.5 text-[13px] font-bold text-cyan-dark"
+                    >
+                      <i className="bi bi-arrow-repeat" />
+                      Price changed again — reopen for new price
+                    </button>
+                  )}
+                  {mode === "close" && reopenPromptOpen && (
+                    <div className="mt-1 w-full rounded-[12px] border border-cyan/25 bg-cyan-light p-3.5">
+                      <div className="mb-2 text-[12px] font-semibold text-ink-2">
+                        Starts a new session for {step.pump.pumpId || step.pump.id} from its saved closing reading — the already-saved session stays exactly as it is.
+                      </div>
+                      <input
+                        type="number" inputMode="decimal" placeholder="New price per litre" value={reopenNewPrice}
+                        onChange={e => setReopenNewPrice(e.target.value)}
+                        className="mono mb-2 w-full rounded-[8px] border border-border bg-white px-2.5 py-2 text-[13px] font-bold text-ink outline-none"
+                      />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => { setReopenPromptOpen(false); setReopenNewPrice("") }}
+                          className="flex-1 rounded-[9px] border border-border py-2 text-[12.5px] font-semibold text-ink-3">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleReopenForNewPrice} disabled={cuttingOver}
+                          className="flex-1 rounded-[9px] bg-cyan-dark py-2 text-[12.5px] font-bold text-white disabled:opacity-60">
+                          {cuttingOver ? "Reopening…" : "Reopen"}
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (

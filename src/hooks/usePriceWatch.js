@@ -5,11 +5,23 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
 const POLL_MS = 30000 // check every 30s while the app is open
-const LAST_SEEN_KEY = `mso-price-watch-${activeStation()}`
+
+/* Same bug found and fixed on the Sales/Pump and Dip pages: this key used
+   to be built once, at module load time, permanently tied to whichever
+   station happened to be active the first time this file was ever
+   loaded. Confirmed the same failure shape here — switching stations
+   never actually switched which station's "last seen price" this hook
+   was reading and writing, since a plain module-level const only ever
+   runs that one time. Built as a function instead, called fresh on every
+   read and write, so it always reflects whichever station is currently
+   active. */
+function lastSeenKey() {
+  return `mso-price-watch-${activeStation()}`
+}
 
 function loadLastSeen() {
   try {
-    const raw = localStorage.getItem(LAST_SEEN_KEY)
+    const raw = localStorage.getItem(lastSeenKey())
     return raw ? JSON.parse(raw) : null
   } catch (e) {
     return null
@@ -18,7 +30,7 @@ function loadLastSeen() {
 
 function saveLastSeen(v) {
   try {
-    localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(v))
+    localStorage.setItem(lastSeenKey(), JSON.stringify(v))
   } catch (e) {
     // storage unavailable — alerting still works for this session, just won't survive a refresh
   }
@@ -33,7 +45,12 @@ function saveLastSeen(v) {
  */
 export function usePriceWatch({ enabled }) {
   const [pendingChange, setPendingChange] = useState(null) // { product, oldPrice, newPrice, since }
-  const lastSeenRef = useRef(loadLastSeen())
+  /* No longer initialized once via useRef's lazy initializer — that only
+     ever runs at first mount, which wouldn't correctly pick up a station
+     switch if this component gets reused rather than remounted for the
+     new route. loadLastSeen() is a cheap localStorage read, so it's
+     called fresh inside check() itself instead, always reflecting
+     whichever station is active at that exact moment. */
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -52,12 +69,11 @@ export function usePriceWatch({ enabled }) {
       .then(res => res.json())
       .then(d => {
         if (!isMounted.current || !d.ok) return
-        const seen = lastSeenRef.current
+        const seen = loadLastSeen()
         const fresh = { pms: Number(d.pmsPrice), ago: Number(d.agoPrice) }
 
         // First check ever on this device — just record current prices, nothing to alert about.
         if (!seen) {
-          lastSeenRef.current = fresh
           saveLastSeen(fresh)
           return
         }
@@ -68,7 +84,6 @@ export function usePriceWatch({ enabled }) {
           setPendingChange({ product: "AGO", oldPrice: seen.ago, newPrice: fresh.ago, since: d.agoSince })
         }
 
-        lastSeenRef.current = fresh
         saveLastSeen(fresh)
       })
       .catch(() => {
