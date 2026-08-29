@@ -153,7 +153,7 @@ export function PrintWatermark({ text = "CONFIDENTIAL" }) {
       <div
         style={{
           fontSize: 90,
-          fontWeight: 800,
+          fontWeight: 400,
           color: "rgba(19, 6, 86, 0.08)",
           transform: "rotate(-38deg)",
           whiteSpace: "nowrap",

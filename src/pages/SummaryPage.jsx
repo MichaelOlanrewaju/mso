@@ -7,7 +7,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useRecordsData } from "../hooks/useRecordsData"
 import { useDriveImage } from "../hooks/useDriveImage"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira, numberNG, litres } from "../utils/format"
+import { naira, numberNG, litres, litresValue } from "../utils/format"
 import { PrintHeader, PrintWatermark } from "../components/ui/PrintElements"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
@@ -561,20 +561,38 @@ function SummaryInner() {
               </div>
             </div>
 
-            {/* PMS / AGO fuel cards */}
-            <div className="mb-4 grid grid-cols-2 gap-3">
+            {/* PMS / AGO cards, two-up. LPG renders separately below,
+                spanning the full width, rather than forced into a third
+                equal column — tested directly at mobile width first: three
+                equal columns truncated the revenue line (PMS's "₦20,461,497
+                @ ₦1,234/L" doesn't fit a third-width card), so LPG gets its
+                own full-width row instead, which keeps every figure fully
+                readable while still sitting directly under PMS/AGO with no
+                empty gap beside it. LPG shows for any station that actually
+                has an LPG tank configured — checked against the station
+                config itself, not today's data, so it behaves the same as
+                PMS/AGO: always visible, showing 0/blank on a day with
+                nothing recorded yet, rather than disappearing entirely.
+                M&M has no LPG tank at all, so it correctly never shows
+                there. Unit matters here: LPG is sold and priced by the
+                KILOGRAM, never litres, so it gets its own "unit" field
+                instead of the litres()/"/L" formatting PMS/AGO use, rather
+                than mislabeling a weight as a volume. */}
+            <div className="mb-3 grid grid-cols-2 gap-3">
               {[
-                { label: "PMS", litres: pmsLitres, revenue: pmsRevenue, price: report.pms_price, margin: livePmsMargin, marginAmt: livePmsMarginAmount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
-                { label: "AGO", litres: agoLitres, revenue: agoRevenue, price: report.ago_price, margin: liveAgoMargin, marginAmt: liveAgoMarginAmount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
+                { label: "PMS", amount: pmsLitres, unit: "L", revenue: pmsRevenue, price: report.pms_price, margin: livePmsMargin, marginAmt: livePmsMarginAmount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
+                { label: "AGO", amount: agoLitres, unit: "L", revenue: agoRevenue, price: report.ago_price, margin: liveAgoMargin, marginAmt: liveAgoMarginAmount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
               ].map(f => (
                 <div key={f.label} className="ftk-glass rounded-[18px] p-4">
                   <div className="mb-1 flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full" style={{ background: f.tint }} />
                     <span className="text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>{f.label}</span>
                   </div>
-                  <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.litres, { maximumFractionDigits: 2 })}</div>
-                  <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(f.revenue)} @ {f.price > 0 ? `${naira(f.price)}/L` : "— /L"}</div>
-                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litres(f.margin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(f.marginAmt)}`}</div>
+                  <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.amount, { maximumFractionDigits: 2 })}</div>
+                  <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(f.revenue)} @ {f.price > 0 ? `${naira(f.price)}/${f.unit}` : `— /${f.unit}`}</div>
+                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
+                    Margin: {litres(f.margin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(f.marginAmt)}`}
+                  </div>
                   {f.tiers?.length > 1 && (
                     <div className="mt-2 space-y-0.5 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
                       {f.tiers.map((t, i) => (
@@ -588,6 +606,18 @@ function SummaryInner() {
                 </div>
               ))}
             </div>
+
+            {tanksFor(activeStation()).some(t => t.product === "LPG") && (
+              <div className="ftk-glass mb-4 rounded-[18px] p-4">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ background: "var(--ftk-amber, #B45309)" }} />
+                  <span className="text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>LPG</span>
+                </div>
+                <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litresValue(report.lpg_kg || 0, { maximumFractionDigits: 2 })}KG</div>
+                <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(report.lpg_revenue || 0)} @ {report.lpg_price > 0 ? `${naira(report.lpg_price)}/KG` : "— /KG"}</div>
+                <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litresValue(report.lpg_tank_margin || 0, { maximumFractionDigits: 2 })}KG</div>
+              </div>
+            )}
 
             {/* Discharge received this day — explains why an opening
                 reading might be higher than a plain sales day would

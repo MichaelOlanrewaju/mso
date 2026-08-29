@@ -829,6 +829,27 @@ export default function DischargePage() {
                                   {r[COL.PRICE] && <div className="mono text-[9.5px] text-ink-4">@{naira(r[COL.PRICE])}</div>}
                                 </div>
                               )}
+                              {/* Edit was previously supervisor-only here, with
+                                  GM/CEO/Owner having Delete instead of both —
+                                  changed so GM/CEO/Owner get Edit too, since a
+                                  delete-then-recreate isn't always the right
+                                  fix for a genuine mistake. The backend already
+                                  allows this group to edit regardless of the
+                                  toggle or any lock — this only needed the
+                                  button to actually show. Litres alone stay
+                                  blocked once priced (the backend enforces
+                                  that specifically), but every other field —
+                                  driver, supplier, waybill, notes — can still
+                                  be corrected on a priced record. */}
+                              {isGMOrOwner && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEditRecord(r)}
+                                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-[6px] border border-border text-ink-3"
+                                >
+                                  <i className="bi bi-pencil text-[10px]" />
+                                </button>
+                              )}
                               {/* Edit is supervisor-only here — GM/CEO have
                                   Delete instead, not both. Unpriced only:
                                   once GM has priced it, the total is locked

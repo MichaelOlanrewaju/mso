@@ -51,14 +51,14 @@ function AdminInner() {
      each one individually. Tapping a day switches into the existing
      single-day detail view; a "Back to Overview" link returns. */
   const [viewMode, setViewMode] = useState("overview") // "overview" | "detail"
-  const { status: overviewStatus, days: overviewDays, load: loadOverview } = useAdminOverview()
+  const { status: overviewStatus, days: overviewDays, hasMore, load: loadOverview, loadMore } = useAdminOverview()
   const [editingField, setEditingField] = useState(null)
   const [editValue, setEditValue] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(null) // { sheetName, rowIndex, label }
   const [expandedSection, setExpandedSection] = useState(null)
 
   useEffect(() => {
-    if (viewMode === "overview") loadOverview(14)
+    if (viewMode === "overview") loadOverview()
   }, [viewMode, loadOverview])
 
   useEffect(() => {
@@ -72,12 +72,12 @@ function AdminInner() {
 
   if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
 
-  const isAdmin = ["ceo", "owner"].includes(auth.role)
+  const isAdmin = ["ceo", "owner", "gm"].includes(auth.role)
   if (!isAdmin) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-pagebg p-6 text-center">
         <i className="bi bi-shield-lock text-4xl text-ink-4" />
-        <div className="text-[15px] font-bold text-ink">CEO/Owner Only</div>
+        <div className="text-[15px] font-bold text-ink">CEO/Owner/GM Only</div>
         <div className="text-[13px] text-ink-4">This page isn't available for your role.</div>
         <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
           className="mt-2 rounded-full bg-navy px-4 py-2 text-[13px] font-bold text-white">
@@ -163,7 +163,7 @@ function AdminInner() {
             <div className="flex flex-col items-center gap-2 rounded-[16px] bg-white py-14 text-center shadow-sm">
               <i className="bi bi-wifi-off text-3xl text-ink-4" />
               <div className="text-[14px] font-bold text-ink">Couldn't load the overview</div>
-              <button type="button" onClick={() => loadOverview(14)} className="mt-2 rounded-full bg-navy px-4 py-2 text-[12.5px] font-bold text-white">
+              <button type="button" onClick={() => loadOverview()} className="mt-2 rounded-full bg-navy px-4 py-2 text-[12.5px] font-bold text-white">
                 <i className="bi bi-arrow-clockwise mr-1.5" /> Try again
               </button>
             </div>
@@ -202,6 +202,33 @@ function AdminInner() {
                 )
               })}
             </div>
+          )}
+
+          {(overviewStatus === "ready" || overviewStatus === "loadingMore") && hasMore && (
+            <div className="mt-3 flex justify-center">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={overviewStatus === "loadingMore"}
+                className="flex items-center gap-2 rounded-full border border-border bg-white px-5 py-2.5 text-[12.5px] font-bold text-ink shadow-sm disabled:opacity-60"
+              >
+                {overviewStatus === "loadingMore" ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
+                    Loading more…
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-arrow-down-circle" />
+                    Load earlier days
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {overviewStatus === "ready" && !hasMore && overviewDays.length > 0 && (
+            <div className="mt-4 text-center text-[11.5px] text-ink-4">That's the full history — nothing earlier on record.</div>
           )}
         </div>
       )}

@@ -85,38 +85,54 @@ export function useAdminDayRecord() {
    keeping it separate means switching between Overview and Day-Detail
    modes doesn't clobber either one's loading state. */
 export function useAdminOverview() {
-  const [status, setStatus] = useState("idle")
+  const [status, setStatus] = useState("idle") // idle | loading | loadingMore | ready | error
   const [days, setDays] = useState([])
+  const [hasMore, setHasMore] = useState(false)
+  const BATCH = 14
 
-  const load = useCallback((numDays = 14) => {
-    if (!SCRIPT_URL) return
-    setStatus("loading")
+  const fetchBatch = useCallback((offset) => {
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "adminGetOverview")
     url.searchParams.set("station", activeStation())
-    url.searchParams.set("days", numDays)
+    url.searchParams.set("days", BATCH)
+    url.searchParams.set("offset", offset)
     url.searchParams.set("token", getToken())
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 25000)
-
-    fetch(url.toString(), { method: "GET", redirect: "follow", signal: controller.signal })
+    return fetch(url.toString(), { method: "GET", redirect: "follow", signal: controller.signal })
       .then(r => r.json())
-      .then(d => {
-        if (!d.ok) {
-          setStatus("error")
-          setDays([])
-          return
-        }
-        setDays(d.days || [])
-        setStatus("ready")
-      })
-      .catch(() => {
-        setStatus("error")
-        setDays([])
-      })
       .finally(() => clearTimeout(timeoutId))
   }, [])
 
-  return { status, days, load }
+  const load = useCallback(() => {
+    if (!SCRIPT_URL) return
+    setStatus("loading")
+    fetchBatch(0)
+      .then(d => {
+        if (!d.ok) { setStatus("error"); setDays([]); return }
+        setDays(d.days || [])
+        setHasMore(!!d.hasMore)
+        setStatus("ready")
+      })
+      .catch(() => { setStatus("error"); setDays([]) })
+  }, [fetchBatch])
+
+  // Every day already fetched is skipped by the backend the moment it
+  // walks past the earliest stored record, so loading more never needs
+  // to know the exact total — it just keeps asking for the next batch
+  // until the backend itself says there's nothing further back.
+  const loadMore = useCallback(() => {
+    setStatus(prev => (prev === "ready" ? "loadingMore" : prev))
+    fetchBatch(days.length)
+      .then(d => {
+        if (!d.ok) { setStatus("ready"); return } // keep what we have on a failed "more" request
+        setDays(prevDays => [...prevDays, ...(d.days || [])])
+        setHasMore(!!d.hasMore)
+        setStatus("ready")
+      })
+      .catch(() => setStatus("ready"))
+  }, [fetchBatch, days.length])
+
+  return { status, days, hasMore, load, loadMore }
 }
