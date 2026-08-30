@@ -601,7 +601,17 @@ function SummaryInner() {
                     <span className="text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>{f.label}</span>
                   </div>
                   <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.amount, { maximumFractionDigits: 2 })}</div>
-                  <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(f.revenue)} @ {f.price > 0 ? `${naira(f.price)}/${f.unit}` : `— /${f.unit}`}</div>
+                  {/* Confirmed directly on a real day (29 August): PMS sold
+                      at ₦1,205, then ₦1,265 after a mid-day change — the
+                      revenue total is genuinely correct, but showing it as
+                      "@ ₦1,243.86/L" implied a single, consistent price that
+                      was never actually charged. The tier breakdown below
+                      already shows the real detail — this line just needs
+                      to stop claiming a specific price when more than one
+                      was used that day. */}
+                  <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>
+                    {naira(f.revenue)} @ {f.tiers?.length > 1 ? "multiple prices" : f.price > 0 ? `${naira(f.price)}/${f.unit}` : `— /${f.unit}`}
+                  </div>
                   <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
                     Margin: {litres(f.margin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(f.marginAmt)}`}
                   </div>
