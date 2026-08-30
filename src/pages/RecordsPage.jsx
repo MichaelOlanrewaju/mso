@@ -333,7 +333,7 @@ function RecordsInner() {
      into a fabricated ₦71,445 "surplus." */
   const actualCollected = report
     ? (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-      + (report.trf_mp || 0) + (report.trf_zb_amelia || 0) + (report.trf_fcmb_truck || 0) + (report.trf_fcmb_md || 0)
+      + (report.trf_mp || 0)
     : 0
   /* Every field name here needs to match the backend exactly — confirmed
      directly: trf_zb, trf_truck, and trf_md don't exist under those names
@@ -343,7 +343,13 @@ function RecordsInner() {
      every day tested so far. trf_truck and trf_md were simply absent from
      this formula entirely until now — confirmed on a real day where a
      ₦329,800 truck transfer, genuinely collected, produced a fabricated
-     ₦329,800 "shortage" that resolved to exactly ₦0 once fixed. */
+     ₦329,800 "shortage" that resolved to exactly ₦0 once fixed.
+
+     That day's fix added the field into Collected. Since then, all three
+     — Amelia, TRF Truck, and Cash to MD — were confirmed directly,
+     one at a time, to actually be expenses: money the station spent, not
+     money customers paid for fuel. All three removed from Collected here
+     to match. */
   const reconciliationVariance = actualCollected - expectedRevenue
 
   return (

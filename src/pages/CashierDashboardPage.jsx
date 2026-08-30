@@ -185,16 +185,27 @@ function CashierInner() {
               <span className="text-[11.5px] font-semibold text-ink-3">Gross Total</span>
               <span className="mono text-[15px] font-extrabold text-ink">{hasAnyPayment ? naira(gross) : "₦—"}</span>
             </div>
+            {/* Was a separate, unlabeled banner floating between this card and
+                Expenses below — but every figure in it (the charge on each
+                POS line) is already shown right above, per-row. Folded in as
+                one more row here instead, so the math reads top to bottom in
+                one place rather than needing a second, disconnected box for
+                the same numbers already on screen. */}
+            {hasAnyPayment && totalCharges > 0 && (
+              <div className="mt-1.5 flex items-center justify-between rounded-[10px] bg-red-light px-3 py-2">
+                <span className="text-[11.5px] font-semibold text-red">Total POS Charges Deducted</span>
+                <span className="mono text-[13px] font-extrabold text-red">−{naira(totalCharges)}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="mb-3.5 flex items-center justify-between rounded-[12px] border border-[#FECACA] bg-red-light px-4 py-3">
-          <span className="flex items-center gap-1.5 text-[12px] font-bold text-red">
-            <i className="bi bi-dash-circle-fill" /> Total POS Charges Deducted
-          </span>
-          <span className="mono text-[15px] font-extrabold text-red">{hasAnyPayment ? naira(totalCharges) : "₦—"}</span>
-        </div>
-
+        {/* Expenses and Cash to Bank were two disconnected blocks before —
+            no shared label tying them together, even though they're one
+            continuous idea: what gets taken out, and what's actually left
+            to bank. Grouped under one label now, so that connection reads
+            immediately instead of needing to be inferred from position. */}
+        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1.1px] text-ink-4">Deductions &amp; Final Amount</div>
         <div className="mb-3.5 overflow-hidden rounded-card border border-border bg-white shadow-card">
           <div className="border-b border-surface bg-surface px-4 py-3 text-[13px] font-extrabold text-ink">Expenses</div>
           <div className="p-4">

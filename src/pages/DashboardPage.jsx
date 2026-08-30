@@ -192,47 +192,19 @@ function DashboardInner() {
             {/* Cash At Hand sits right under the PMS-on-hand hero — both are
                 "what's actually sitting at the station right now" figures,
                 fuel and cash, so they read naturally as a pair. */}
-            <div className="enter mb-3" style={delay(1)}>
+            <div className="enter mb-5" style={delay(1)}>
               <CashAtHandCard />
             </div>
 
-            <div className="enter" style={delay(1)}>
-              <PhotoUploadToggleCard role={auth.role} username={auth.username} />
-            </div>
-
-            <div className="enter" style={delay(1)}>
-              <DischargeEditToggleCard role={auth.role} username={auth.username} />
-            </div>
-
-            {/* The morning's actual numbers — the first real work of the day,
-                and previously invisible on this page. Sits directly under the
-                hero because for most of the working day it IS the day's data:
-                closing meters, price and cash-up don't land until evening. */}
-            {/* Hidden entirely until the morning readings exist. DayHero already
-                covers the "waiting on the opening dip" state; saying it again on a
-                stacked card underneath was just the same sentence twice. */}
-            {hasMorningReadings && (
-              <div className="enter mb-5" style={delay(2)}>
-                <SectionLabel>This morning</SectionLabel>
-                <MorningReadingsCard
-                  status={status}
-                  tankLevels={data?.tankLevels}
-                  pumpMetres={data?.pumpMetres}
-                  submittedBy={data?.submittedBy}
-                />
-              </div>
-            )}
-
-            {/* Attention rail — promoted from fourth position to second.
-                It renders its own "all clear" state, so it stays put rather
-                than appearing and disappearing and shifting the page. */}
-            <div className="enter mb-5" style={delay(2)}>
-              <SectionLabel>Period totals</SectionLabel>
-              <PeriodTotalsCard />
-            </div>
-
-            <div className="enter mb-5" style={delay(3)}>
-              <SectionLabel>Needs your attention</SectionLabel>
+            {/* ── Needs attention ───────────────────────────────────────
+                No SectionLabel here — AlertsCard already has its own
+                header that does this better: state-aware (switches to a
+                green "All clear" with a check icon when nothing's
+                pending), not a static label repeating the same words
+                right above it. Confirmed directly: the two were stacking
+                as "Needs your attention / Needs your attention / 3 items
+                waiting on you" — the exact same phrase twice in a row. */}
+            <div className="enter mb-6" style={delay(2)}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
                 <div className="flex flex-col gap-4 lg:col-span-8">
                   <PayrollApprovalCard
@@ -259,57 +231,103 @@ function DashboardInner() {
               </div>
             </div>
 
-            {/* ── Then the detail ──────────────────────────────────────
-                Everything below is reporting: true, useful, but not urgent.
-                It's grouped so related cards sit on one row instead of
-                stacking six equal-weight sections down the page. */}
-
-            <div className="enter mb-5" style={delay(3)}>
-              <SectionLabel>Tanks &amp; payments</SectionLabel>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <div className="lg:col-span-5">
-                  <DipSummaryCard status={status} tanks={data?.tanks?.pms} pmsPrice={data?.pmsPrice} />
+            {/* ── Today's Operations ────────────────────────────────────
+                Previously five separate stops — Morning Readings its own
+                section, then Dip Summary/AGO/Payments in one row, then Tank
+                Levels paired with the sales chart in a different section
+                entirely. All of it answers the same question — what
+                happened today, tank by tank and payment by payment — so it
+                reads as one section now instead of three. Dip Summary and
+                Tank Levels sit side by side deliberately: one is today's
+                transaction (opening/closing/diff), the other is right-now
+                stock as a capacity gauge — different lenses on the same
+                tanks, meant to be read together. */}
+            <div className="enter mb-6" style={delay(2)}>
+              <SectionLabel>Today's operations</SectionLabel>
+              {/* Only this one card is conditional — DayHero already covers
+                  the "waiting on the opening dip" state, so repeating it
+                  here would just say the same sentence twice. The rest of
+                  the section (dip summary, tank levels, AGO, payments)
+                  still renders regardless, same as it always did — each
+                  shows its own empty/loading state rather than the whole
+                  section vanishing until morning readings exist. */}
+              {hasMorningReadings && (
+                <div className="mb-4">
+                  <MorningReadingsCard
+                    status={status}
+                    tankLevels={data?.tankLevels}
+                    pumpMetres={data?.pumpMetres}
+                    submittedBy={data?.submittedBy}
+                  />
                 </div>
-                <div className="lg:col-span-3">
+              )}
+              <div className="mb-4">
+                <DipSummaryCard status={status} tanks={data?.tanks?.pms} pmsPrice={data?.pmsPrice} />
+              </div>
+              <div className="mb-4">
+                <TankLevelsCard status={status} tankLevels={data?.tankLevels} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                <div className="lg:col-span-4">
                   <AgoCard status={status} ago={data?.tanks?.ago} agoPrice={data?.agoPrice} />
                 </div>
-                <div className="lg:col-span-4">
+                <div className="lg:col-span-8">
                   <PaymentBreakdown status={status} payments={data?.payments} />
                 </div>
               </div>
             </div>
 
-            <div className="enter mb-5" style={delay(4)}>
-              <SectionLabel>Stock &amp; sales trend</SectionLabel>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <div className="lg:col-span-4">
-                  <TankLevelsCard status={status} tankLevels={data?.tankLevels} />
-                </div>
-                <div className="lg:col-span-8">
-                  <SalesTrendCard
-                    status={status}
-                    weekly={data?.weekly}
-                    pmsRevenue={data?.pmsRevenue}
-                    agoRevenue={data?.agoRevenue}
-                  />
-                </div>
+            {/* ── Trends ─────────────────────────────────────────────────
+                Period totals and the sales chart both answer "how are we
+                doing over time," rather than a single day — grouped
+                together now instead of Period Totals standing alone above
+                Needs Attention and the trend chart sitting two sections
+                further down next to Tank Levels. Stacked full-width
+                rather than side by side — the trend chart plots 7 days ×
+                2 products, 14 bars needing real horizontal room, and a
+                7/12-column slot left them too compressed to read
+                comfortably, same issue as the dip summary table earlier. */}
+            <div className="enter mb-6" style={delay(3)}>
+              <SectionLabel>Trends</SectionLabel>
+              <div className="mb-4">
+                <PeriodTotalsCard />
               </div>
+              <SalesTrendCard
+                status={status}
+                weekly={data?.weekly}
+                pmsRevenue={data?.pmsRevenue}
+                agoRevenue={data?.agoRevenue}
+              />
             </div>
 
-            <div className="enter mb-5" style={delay(5)}>
-              <SectionLabel>Oil</SectionLabel>
-              <OilCard />
-            </div>
-
-            <div className="enter" style={delay(6)}>
-              <SectionLabel>Recent activity</SectionLabel>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            {/* ── Activity & Costs ──────────────────────────────────────
+                Oil previously got a full top-level section to itself, for
+                one card — every other section this size had two or three.
+                It's genuinely a cost/activity line like Expenses, so it
+                folds in here instead of standing alone. */}
+            <div className="enter mb-6" style={delay(4)}>
+              <SectionLabel>Activity &amp; costs</SectionLabel>
+              <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
                 <div className="lg:col-span-8">
                   <TransactionsCard status={status} transactions={data?.recentTransactions} />
                 </div>
                 <div className="lg:col-span-4">
                   <ExpensesCard status={status} expensesTotal={data?.expenses} />
                 </div>
+              </div>
+              <OilCard />
+            </div>
+
+            {/* ── Settings ───────────────────────────────────────────────
+                Previously two bare cards floating between Cash At Hand and
+                Morning Readings, with no label and no explanation —
+                interrupting the day's data with configuration toggles.
+                Given a proper, clearly-labeled home at the end instead. */}
+            <div className="enter" style={delay(5)}>
+              <SectionLabel>Settings</SectionLabel>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <PhotoUploadToggleCard role={auth.role} username={auth.username} />
+                <DischargeEditToggleCard role={auth.role} username={auth.username} />
               </div>
             </div>
           </div>

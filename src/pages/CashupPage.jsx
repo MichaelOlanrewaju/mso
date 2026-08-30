@@ -128,6 +128,19 @@ function CashupInner() {
       return
     }
     if (navigator.vibrate) navigator.vibrate([50, 30, 80])
+    /* A same-day check, added after 23 and 29 August both had Cash
+       entered net instead of gross, and neither was caught until weeks
+       later. The save itself still succeeds either way — this is a
+       flag to double-check, not a block — but the page previously
+       auto-navigated away just 1.2s after any save, and the toast
+       itself only shows for 3.5s. A warning that important couldn't
+       actually be read in that window, so navigation is skipped
+       whenever one comes back, keeping the cashier on the page long
+       enough to actually see and act on it. */
+    if (result.varianceWarning) {
+      toast.showToast("Saved — but check this", result.varianceWarning.message, "warn")
+      return
+    }
     toast.showToast("Saved", "Reconciliation saved successfully", "ok")
     setTimeout(() => navigate(dashboardPathFor({ role: auth.role, station: auth.station })), 1200)
   }

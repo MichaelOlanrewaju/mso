@@ -220,9 +220,21 @@ function reconciliationFor(report) {
      transfers happened to be ₦0 on every day tested so far — this would
      have produced the exact same false-shortage bug the moment a real
      Amelia transfer occurred. trf_truck and trf_md were simply absent
-     from this formula entirely until now. */
+     from this formula entirely until then.
+
+     All three — Amelia, TRF Truck, and Cash to MD — were then confirmed
+     directly, one at a time, to actually be expenses: money the station
+     spent, not money customers paid for fuel. All three removed from
+     Collected to match.
+
+     Expenses and TRF Truck are already subtracted from Cash to produce
+     To Bank — that's the only place they belong. Collected stays POS +
+     Transfer + Cash, comparing money collected against fuel sold, with
+     no expense-type deduction mixed in — an earlier reading of a
+     request to change this was a misunderstanding, reverted once
+     clarified. */
   const collected = (report.pos_mp || 0) + (report.pos_zm || 0) + (report.cash || 0)
-    + (report.trf_mp || 0) + (report.trf_zb_amelia || 0) + (report.trf_fcmb_truck || 0) + (report.trf_fcmb_md || 0)
+    + (report.trf_mp || 0)
 
   return { variance: collected - fuelRevenue, hasData: hasFuelData }
 }

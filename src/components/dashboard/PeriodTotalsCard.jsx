@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
-import { naira, litres } from "../../utils/format"
+import { naira, litres, litresValue } from "../../utils/format"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -139,12 +139,33 @@ export default function PeriodTotalsCard() {
       <div>
         <StatRow icon="bi-fuel-pump" label="PMS Sold" value={litres(bucket.pmsLitres)} sub={naira(bucket.pmsRevenue)} valueColor="text-navy" />
         <StatRow icon="bi-fuel-pump-diesel" label="AGO Sold" value={litres(bucket.agoLitres)} sub={naira(bucket.agoRevenue)} valueColor="text-navy" />
+        {/* Was previously missing here entirely — Total Revenue above
+            already included LPG, but with nowhere to show in this
+            breakdown, the two numbers never quite reconciled. Only shown
+            when the station actually has LPG activity, so a station or
+            period with none doesn't get a stray zero row. */}
+        {bucket.lpgKg > 0 && (
+          <StatRow icon="bi-fire" label="LPG Sold" value={`${litresValue(bucket.lpgKg, { maximumFractionDigits: 2 })}KG`} sub={naira(bucket.lpgRevenue)} valueColor="text-navy" />
+        )}
       </div>
 
       {/* Costs & issues */}
       <div className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.5px] text-ink-4">Costs & Issues</div>
       <div>
         <StatRow icon="bi-arrow-down-circle" label="Expenses" value={naira(bucket.expenses)} valueColor="text-red" />
+        {/* Same reasoning as LPG above — was silently missing from this
+            card entirely, even though it already reduces Net Profit at
+            the top now. Only shown when it's actually non-zero. */}
+        {bucket.trfTruck > 0 && (
+          <StatRow icon="bi-truck" label="TRF FCMB Truck" value={naira(bucket.trfTruck)} valueColor="text-red" />
+        )}
+        {/* Amelia — same class of item as TRF Truck just above: confirmed
+            directly, money spent, not collected from a customer. Now
+            reduces Net Profit above, same as TRF Truck; only shown when
+            actually non-zero. */}
+        {bucket.amelia > 0 && (
+          <StatRow icon="bi-cash-coin" label="Amelia" value={naira(bucket.amelia)} valueColor="text-red" />
+        )}
         <StatRow icon="bi-truck" label="Discharge Bought" value={naira(bucket.dischargeCost)}
           sub={`${litres(bucket.dischargeLitres)} · ${bucket.dischargeCount} record${bucket.dischargeCount !== 1 ? "s" : ""}`}
           valueColor="text-ink" items={bucket.dischargeItems} />
