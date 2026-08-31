@@ -127,7 +127,16 @@ function GMView({ auth, navigate }) {
   const [searchParams] = useSearchParams()
   const [month, setMonth] = useState(searchParams.get("month") || currentMonth())
   const [tab, setTab] = useState("run")
-  const { status: staffStatus, staff } = useStaff(auth.username)
+  const { status: staffStatus, staff: allStaff } = useStaff(auth.username)
+  /* Attendant tracking (Pump Attendant, Trainee, etc.) is a completely
+     separate system from Payroll — confirmed directly this shouldn't
+     show up here at all. Filtered once, right where the raw list comes
+     in, so every use of "staff" below this line is already the correct,
+     payroll-eligible set — nothing downstream needs its own filter. */
+  const staff = useMemo(
+    () => allStaff.filter(s => String(s.role || "").toLowerCase() !== "attendant"),
+    [allStaff]
+  )
   const { status: payStatus, lines, saving, savePayrollRun } = usePayroll(month, auth.username)
   const [draft, setDraft] = useState(null)
   const [feedback, setFeedback] = useState(null)

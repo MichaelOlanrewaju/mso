@@ -22,6 +22,19 @@ function initials(name) {
   return (name || "?").trim().split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
 }
 
+/* Common Nigerian banks — confirmed directly: a dropdown, not free text,
+   so an account can't be saved against a misspelled or inconsistent
+   bank name that would confuse whoever processes salary payments. */
+const NIGERIAN_BANKS = [
+  "Access Bank", "Citibank Nigeria", "Ecobank Nigeria", "Fidelity Bank",
+  "First Bank of Nigeria", "First City Monument Bank (FCMB)", "Globus Bank",
+  "Guaranty Trust Bank (GTBank)", "Heritage Bank", "Keystone Bank",
+  "Kuda Bank", "Moniepoint MFB", "Opay", "Palmpay", "Polaris Bank",
+  "Providus Bank", "Stanbic IBTC Bank", "Standard Chartered Bank",
+  "Sterling Bank", "SunTrust Bank", "Union Bank of Nigeria",
+  "United Bank for Africa (UBA)", "Unity Bank", "Wema Bank", "Zenith Bank",
+]
+
 function Section({ title, children }) {
   return (
     <div className="mb-4 rounded-card border border-border bg-white shadow-card">
@@ -48,6 +61,16 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("")
   const [savingInfo, setSavingInfo] = useState(false)
   const [infoFeedback, setInfoFeedback] = useState(null)
+
+  /* Bank details — Supervisor and Cashier only, confirmed directly.
+     Not shown to other roles at all, rather than shown-but-disabled,
+     since it isn't relevant to them. */
+  const showBankDetails = auth.role === "supervisor" || auth.role === "cashier"
+  const [bankName, setBankName] = useState("")
+  const [accountNumber, setAccountNumber] = useState("")
+  const [accountName, setAccountName] = useState("")
+  const [savingBank, setSavingBank] = useState(false)
+  const [bankFeedback, setBankFeedback] = useState(null)
 
   // Password change form
   const [currentPass, setCurrentPass] = useState("")
@@ -81,6 +104,9 @@ export default function ProfilePage() {
           setName(d.profile.name || "")
           setEmail(d.profile.email || "")
           setPhotoId(d.profile.profilePhotoId || "")
+          setBankName(d.profile.bankName || "")
+          setAccountNumber(d.profile.accountNumber || "")
+          setAccountName(d.profile.accountName || "")
         }
         setLoadingProfile(false)
       })
@@ -101,6 +127,31 @@ export default function ProfilePage() {
       setInfoFeedback({ type: d.ok ? "success" : "error", text: d.ok ? "Profile updated." : d.error })
     } catch { setInfoFeedback({ type: "error", text: "Network error. Try again." }) }
     finally { setSavingInfo(false) }
+  }
+
+  const saveBank = async () => {
+    if (!bankName) { setBankFeedback({ type: "error", text: "Select your bank." }); return }
+    /* Same 10-digit check the backend enforces — confirmed directly:
+       Nigerian bank accounts are always exactly 10 digits. Checked here
+       too so a mistake is caught immediately, not after a round trip. */
+    if (!/^\d{10}$/.test(accountNumber.trim())) {
+      setBankFeedback({ type: "error", text: "Account number must be exactly 10 digits." })
+      return
+    }
+    if (!accountName.trim()) { setBankFeedback({ type: "error", text: "Enter the account name exactly as it appears on your bank account." }); return }
+    setSavingBank(true); setBankFeedback(null)
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "updateProfile", token: getToken(), username: auth.username,
+          bankName, accountNumber: accountNumber.trim(), accountName: accountName.trim(),
+        }),
+      })
+      const d = await res.json()
+      setBankFeedback({ type: d.ok ? "success" : "error", text: d.ok ? "Bank details saved." : d.error })
+    } catch { setBankFeedback({ type: "error", text: "Network error. Try again." }) }
+    finally { setSavingBank(false) }
   }
 
   const savePassword = async () => {
@@ -259,6 +310,44 @@ export default function ProfilePage() {
                 {savingInfo ? "Saving…" : "Save changes"}
               </button>
             </Section>
+
+            {showBankDetails && (
+              <Section title="Bank Details — For Salary Payment">
+                <div className="mb-3 rounded-[9px] bg-cyan-light px-3 py-2 text-[11.5px] text-cyan-dark">
+                  <i className="bi bi-info-circle mr-1" /> Used for salary payment. Double-check the account number and name match your bank exactly.
+                </div>
+                <label className="mb-3 block">
+                  <span className="mb-1 block text-[11px] font-semibold text-ink-3">Bank</span>
+                  <select value={bankName} onChange={e => setBankName(e.target.value)}
+                    className="w-full rounded-[9px] border border-border bg-white px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan">
+                    <option value="">Select your bank</option>
+                    {NIGERIAN_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </label>
+                <label className="mb-3 block">
+                  <span className="mb-1 block text-[11px] font-semibold text-ink-3">Account Number</span>
+                  <input type="text" inputMode="numeric" maxLength={10} value={accountNumber}
+                    onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ""))}
+                    placeholder="10-digit account number"
+                    className="mono w-full rounded-[9px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan" />
+                </label>
+                <label className="mb-4 block">
+                  <span className="mb-1 block text-[11px] font-semibold text-ink-3">Account Name</span>
+                  <input type="text" value={accountName} onChange={e => setAccountName(e.target.value)}
+                    placeholder="Exactly as it appears on your bank account"
+                    className="w-full rounded-[9px] border border-border px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan" />
+                </label>
+                {bankFeedback && (
+                  <div className={`mb-3 rounded-[9px] px-3 py-2 text-[12px] font-semibold ${bankFeedback.type === "success" ? "bg-green-light text-green" : "bg-red-light text-red"}`}>
+                    {bankFeedback.text}
+                  </div>
+                )}
+                <button type="button" onClick={saveBank} disabled={savingBank}
+                  className="flex h-10 w-full items-center justify-center rounded-[9px] bg-navy text-[13px] font-bold text-white disabled:opacity-60">
+                  {savingBank ? "Saving…" : "Save bank details"}
+                </button>
+              </Section>
+            )}
 
             <Section title="Change Password">
               <label className="mb-3 block">

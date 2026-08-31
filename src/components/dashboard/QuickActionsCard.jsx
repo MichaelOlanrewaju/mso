@@ -32,6 +32,7 @@ const ACTIONS = [
   { icon: "bi-arrow-left-right",        iconBg: "#F5EBEF", iconColor: "#5f1f33", label: "Station Assign.",     href: "/station-assignments",          roles: ["ceo","owner","gm"] },
   { icon: "bi-tag",                     iconBg: "#FEF3C7", iconColor: "#B45309", label: "Correct Prices",      href: "/correct-prices",               roles: ["ceo","owner"] },
   { icon: "bi-sliders",                 iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Admin Dashboard",     href: `/admin/${activeStation()}`,     roles: ["ceo","owner","gm"] },
+  { icon: "bi-bank",                    iconBg: "#EAF6FC", iconColor: "var(--brand-accent)",   label: "Staff Bank Details",  href: `/staff-bank-details/${activeStation()}`, roles: ["ceo","owner","gm"] },
   /* Bank Deposits doesn't fit a plain role list — Joseph and Lanre need it
      regardless of their account role, and CEO/owner need it too (view-only).
      Handled with its own dynamic check below, not the static roles array. */

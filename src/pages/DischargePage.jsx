@@ -212,6 +212,7 @@ export default function DischargePage() {
      period totals, Pricing) respects that choice rather than mixing both
      products into a single misleading number. */
   const [productFilter, setProductFilter] = useState("PMS") // "PMS" | "AGO"
+  const [supplierFilter, setSupplierFilter] = useState("all")
   const stationTanksTop = tanksFor(activeStation())
   const productForTankId = (tankId) => stationTanksTop.find(t => t.id === tankId)?.product || tankId
 
@@ -270,10 +271,56 @@ export default function DischargePage() {
     return Object.values(byTank).sort((a, b) => b.litres - a.litres)
   }
 
+  /* Per-supplier breakdown — confirmed directly this was needed once
+     pricing became per-supplier rather than per-product: with different
+     companies now genuinely charging different rates, there was no way
+     to see who's actually cheaper, or who tends to deliver short,
+     without scrolling through every individual record by hand.
+     avgPrice and shortagePct are both derived, not stored — computed
+     fresh from whatever's actually priced in the selected period. */
+  const sumBySupplier = (list) => {
+    const bySupplier = {}
+    list.forEach(r => {
+      const label = String(r[COL.SUPPLIER] || "No supplier recorded")
+      if (!bySupplier[label]) bySupplier[label] = { label, litres: 0, cost: 0, ordered: 0, shortageLitres: 0, count: 0, pricedLitres: 0 }
+      const actual = Number(r[COL.ACTUAL]) || 0
+      const cost = Number(r[COL.TOTAL]) || 0
+      bySupplier[label].litres += actual
+      bySupplier[label].cost += cost
+      bySupplier[label].ordered += Number(r[COL.ORDERED]) || 0
+      bySupplier[label].shortageLitres += Number(r[COL.SHORTAGE]) || 0
+      bySupplier[label].count += 1
+      // Only litres that actually have a price behind them count toward
+      // the average — an unpriced delivery would otherwise drag a
+      // supplier's average price toward zero, which isn't real.
+      if (cost > 0) bySupplier[label].pricedLitres += actual
+    })
+    return Object.values(bySupplier)
+      .map(s => ({
+        ...s,
+        avgPrice: s.pricedLitres > 0 ? s.cost / s.pricedLitres : null,
+        shortagePct: s.ordered > 0 ? (s.shortageLitres / s.ordered) * 100 : null,
+      }))
+      .sort((a, b) => b.litres - a.litres)
+  }
+
   const productFilteredRecords = useMemo(
-    () => records.filter(r => productForTankId(r[COL.PRODUCT]) === productFilter),
-    [records, productFilter]
+    () => records.filter(r =>
+      productForTankId(r[COL.PRODUCT]) === productFilter &&
+      (supplierFilter === "all" || String(r[COL.SUPPLIER] || "No supplier recorded") === supplierFilter)
+    ),
+    [records, productFilter, supplierFilter]
   )
+
+  /* Full list of suppliers ever recorded, for the filter dropdown —
+     confirmed directly this was needed: CEO wanting to review one
+     company's full history had no way to isolate it from everything
+     else, only ever seeing it split across many different day-cards. */
+  const allSuppliers = useMemo(() => {
+    const set = new Set()
+    records.forEach(r => set.add(String(r[COL.SUPPLIER] || "No supplier recorded")))
+    return Array.from(set).sort()
+  }, [records])
 
   const trendDays = useMemo(() => last7DaysTrend(productFilteredRecords), [productFilteredRecords])
   const todayLitres = trendDays.length ? trendDays[trendDays.length - 1].litres : 0
@@ -283,10 +330,14 @@ export default function DischargePage() {
     return d && d >= weekStart
   }), [records, weekStart])
 
-  const monthRecords = useMemo(() => records.filter(r => {
+  /* Was reading from records directly, not productFilteredRecords —
+     confirmed directly this meant "This Month" silently ignored both
+     the product filter and the new supplier filter, while "This Week"
+     correctly respected both. Fixed to match. */
+  const monthRecords = useMemo(() => productFilteredRecords.filter(r => {
     const d = parseSheetDate(r[COL.DATE])
     return d && d >= monthStart
-  }), [records, monthStart])
+  }), [productFilteredRecords, monthStart])
 
   const periodTotals = useMemo(() => {
     if (period === "week") return sumRecords(weekRecords)
@@ -298,6 +349,12 @@ export default function DischargePage() {
     if (period === "week") return sumByTank(weekRecords)
     if (period === "month") return sumByTank(monthRecords)
     return sumByTank(productFilteredRecords)
+  }, [period, productFilteredRecords, weekRecords, monthRecords])
+
+  const periodBySupplier = useMemo(() => {
+    if (period === "week") return sumBySupplier(weekRecords)
+    if (period === "month") return sumBySupplier(monthRecords)
+    return sumBySupplier(productFilteredRecords)
   }, [period, productFilteredRecords, weekRecords, monthRecords])
 
   const periodLabel = period === "week"
@@ -694,6 +751,25 @@ export default function DischargePage() {
           </div>
         )}
 
+        {/* Supplier filter — confirmed directly this was needed: reviewing
+            one company's full history meant scrolling past every other
+            supplier's records too, with no way to isolate just one.
+            Records-tab only, since pricing is already grouped this way. */}
+        {tab === "records" && allSuppliers.length > 1 && (
+          <div className="mb-4">
+            <select
+              value={supplierFilter}
+              onChange={e => setSupplierFilter(e.target.value)}
+              className="w-full rounded-[12px] border border-border bg-white px-3.5 py-2.5 text-[13px] font-semibold text-ink outline-none focus:border-cyan"
+            >
+              <option value="all">All Suppliers</option>
+              {allSuppliers.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* ── RECORDS TAB ── */}
         {tab === "records" && (
           <>
@@ -741,6 +817,37 @@ export default function DischargePage() {
                           <span className="mono font-bold text-white">
                             {litres(t.litres)}{t.cost > 0 ? ` · ${naira(t.cost)}` : ""}
                           </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Per-supplier breakdown — a leaderboard view CEO can scan
+                    to see who's actually cheaper (avgPrice) and who tends
+                    to deliver short (shortagePct), without opening every
+                    individual record. Sorted by volume, same as tanks
+                    above, so the biggest suppliers surface first. */}
+                {periodBySupplier.length > 0 && (
+                  <div className="border-t border-white/10 px-4 py-3">
+                    <div className="mb-2 text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">By Supplier</div>
+                    <div className="space-y-2">
+                      {periodBySupplier.map(s => (
+                        <div key={s.label} className="text-[12px]">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-white/90">{s.label}</span>
+                            <span className="mono font-bold text-white">{litres(s.litres)}</span>
+                          </div>
+                          <div className="mt-0.5 flex items-center justify-between text-[10.5px] text-white/50">
+                            <span>
+                              {s.avgPrice !== null ? `avg ${naira(s.avgPrice)}/L` : "not yet priced"}
+                              {s.count > 1 ? ` · ${s.count} deliveries` : ""}
+                            </span>
+                            {s.shortagePct !== null && Math.abs(s.shortagePct) >= 0.5 && (
+                              <span className={s.shortagePct > 0 ? "text-amber" : "text-green"}>
+                                {s.shortagePct > 0 ? "−" : "+"}{Math.abs(s.shortagePct).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
