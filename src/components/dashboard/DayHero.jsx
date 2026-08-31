@@ -1,6 +1,6 @@
 import React from "react"
 import Sparkline from "./Sparkline"
-import { naira, litres } from "../../utils/format"
+import { naira, litres, litresValue } from "../../utils/format"
 
 /**
  * The headline card — the day's number AND the day's progress, in one place.
@@ -190,7 +190,12 @@ function stockOnHand(tankLevels) {
   if (!tankLevels?.length) return null
   const pms = tankLevels.filter(t => t.product === "PMS").reduce((s, t) => s + (t.vol || 0), 0)
   const ago = tankLevels.filter(t => t.product === "AGO").reduce((s, t) => s + (t.vol || 0), 0)
-  return { pms, ago, total: pms + ago }
+  /* LPG is sold and stocked by the KILOGRAM, never litres — kept as its
+     own field here rather than folded into "total", the same reasoning
+     already applied to keeping PMS and AGO separate: summing different
+     units together produces a number that means nothing. */
+  const lpg = tankLevels.filter(t => t.product === "LPG").reduce((s, t) => s + (t.vol || 0), 0)
+  return { pms, ago, lpg, total: pms + ago }
 }
 
 export default function DayHero({ status, data }) {
@@ -236,6 +241,14 @@ export default function DayHero({ status, data }) {
           <span className="flex items-baseline gap-1 whitespace-nowrap text-white/55">
             <span className="text-[11px] font-semibold uppercase tracking-[0.5px]" style={{ color: "#B69CF0" }}>+ AGO</span>
             <span className="mono text-[15px] font-bold text-white/80 md:text-[17px]">{litres(stock.ago)}</span>
+          </span>
+        )}
+        {/* LPG kept as its own line, same treatment as AGO — never
+            summed with PMS/AGO's litres, since it's measured in KG. */}
+        {stock && stock.lpg > 0 && (
+          <span className="flex items-baseline gap-1 whitespace-nowrap text-white/55">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.5px]" style={{ color: "#F0B429" }}>+ LPG</span>
+            <span className="mono text-[15px] font-bold text-white/80 md:text-[17px]">{litresValue(stock.lpg, { maximumFractionDigits: 0 })}KG</span>
           </span>
         )}
       </span>
@@ -334,6 +347,15 @@ export default function DayHero({ status, data }) {
             <>
               <Split label="PMS in tanks" tint="var(--brand-accent)" value={stock ? litres(stock.pms) : "—"} sub="From opening dip" />
               <Split label="AGO in tanks" tint="#7C3AED" value={stock ? litres(stock.ago) : "—"} sub="From opening dip" />
+              {/* Hidden on mobile, same as Pumps read already was — tested
+                  directly: 4 columns at phone width wrapped and looked
+                  cramped, but reads cleanly from tablet width up. Mobile
+                  users still see LPG in the headline above this row. */}
+              {stock && stock.lpg > 0 && (
+                <div className="hidden flex-1 sm:block">
+                  <Split label="LPG in tanks" tint="#F0B429" value={`${litresValue(stock.lpg, { maximumFractionDigits: 0 })}KG`} sub="From opening dip" />
+                </div>
+              )}
               <div className="hidden flex-1 sm:block">
                 <Split
                   label="Pumps read"

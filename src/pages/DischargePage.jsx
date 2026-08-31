@@ -318,7 +318,15 @@ export default function DischargePage() {
       }
       byDate[key].items.push(r)
     })
-    return groups
+    /* Groups were never actually sorted — they landed in whatever order
+       records first appeared in the sheet, which is insertion order, not
+       date order. Confirmed directly: backfilling a discharge for 11
+       August after 31 August already existed put it at the very top,
+       instead of between 10 and 12 August where it belongs. Sorted here,
+       most recent first, matching how the rest of the app orders dated
+       lists — a backfilled day now lands in its correct chronological
+       spot regardless of when it was actually entered. */
+    return groups.sort((a, b) => String(b.date).slice(0, 10).localeCompare(String(a.date).slice(0, 10)))
   }, [records])
 
   if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
@@ -1138,7 +1146,14 @@ export default function DischargePage() {
                         const groupKey = supplier + "|" + date
                         const priceVal = priceInputs[groupKey] || ""
                         const previewTotal = priceVal ? groupLitres * Number(priceVal) : null
-                        const previewShortageCost = priceVal && groupShortage > 0 ? groupShortage * Number(priceVal) : null
+                        /* Was only ever computed for a positive shortage —
+                           confirmed directly: a negative groupShortage
+                           (an excess/overage) produced no preview at all,
+                           even though it's just as real a financial figure
+                           as a shortage cost. Fixed to compute for either
+                           sign; the label and color below distinguish
+                           which one it actually is. */
+                        const previewVarianceCost = priceVal && groupShortage !== 0 ? groupShortage * Number(priceVal) : null
 
                         return (
                           <div key={supplier} className="px-4 py-3.5">
@@ -1163,10 +1178,22 @@ export default function DischargePage() {
                               {rows.map((r, i) => {
                                 const product = productFor(r[COL.PRODUCT])
                                 const shortageVal = Number(r[COL.SHORTAGE]) || 0
+                                const orderedVal = Number(r[COL.ORDERED]) || 0
                                 return (
                                   <div key={i} className="flex items-center gap-2.5 text-[12px]">
                                     <i className={`bi ${productIcon(r[COL.PRODUCT])} text-[12px] text-ink-4`} />
-                                    <div className="flex-1 font-semibold text-ink">{r[COL.PRODUCT]} <span className="text-ink-4">({product})</span></div>
+                                    <div className="flex-1">
+                                      <div className="font-semibold text-ink">{r[COL.PRODUCT]} <span className="text-ink-4">({product})</span></div>
+                                      {/* Was showing Actual Received only, with
+                                          no way to see what was actually
+                                          ordered in the first place — the
+                                          shortage/overage badge implies a
+                                          difference without showing either
+                                          number it's derived from. */}
+                                      {orderedVal > 0 && (
+                                        <div className="text-[10px] text-ink-4">Expected {litres(orderedVal)}</div>
+                                      )}
+                                    </div>
                                     <div className="mono font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
                                     {shortageVal !== 0 && (
                                       <span className={`rounded-full px-2 py-[2px] text-[10px] font-bold ${shortageVal > 0 ? "bg-red-light text-red" : "bg-green-light text-green"}`}>
@@ -1187,8 +1214,10 @@ export default function DischargePage() {
                             {previewTotal !== null && (
                               <div className="mb-2 space-y-1 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
                                 <div>{litres(groupLitres)} × {naira(Number(priceVal))} = <strong className="text-navy">{naira(previewTotal)}</strong></div>
-                                {previewShortageCost !== null && (
-                                  <div>{litres(groupShortage)} shortage × {naira(Number(priceVal))} = <strong className="text-red">{naira(previewShortageCost)}</strong> shortage cost</div>
+                                {previewVarianceCost !== null && (
+                                  <div>
+                                    {litres(Math.abs(groupShortage))} {groupShortage > 0 ? "shortage" : "excess"} × {naira(Number(priceVal))} = <strong className={groupShortage > 0 ? "text-red" : "text-green"}>{naira(Math.abs(previewVarianceCost))}</strong> {groupShortage > 0 ? "shortage cost" : "excess value"}
+                                  </div>
                                 )}
                               </div>
                             )}
