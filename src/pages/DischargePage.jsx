@@ -762,7 +762,6 @@ export default function DischargePage() {
             {!loading && productFilteredRecords.length > 0 && (
               <div className="space-y-3">
                 {groupedRecords.map((group, gi) => {
-                  const daySum = sumRecords(group.items)
                   const allPriced = group.items.every(isPriced)
                   return (
                     <div key={gi} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
@@ -782,32 +781,12 @@ export default function DischargePage() {
                               </span>
                             )}
                           </div>
-                          {/* One line, not a redundant received-total sitting
-                              right underneath an Expected figure that already
-                              implies it — confirmed directly this was
-                              cluttered. Also fixes a real bug here: the old
-                              check only fired for positive (shortage) values,
-                              so a day with an overage silently showed no
-                              badge at all — same sign issue already fixed on
-                              the entry form, still present here until now. */}
-                          {daySum.ordered > 0 ? (
-                            <>
-                              <div className="text-[11px] font-semibold text-ink-4">Expected</div>
-                              <div className="mono text-[22px] font-black leading-tight text-ink">
-                                {litres(daySum.ordered)}
-                                {daySum.shortageLitres !== 0 && (
-                                  <span className={`ml-2 text-[15px] font-bold ${daySum.shortageLitres > 0 ? "text-red" : "text-green"}`}>
-                                    {daySum.shortageLitres > 0 ? "−" : "+"}{litres(Math.abs(daySum.shortageLitres))}
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="mono text-[22px] font-black leading-tight text-ink">{litres(daySum.litres)}</div>
-                          )}
-                          {isGMOrOwner && daySum.cost > 0 && (
-                            <div className="mono text-[13px] font-bold text-ink-3">{naira(daySum.cost)} total</div>
-                          )}
+                          {/* No combined day total here anymore — confirmed
+                              directly: a day's figures should read per
+                              supplier, not blended into one number that
+                              hides which company delivered what. Each
+                              supplier group below carries its own total and
+                              its own shortage/overage instead. */}
                         </div>
                       </div>
 
@@ -829,11 +808,32 @@ export default function DischargePage() {
                             return acc
                           }, {})
                           const multipleSuppliers = Object.keys(bySupplier).length > 1
-                          return Object.entries(bySupplier).map(([supplier, supplierItems], si) => (
+                          return Object.entries(bySupplier).map(([supplier, supplierItems], si) => {
+                          const supplierSum = sumRecords(supplierItems)
+                          return (
                           <div key={si} className="px-4 py-2.5">
-                            {multipleSuppliers && (
-                              <div className="mb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.4px] text-ink-3">{supplier}</div>
-                            )}
+                            <div className="mb-1.5 flex items-baseline justify-between">
+                              {multipleSuppliers ? (
+                                <div className="text-[10.5px] font-extrabold uppercase tracking-[0.4px] text-ink-3">{supplier}</div>
+                              ) : <div />}
+                              {/* Each supplier carries its own total and its
+                                  own shortage/overage now — no more single
+                                  blended figure at the day level. Sign fix
+                                  carried over from the old day-total logic:
+                                  a positive shortageLitres is a real
+                                  shortage (red, minus), negative is an
+                                  overage (green, plus) — both now show,
+                                  where the old check only ever fired for
+                                  shortage. */}
+                              <div className="mono text-[13px] font-extrabold text-ink">
+                                {litres(supplierSum.litres)}
+                                {supplierSum.shortageLitres !== 0 && (
+                                  <span className={`ml-1.5 text-[11px] font-bold ${supplierSum.shortageLitres > 0 ? "text-red" : "text-green"}`}>
+                                    {supplierSum.shortageLitres > 0 ? "−" : "+"}{litres(Math.abs(supplierSum.shortageLitres))}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                             <div className="space-y-2">
                               {supplierItems.map((r, i) => (
                                 <div key={i}>
@@ -947,7 +947,7 @@ export default function DischargePage() {
                               ))}
                             </div>
                           </div>
-                        ))
+                        )})
                         })()}
                       </div>
 
