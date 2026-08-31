@@ -7,7 +7,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useStaff, usePayroll, usePendingPayroll } from "../hooks/usePayroll"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
-import { PrintHeader, PrintWatermark } from "../components/ui/PrintElements"
+import { PrintHeader } from "../components/ui/PrintElements"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 
 function currentMonth() {
@@ -274,7 +274,6 @@ function GMView({ auth, navigate }) {
       </div>
 
       <div className="px-4 py-5">
-        <PrintWatermark />
         <PrintHeader title="Payroll — Monthly Run" subtitle={monthLabel(month)} />
 
         {/* ── MONTHLY RUN TAB ── */}
@@ -658,7 +657,6 @@ function OwnerView({ auth, navigate }) {
       </div>
 
       <div className="px-4 py-5">
-        <PrintWatermark />
         <PrintHeader title="Payroll Approval" subtitle={monthLabel(month)} />
 
         {/* Pending months — shown as prominent cards if any exist */}

@@ -201,10 +201,6 @@
     padding-right: 0 !important;
   }
 
-  .print-watermark {
-    display: flex !important;
-  }
-
   /* Keep a card/table row from being sliced across a page boundary. */
   .print-avoid-break {
     break-inside: avoid;
@@ -268,10 +264,6 @@
 }
 
 .print-header {
-  display: none;
-}
-
-.print-watermark {
   display: none;
 }
 

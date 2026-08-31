@@ -8,7 +8,7 @@ import { useRecordsData } from "../hooks/useRecordsData"
 import { useDriveImage } from "../hooks/useDriveImage"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG, litres, litresValue } from "../utils/format"
-import { PrintHeader, PrintWatermark } from "../components/ui/PrintElements"
+import { PrintHeader } from "../components/ui/PrintElements"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -473,7 +473,6 @@ function SummaryInner() {
       </div>
 
       <div className="print-release relative z-10 mx-auto max-w-[560px] px-4 py-5">
-        <PrintWatermark />
         <PrintHeader
           title="Daily Summary"
           subtitle={

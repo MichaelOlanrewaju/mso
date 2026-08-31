@@ -135,33 +135,3 @@ export function PrintHeader({ title, subtitle }) {
     </div>
   )
 }
-
-export function PrintWatermark({ text = "CONFIDENTIAL" }) {
-  return (
-    <div
-      className="print-watermark"
-      style={{
-        position: "fixed",
-        inset: 0,
-        pointerEvents: "none",
-        zIndex: 9999,
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 90,
-          fontWeight: 400,
-          color: "rgba(19, 6, 86, 0.08)",
-          transform: "rotate(-38deg)",
-          whiteSpace: "nowrap",
-          letterSpacing: 6,
-        }}
-      >
-        {text}
-      </div>
-    </div>
-  )
-}
