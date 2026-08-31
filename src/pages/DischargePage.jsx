@@ -1104,7 +1104,6 @@ export default function DischargePage() {
               ).map(([date, items]) => {
                 const stationTanks = tanksFor(activeStation())
                 const productFor = (tankId) => stationTanks.find(t => t.id === tankId)?.product || tankId
-                const dayTotalLitres = items.reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
 
                 const bySupplier = items.reduce((groups, r) => {
                   const s = r[COL.SUPPLIER] || "No supplier recorded"
@@ -1121,7 +1120,10 @@ export default function DischargePage() {
                       </div>
                       <div className="flex-1">
                         <div className="text-[12px] font-semibold text-ink-3">{formatDateLabel(date)} · {Object.keys(bySupplier).length} supplier{Object.keys(bySupplier).length !== 1 ? "s" : ""}</div>
-                        <div className="mono text-[22px] font-black leading-tight text-ink">{litres(dayTotalLitres)}</div>
+                        {/* No combined day total here anymore — same fix
+                            as the Records tab: figures should read per
+                            supplier, not blended into one number that
+                            hides which company delivered what. */}
                       </div>
                     </div>
 
@@ -1142,7 +1144,20 @@ export default function DischargePage() {
                           <div key={supplier} className="px-4 py-3.5">
                             <div className="mb-2.5">
                               <div className="text-[13.5px] font-extrabold text-ink">{supplier}</div>
-                              <div className="mono text-[12px] font-bold text-cyan-dark">{litres(groupLitres)} total across {rows.length} tank{rows.length !== 1 ? "s" : ""}</div>
+                              {/* Bold and sized up — was reading as a small,
+                                  secondary line, confirmed directly this
+                                  needed more visual weight. Shortage/overage
+                                  summary added here too, matching the
+                                  per-supplier total already used on the
+                                  Records tab. */}
+                              <div className="mono text-[15px] font-extrabold text-ink">
+                                {litres(groupLitres)} <span className="text-[11px] font-bold text-ink-4">total across {rows.length} tank{rows.length !== 1 ? "s" : ""}</span>
+                                {groupShortage !== 0 && (
+                                  <span className={`ml-1.5 text-[12px] font-bold ${groupShortage > 0 ? "text-red" : "text-green"}`}>
+                                    {groupShortage > 0 ? "−" : "+"}{litres(Math.abs(groupShortage))}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="mb-2.5 space-y-1.5">
                               {rows.map((r, i) => {
