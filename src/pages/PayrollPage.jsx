@@ -72,35 +72,16 @@ function StatusChip({ status }) {
 }
 
 function PayslipRow({ name, line, isLast }) {
-  const bonus = Number(line.bonus) || 0
-  const net = (Number(line.basicSalary)||0) + (Number(line.allowances)||0) + bonus - (Number(line.deductions)||0)
   return (
-    <div className={`px-4 py-4 ${!isLast ? "border-b border-surface" : ""}`}>
-      <div className="flex items-center gap-3">
-        <Avatar name={name} size={42} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <div className="truncate text-[13.5px] font-bold text-ink">{name || "Unknown"}</div>
-            {bonus > 0 && (
-              <span className="flex-shrink-0 rounded-full bg-green-light px-1.5 py-0.5 text-[9px] font-bold text-green">
-                +{naira(bonus)} bonus
-              </span>
-            )}
-          </div>
-          <div className="text-[10.5px] capitalize text-ink-4">{ROLE_LABELS[line.role] || line.role}</div>
-        </div>
-        <div className="text-right">
-          <div className="mono text-[15px] font-extrabold text-navy">{naira(net)}</div>
-          <div className="text-[9.5px] text-ink-4">net pay</div>
-        </div>
+    <div className={`flex items-center gap-3 px-4 py-4 ${!isLast ? "border-b border-surface" : ""}`}>
+      <Avatar name={name} size={42} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13.5px] font-bold text-ink">{name || "Unknown"}</div>
+        <div className="text-[10.5px] capitalize text-ink-4">{ROLE_LABELS[line.role] || line.role}</div>
       </div>
-      <div className="mt-3 grid grid-cols-3 divide-x divide-border rounded-[10px] border border-border">
-        {[["Basic", line.basicSalary, "text-ink"], ["Allow.", line.allowances, "text-cyan-dark"], ["Deduct.", line.deductions, "text-red"]].map(([l, v, c]) => (
-          <div key={l} className="px-3 py-2">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.4px] text-ink-4">{l}</div>
-            <div className={`mono text-[12.5px] font-bold ${c}`}>{naira(Number(v) || 0)}</div>
-          </div>
-        ))}
+      <div className="text-right">
+        <div className="mono text-[15px] font-extrabold text-navy">{naira(Number(line.basicSalary) || 0)}</div>
+        <div className="text-[9.5px] text-ink-4">salary</div>
       </div>
     </div>
   )
@@ -127,21 +108,13 @@ function GMView({ auth, navigate }) {
   const [searchParams] = useSearchParams()
   const [month, setMonth] = useState(searchParams.get("month") || currentMonth())
   const [tab, setTab] = useState("run")
-  const { status: staffStatus, staff: allStaff } = useStaff(auth.username)
-  /* Attendant tracking (Pump Attendant, Trainee, etc.) is a completely
-     separate system from Payroll — confirmed directly this shouldn't
-     show up here at all. Filtered once, right where the raw list comes
-     in, so every use of "staff" below this line is already the correct,
-     payroll-eligible set — nothing downstream needs its own filter. */
-  const staff = useMemo(
-    () => allStaff.filter(s => String(s.role || "").toLowerCase() !== "attendant"),
-    [allStaff]
-  )
+  const { status: staffStatus, staff, syncAttendants } = useStaff(auth.username)
   const { status: payStatus, lines, saving, savePayrollRun } = usePayroll(month, auth.username)
   const [draft, setDraft] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [remarks, setRemarks] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const seededKey = useRef("")
   usePageTitle(`Payroll — ${getStation(activeStation()).name}`)
 
@@ -158,7 +131,7 @@ function GMView({ auth, navigate }) {
       const d = {}
       staff.forEach(s => {
         if (s.name && s.name.trim()) {
-          d[s.name] = { role: s.role, basicSalary: s.basicSalary || 0, allowances: 0, bonus: 0, deductions: 0 }
+          d[s.name] = { role: s.role, basicSalary: s.basicSalary || 0 }
         }
       })
       setDraft(d)
@@ -176,7 +149,7 @@ function GMView({ auth, navigate }) {
   const activeDraft = useMemo(() => {
     if (isRejected && !draft) {
       const d = {}
-      lines.forEach(l => { d[l.staffName] = { role: l.role, basicSalary: l.basicSalary, allowances: l.allowances, bonus: l.bonus, deductions: l.deductions } })
+      lines.forEach(l => { d[l.staffName] = { role: l.role, basicSalary: l.basicSalary } })
       return d
     }
     return draft || {}
@@ -187,17 +160,12 @@ function GMView({ auth, navigate }) {
   const draftTotals = useMemo(() => {
     const vals = Object.values(activeDraft)
     const b = vals.reduce((s, l) => s + (Number(l.basicSalary) || 0), 0)
-    const a = vals.reduce((s, l) => s + (Number(l.allowances) || 0), 0)
-    const bo = vals.reduce((s, l) => s + (Number(l.bonus) || 0), 0)
-    const d = vals.reduce((s, l) => s + (Number(l.deductions) || 0), 0)
-    return { b, a, bo, d, net: b + a + bo - d, count: vals.length }
+    return { b, net: b, count: vals.length }
   }, [activeDraft])
 
   const recordTotals = useMemo(() => ({
-    net:   lines.reduce((s, l) => s + (l.netPay || 0), 0),
+    net:   lines.reduce((s, l) => s + (l.basicSalary || 0), 0),
     basic: lines.reduce((s, l) => s + (l.basicSalary || 0), 0),
-    allow: lines.reduce((s, l) => s + (l.allowances || 0), 0),
-    bonus: lines.reduce((s, l) => s + (l.bonus || 0), 0),
     count: lines.length,
   }), [lines])
 
@@ -221,6 +189,24 @@ function GMView({ auth, navigate }) {
     }
   }
 
+  const handleSyncAttendants = async () => {
+    setSyncing(true)
+    setFeedback(null)
+    const res = await syncAttendants()
+    setSyncing(false)
+    if (res.ok) {
+      const n = res.added?.length || 0
+      setFeedback({
+        ok: true,
+        text: n > 0
+          ? `${n} attendant${n !== 1 ? "s" : ""} added to payroll — assign ${n !== 1 ? "their" : "a"} salary below.`
+          : "Every active attendant is already on the payroll list.",
+      })
+    } else {
+      setFeedback({ ok: false, text: res.error || "Couldn't sync attendants." })
+    }
+  }
+
   const handleSubmit = () => {
     setFeedback(null)
     const entries = isRejected ? Object.entries(activeDraft) : draftEntries
@@ -233,11 +219,7 @@ function GMView({ auth, navigate }) {
 
   const reviewRows = [
     { label: "Staff", value: String(draftTotals.count) },
-    { label: "Total Basic Salary", value: naira(draftTotals.b) },
-    { label: "Total Allowances", value: naira(draftTotals.a) },
-    ...(draftTotals.bo > 0 ? [{ label: "Total Bonus", value: naira(draftTotals.bo) }] : []),
-    { label: "Total Deductions", value: `−${naira(draftTotals.d)}` },
-    { label: "Net Payroll", value: naira(draftTotals.net) },
+    { label: "Total Salary", value: naira(draftTotals.b) },
     ...(remarks.trim() ? [{ label: "Remarks", value: remarks.trim() }] : []),
   ]
   const reviewWarnings = []
@@ -245,7 +227,7 @@ function GMView({ auth, navigate }) {
     reviewWarnings.push("At least one staff member has no Basic Salary entered — double-check before submitting.")
   }
   if (!remarks.trim()) {
-    reviewWarnings.push("No remarks added — if anything's unusual this month (a bonus, a deduction reason), the owner won't see context unless you add it.")
+    reviewWarnings.push("No remarks added — if anything's unusual this month, the owner won't see context unless you add it.")
   }
 
   const loading = payStatus === "loading" || staffStatus === "loading"
@@ -299,6 +281,21 @@ function GMView({ auth, navigate }) {
               {runStatus && <StatusChip status={runStatus} />}
             </div>
 
+            {/* Confirmed directly: GM wants every tracked Attendant to
+                show up here too, so a salary can actually be assigned —
+                not just viewed on the Attendance page. Hidden once a
+                run is pending/approved, since a new entry wouldn't
+                retroactively join that already-submitted month anyway. */}
+            {!isPending && !isApproved && (
+              <button type="button" onClick={handleSyncAttendants} disabled={syncing}
+                className="mb-4 flex w-full items-center justify-center gap-2 rounded-[12px] border border-cyan/25 bg-cyan-light py-2.5 text-[12.5px] font-bold text-cyan-dark disabled:opacity-60">
+                {syncing
+                  ? <><span className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-cyan-dark/30 border-t-cyan-dark" /> Syncing…</>
+                  : <><i className="bi bi-people" /> Add Attendants to Payroll</>
+                }
+              </button>
+            )}
+
             {/* Feedback */}
             {feedback && (
               <div className={`mb-4 flex items-start gap-2.5 rounded-[12px] border px-4 py-3.5 text-[13px] font-semibold ${
@@ -336,9 +333,7 @@ function GMView({ auth, navigate }) {
                     </div>
                     <SummaryStrip items={[
                       ["Staff", recordTotals.count, "text-ink"],
-                      ["Basic", naira(recordTotals.basic), "text-ink"],
-                      ["Allow.", naira(recordTotals.allow), "text-cyan-dark"],
-                      ["Net Pay", naira(recordTotals.net), "text-navy"],
+                      ["Total Salary", naira(recordTotals.basic), "text-navy"],
                     ]} />
                   </div>
                 )}
@@ -362,10 +357,7 @@ function GMView({ auth, navigate }) {
                     </div>
                     <SummaryStrip items={[
                       ["Staff", recordTotals.count, "text-ink"],
-                      ["Basic", naira(recordTotals.basic), "text-ink"],
-                      ["Allow.", naira(recordTotals.allow), "text-cyan-dark"],
-                      ...(recordTotals.bonus > 0 ? [["Bonus", naira(recordTotals.bonus), "text-green"]] : []),
-                      ["Net Pay", naira(recordTotals.net), "text-navy"],
+                      ["Total Salary", naira(recordTotals.basic), "text-navy"],
                     ]} />
                   </div>
                 )}
@@ -382,16 +374,12 @@ function GMView({ auth, navigate }) {
                 <div className="overflow-hidden rounded-[16px] bg-white shadow-sm">
                   {lines.map((l, idx) => (
                     <PayslipRow key={l.staffName || idx} name={l.staffName}
-                      line={{ role: l.role, basicSalary: l.basicSalary, allowances: l.allowances, bonus: l.bonus, deductions: l.deductions }}
+                      line={{ role: l.role, basicSalary: l.basicSalary }}
                       isLast={idx === lines.length - 1} />
                   ))}
-                  <div className="grid grid-cols-4 border-t-2 border-navy/10 bg-navy/5 px-4 py-3">
-                    {[["Basic", naira(recordTotals.basic), "text-ink"], ["Allow.+Bonus", naira(recordTotals.allow + recordTotals.bonus), "text-cyan-dark"], ["Deduct.", "₦0", "text-red"], ["Net", naira(recordTotals.net), "text-navy font-extrabold"]].map(([l, v, c]) => (
-                      <div key={l} className={l === "Net" ? "text-right" : ""}>
-                        <div className="text-[9px] font-bold uppercase tracking-[0.4px] text-ink-4">{l}</div>
-                        <div className={`mono text-[12.5px] font-bold ${c}`}>{v}</div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between border-t-2 border-navy/10 bg-navy/5 px-4 py-3">
+                    <div className="text-[9px] font-bold uppercase tracking-[0.4px] text-ink-4">Total Salary</div>
+                    <div className="mono text-[13px] font-extrabold text-navy">{naira(recordTotals.basic)}</div>
                   </div>
                 </div>
               </>
@@ -428,34 +416,21 @@ function GMView({ auth, navigate }) {
 
                 {draftEntries.length > 0 && (
                   <>
-                    {/* Live totals */}
-                    <div className="mb-4 overflow-hidden rounded-[14px] bg-white shadow-sm">
-                      <div className="px-4 py-3">
-                        <div className="text-[11px] font-bold text-ink-4">{monthLabel(month)}</div>
-                        <div className="mono text-[26px] font-extrabold text-navy">{naira(draftTotals.net)}</div>
-                        <div className="text-[11px] text-ink-4">{draftTotals.count} staff · total net payroll</div>
-                      </div>
-                      <div className={`grid gap-px bg-border border-t border-border ${draftTotals.bo > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
-                        {[["Basic", naira(draftTotals.b), "text-ink"], ["Allow.", naira(draftTotals.a), "text-cyan-dark"], ...(draftTotals.bo > 0 ? [["Bonus", naira(draftTotals.bo), "text-green"]] : []), ["Deductions", naira(draftTotals.d), "text-red"]].map(([l, v, c]) => (
-                          <div key={l} className="bg-white px-3 py-2.5">
-                            <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
-                            <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
-                          </div>
-                        ))}
-                      </div>
+                    {/* Live total */}
+                    <div className="mb-4 overflow-hidden rounded-[14px] bg-white px-4 py-3.5 shadow-sm">
+                      <div className="text-[11px] font-bold text-ink-4">{monthLabel(month)}</div>
+                      <div className="mono text-[26px] font-extrabold text-navy">{naira(draftTotals.b)}</div>
+                      <div className="text-[11px] text-ink-4">{draftTotals.count} staff · total salary</div>
                     </div>
 
                     {/* Staff rows */}
-                    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">Staff — tap to edit</div>
+                    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[1px] text-ink-4">Staff Salary</div>
                     <div className="mb-5 overflow-hidden rounded-[16px] bg-white shadow-sm">
-                      {draftEntries.map(([name, line], idx) => {
-                        const net = (Number(line.basicSalary)||0)+(Number(line.allowances)||0)+(Number(line.bonus)||0)-(Number(line.deductions)||0)
-                        return (
-                          <EditableRow key={name} name={name} line={line} net={net}
-                            isLast={idx === draftEntries.length - 1}
-                            onChange={(f, v) => setDraft(prev => ({ ...prev, [name]: { ...prev[name], [f]: v } }))} />
-                        )
-                      })}
+                      {draftEntries.map(([name, line], idx) => (
+                        <EditableRow key={name} name={name} line={line}
+                          isLast={idx === draftEntries.length - 1}
+                          onChange={(f, v) => setDraft(prev => ({ ...prev, [name]: { ...prev[name], [f]: v } }))} />
+                      ))}
                     </div>
 
                     {/* General Remarks — the one place a whole month's story lives */}
@@ -463,10 +438,10 @@ function GMView({ auth, navigate }) {
                     <div className="mb-5 overflow-hidden rounded-[16px] bg-white p-4 shadow-sm">
                       <textarea
                         rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
-                        placeholder="e.g. Two staff on annual leave got a holiday bonus this month. One deduction is a salary advance repayment."
+                        placeholder="e.g. Two new hires started mid-month, salary is prorated. One staff member's salary was adjusted this month."
                         className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none focus:border-cyan focus:bg-white"
                       />
-                      <div className="mt-2 text-[11px] text-ink-4">Anything the owner should know before approving — bonuses, unusual deductions, anything worth flagging.</div>
+                      <div className="mt-2 text-[11px] text-ink-4">Anything the owner should know before approving — a salary change, a new hire, anything worth flagging.</div>
                     </div>
 
                     <button type="button" onClick={handleSubmit} disabled={saving}
@@ -549,48 +524,27 @@ function GMView({ auth, navigate }) {
 }
 
 /* Editable row as a separate component to avoid state issues */
-function EditableRow({ name, line, net, isLast, onChange }) {
-  const [open, setOpen] = useState(false)
+/* Was an accordion — tap to expand, then fill 4 fields (Basic/Allow/
+   Bonus/Deduct). Confirmed directly: this is Salary only now, nothing
+   else, so hiding the one remaining field behind a tap just adds a step
+   for no reason. Every row shows its input directly, always visible —
+   GM can see and edit every salary in one scroll, no expand/collapse
+   at all. */
+function EditableRow({ name, line, isLast, onChange }) {
   return (
-    <div className={!isLast ? "border-b border-surface" : ""}>
-      <button type="button" onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-3 px-4 py-4 text-left">
-        <Avatar name={name} size={42} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[13.5px] font-bold text-ink">{name}</div>
-          <div className="text-[10.5px] capitalize text-ink-4">{ROLE_LABELS[line.role] || line.role}</div>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <div className="text-right">
-            <div className={`mono text-[15px] font-extrabold ${net < 0 ? "text-red" : "text-navy"}`}>{naira(net)}</div>
-            <div className="text-[9.5px] text-cyan-dark">{open ? "close" : "tap to edit"}</div>
-          </div>
-          <i className={`bi bi-chevron-down text-[12px] text-ink-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-        </div>
-      </button>
-      {open && (
-        <div className="border-t border-surface bg-[#F8F9FC] px-4 pb-4 pt-3">
-          <div className="grid grid-cols-2 gap-3">
-            {[["basicSalary", "Basic (₦)", "focus:border-navy"], ["allowances", "Allow. (₦)", "focus:border-cyan"], ["bonus", "Bonus (₦)", "focus:border-green"], ["deductions", "Deduct. (₦)", "focus:border-red/60"]].map(([f, l, fc]) => (
-              <label key={f}>
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.4px] text-ink-4">{l}</span>
-                <input type="number" inputMode="decimal" min="0" step="1"
-                  value={line[f]}
-                  onChange={e => onChange(f, e.target.value)}
-                  className={`mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none ${fc}`} />
-              </label>
-            ))}
-          </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 rounded-[8px] bg-surface px-3 py-2 text-[11px]">
-            <span className="font-bold text-ink">{naira(Number(line.basicSalary) || 0)}</span>
-            <span className="text-ink-4">basic</span>
-            <span className="font-bold text-cyan-dark">+ {naira(Number(line.allowances) || 0)}</span>
-            {Number(line.bonus) > 0 && <span className="font-bold text-green">+ {naira(Number(line.bonus) || 0)} bonus</span>}
-            <span className="font-bold text-red">− {naira(Number(line.deductions) || 0)}</span>
-            <span className="ml-auto font-extrabold text-navy">= {naira(net)}</span>
-          </div>
-        </div>
-      )}
+    <div className={`flex items-center gap-3 px-4 py-3.5 ${!isLast ? "border-b border-surface" : ""}`}>
+      <Avatar name={name} size={38} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-bold text-ink">{name}</div>
+        <div className="text-[10px] capitalize text-ink-4">{ROLE_LABELS[line.role] || line.role}</div>
+      </div>
+      <label className="flex-shrink-0">
+        <input type="number" inputMode="decimal" min="0" step="1"
+          value={line.basicSalary}
+          onChange={e => onChange("basicSalary", e.target.value)}
+          placeholder="0"
+          className="mono w-[120px] rounded-[9px] border-2 border-border bg-white px-3 py-2 text-right text-[14px] font-bold text-ink outline-none focus:border-navy" />
+      </label>
     </div>
   )
 }
@@ -622,11 +576,7 @@ function OwnerView({ auth, navigate }) {
   const isRejected = runStatus === "REJECTED"
 
   const totals = useMemo(() => ({
-    net:   lines.reduce((s, l) => s + (l.netPay || 0), 0),
     basic: lines.reduce((s, l) => s + (l.basicSalary || 0), 0),
-    allow: lines.reduce((s, l) => s + (l.allowances || 0), 0),
-    bonus: lines.reduce((s, l) => s + (l.bonus || 0), 0),
-    deduct:lines.reduce((s, l) => s + (l.deductions || 0), 0),
     count: lines.length,
   }), [lines])
 
@@ -749,20 +699,10 @@ function OwnerView({ auth, navigate }) {
         {payStatus === "ready" && lines.length > 0 && (
           <>
             {/* Summary */}
-            <div className="mb-5 overflow-hidden rounded-[16px] bg-white shadow-sm">
-              <div className="px-4 py-4">
-                <div className="text-[11px] font-bold text-ink-4">{monthLabel(month)}</div>
-                <div className="mono text-[28px] font-extrabold text-navy">{naira(totals.net)}</div>
-                <div className="text-[11.5px] text-ink-4">{totals.count} staff · total net payroll</div>
-              </div>
-              <div className={`grid gap-px border-t border-border bg-border ${totals.bonus > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
-                {[["Basic", naira(totals.basic), "text-ink"], ["Allow.", naira(totals.allow), "text-cyan-dark"], ...(totals.bonus > 0 ? [["Bonus", naira(totals.bonus), "text-green"]] : []), ["Deductions", naira(totals.deduct), "text-red"]].map(([l, v, c]) => (
-                  <div key={l} className="bg-white px-4 py-3">
-                    <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
-                    <div className={`mono text-[13.5px] font-bold ${c}`}>{v}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="mb-5 overflow-hidden rounded-[16px] bg-white px-4 py-4 shadow-sm">
+              <div className="text-[11px] font-bold text-ink-4">{monthLabel(month)}</div>
+              <div className="mono text-[28px] font-extrabold text-navy">{naira(totals.basic)}</div>
+              <div className="text-[11.5px] text-ink-4">{totals.count} staff · total salary</div>
             </div>
 
             {lines[0]?.remarks && (
@@ -779,12 +719,12 @@ function OwnerView({ auth, navigate }) {
             <div className="mb-5 overflow-hidden rounded-[16px] bg-white shadow-sm">
               {lines.map((l, idx) => (
                 <PayslipRow key={l.staffName || idx} name={l.staffName}
-                  line={{ role: l.role, basicSalary: l.basicSalary, allowances: l.allowances, bonus: l.bonus, deductions: l.deductions }}
+                  line={{ role: l.role, basicSalary: l.basicSalary }}
                   isLast={idx === lines.length - 1} />
               ))}
               <div className="flex items-center justify-between border-t-2 border-navy/10 bg-navy/5 px-4 py-3">
-                <div className="text-[11.5px] font-bold text-ink">Total net payroll</div>
-                <div className="mono text-[15px] font-extrabold text-navy">{naira(totals.net)}</div>
+                <div className="text-[11.5px] font-bold text-ink">Total salary</div>
+                <div className="mono text-[15px] font-extrabold text-navy">{naira(totals.basic)}</div>
               </div>
             </div>
 

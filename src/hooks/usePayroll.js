@@ -88,7 +88,53 @@ export function useStaff(actingUsername, viewStation) {
     }
   }, [load, actingUsername])
 
-  return { status, staff, saving, saveStaffMember, inviteStaff, refresh: load }
+  /* For adding someone to the payroll list who doesn't need — or isn't
+     getting — a login account at all. Confirmed directly: not every
+     Attendant or Supervisor needs app access, just to be paid. */
+  const addPayrollOnly = useCallback(async ({ name, role, phone, basicSalary }) => {
+    if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
+    setSaving(true)
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "addPayrollOnlyStaff", station: activeStation(), token: getToken(), username: actingUsername, name, role, phone, basicSalary }),
+      })
+      const text = await res.text()
+      const d = JSON.parse(text)
+      if (d.ok) load()
+      return d
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) }
+    } finally {
+      if (isMounted.current) setSaving(false)
+    }
+  }, [load, actingUsername])
+
+  /* Brings every ACTIVE tracked Attendant (from the Attendance/pump-
+     allocation system) onto the payroll roster as a payroll-only
+     entry, so GM can assign each one a salary — confirmed directly
+     this was the actual need, not just viewing them. Existing Staff
+     entries are never touched or duplicated. */
+  const syncAttendants = useCallback(async () => {
+    if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
+    setSaving(true)
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "syncAttendantsToPayroll", station: activeStation(), token: getToken(), username: actingUsername }),
+      })
+      const text = await res.text()
+      const d = JSON.parse(text)
+      if (d.ok) load()
+      return d
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) }
+    } finally {
+      if (isMounted.current) setSaving(false)
+    }
+  }, [load, actingUsername])
+
+  return { status, staff, saving, saveStaffMember, inviteStaff, addPayrollOnly, syncAttendants, refresh: load }
 }
 
 /* ── usePayroll ───────────────────────────────────────────── */

@@ -5,7 +5,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
-import { naira, litres } from "../utils/format"
+import { naira, litres, litresValue } from "../utils/format"
 import { getToken } from "../utils/session"
 import { useSettings } from "../hooks/useSettings"
 
@@ -20,8 +20,11 @@ import { activeStation } from "../utils/station"
    tank id ("TK1") rather than a decorative label — needed so a discharge can
    be reliably matched back to a specific tank later (for the dip diff fix). */
 function dischargeOptionsFor(stationKey) {
+  /* Was excluding LPG here — "refilled by cylinder swap, not tanker
+     discharge" — confirmed directly this has changed: LPG restocking
+     should now go through the same discharge analysis as PMS/AGO,
+     tracked in KG rather than litres. */
   return tanksFor(stationKey)
-    .filter(t => t.product !== "LPG")   // LPG is refilled by cylinder swap, not tanker discharge
     .map(t => ({ value: t.id, label: `${t.id} — ${t.product}` }))
 }
 
@@ -211,8 +214,15 @@ export default function DischargePage() {
      pick which one they're looking at; everything downstream (History,
      period totals, Pricing) respects that choice rather than mixing both
      products into a single misleading number. */
-  const [productFilter, setProductFilter] = useState("PMS") // "PMS" | "AGO"
+  const [productFilter, setProductFilter] = useState("PMS") // "PMS" | "AGO" | "LPG"
   const [supplierFilter, setSupplierFilter] = useState("all")
+
+  /* Every section on this page below the PMS/AGO/LPG toggle is already
+     scoped to whichever product is currently selected — so rather than
+     threading a per-record unit through 20+ individual display sites,
+     the unit just follows productFilter directly. LPG is tracked in
+     KG, confirmed directly, never litres. */
+  const qty = (value) => productFilter === "LPG" ? `${litresValue(value)}KG` : litres(value)
   const stationTanksTop = tanksFor(activeStation())
   const productForTankId = (tankId) => stationTanksTop.find(t => t.id === tankId)?.product || tankId
 
@@ -224,26 +234,6 @@ export default function DischargePage() {
   const now = useMemo(() => new Date(), [])
   const weekStart = useMemo(() => startOfWeek(now), [now])
   const monthStart = useMemo(() => startOfMonth(now), [now])
-
-  /* Last 7 days, one bar per day — the real "at a glance" job this page
-     needs to do: is delivery volume steady, or did something change.
-     Uses productFilteredRecords further down, so it respects the PMS/AGO
-     toggle same as everything else on this page. Defined here as a plain
-     function (not a hook) since it's called after productFilteredRecords
-     is ready, further down in the component body. */
-  const last7DaysTrend = (filteredRecords) => {
-    const days = []
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now)
-      d.setDate(d.getDate() - i)
-      const key = d.toISOString().split("T")[0]
-      const dayLitres = filteredRecords
-        .filter(r => String(r[COL.DATE]).slice(0, 10) === key)
-        .reduce((s, r) => s + (Number(r[COL.ACTUAL]) || 0), 0)
-      days.push({ key, label: d.toLocaleDateString("en-NG", { weekday: "short" }).slice(0, 1), litres: dayLitres })
-    }
-    return days
-  }
 
   const sumRecords = (list) => list.reduce((acc, r) => {
     acc.ordered += Number(r[COL.ORDERED]) || 0
@@ -321,9 +311,6 @@ export default function DischargePage() {
     records.forEach(r => set.add(String(r[COL.SUPPLIER] || "No supplier recorded")))
     return Array.from(set).sort()
   }, [records])
-
-  const trendDays = useMemo(() => last7DaysTrend(productFilteredRecords), [productFilteredRecords])
-  const todayLitres = trendDays.length ? trendDays[trendDays.length - 1].litres : 0
 
   const weekRecords = useMemo(() => productFilteredRecords.filter(r => {
     const d = parseSheetDate(r[COL.DATE])
@@ -541,19 +528,24 @@ export default function DischargePage() {
     setConfirmOpen(true)
   }
 
+  // The entry form isn't scoped by productFilter — it's whatever tank
+  // the supervisor picks — so its unit follows the selected tank's own
+  // product directly, same LPG-is-KG rule as everywhere else.
+  const formQty = (value) => productForTankId(form.product) === "LPG" ? `${litresValue(value)}KG` : litres(value)
+
   // What the review popup shows before the actual save.
   const dischargeReviewRows = [
     { label: "Product / Tank", value: form.product },
     { label: "Supplier", value: form.supplier },
     { label: "Driver", value: form.driverName || "Not entered", warn: !form.driverName },
-    { label: "Actual Received", value: `${litres(form.actualReceived || 0)}` },
-    ...(form.orderedLitres ? [{ label: "Ordered", value: `${litres(form.orderedLitres)}` }] : []),
+    { label: "Actual Received", value: `${formQty(form.actualReceived || 0)}` },
+    ...(form.orderedLitres ? [{ label: "Ordered", value: `${formQty(form.orderedLitres)}` }] : []),
     { label: "Variance",
       value: (() => {
         const v = form.shortage !== "" ? Number(form.shortage)
                 : (form.orderedLitres && form.actualReceived ? Number(form.orderedLitres) - Number(form.actualReceived) : 0)
         if (!v) return "None"
-        return v > 0 ? `${litres(v)} short` : `${litres(Math.abs(v))} over`
+        return v > 0 ? `${formQty(v)} short` : `${formQty(Math.abs(v))} over`
       })(),
       warn: Number(form.shortage) !== 0 },
     ...(form.truckNumber ? [{ label: "Truck No.", value: form.truckNumber }] : []),
@@ -565,9 +557,9 @@ export default function DischargePage() {
     const v = form.shortage !== "" ? Number(form.shortage)
             : (form.orderedLitres && form.actualReceived ? Number(form.orderedLitres) - Number(form.actualReceived) : 0)
     if (v > 0) {
-      dischargeWarnings.push(`Shortage of ${litres(v)} recorded — this will be flagged for GM/CEO review.`)
+      dischargeWarnings.push(`Shortage of ${formQty(v)} recorded — this will be flagged for GM/CEO review.`)
     } else if (v < 0) {
-      dischargeWarnings.push(`Overage of ${litres(Math.abs(v))} — you received more than ordered. Confirm the waybill before submitting.`)
+      dischargeWarnings.push(`Overage of ${formQty(Math.abs(v))} — you received more than ordered. Confirm the waybill before submitting.`)
     }
   }
 
@@ -670,59 +662,6 @@ export default function DischargePage() {
         </div>
       </div>
 
-      {/* Scrolls away naturally — a hero moment, not a permanent fixture.
-          The real "at a glance" job this page needs to do: today's volume
-          as the headline figure, with the last 7 days right beside it, so
-          a genuine change in pattern is visible immediately rather than
-          buried in a list someone has to scroll to notice. */}
-      {isGMOrOwner && !loading && tab === "records" && (
-        <div className="relative overflow-hidden px-4 pb-1 pt-4" style={{ background: "var(--ftk-bg-hero)" }}>
-          <div className="rounded-[18px] p-4" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", boxShadow: "0 1px 2px rgba(19,6,86,0.04), 0 8px 24px -12px rgba(19,6,86,0.12)" }}>
-            <div className="mb-3 flex items-end justify-between">
-              <div>
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.6px]" style={{ color: "var(--ftk-ink-faint)" }}>Today — {productFilter}</div>
-                <div className="ftk-mono text-[28px] font-black leading-none" style={{ color: "var(--ftk-ink)" }}>
-                  {todayLitres > 0 ? litres(todayLitres) : "—"}
-                </div>
-              </div>
-              {pending.length > 0 && (
-                <div className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: "rgba(217,119,6,0.12)", color: "var(--ftk-amber)" }}>
-                  <i className="bi bi-hourglass-split text-[9px]" /> {pending.length} needs price
-                </div>
-              )}
-            </div>
-
-            {/* Seven bars, today highlighted — a real trend, not decoration.
-                Height is proportional within the window, so a genuinely
-                quiet week and a genuinely busy one both read honestly. */}
-            <div className="flex items-end gap-1.5" style={{ height: 44 }}>
-              {trendDays.map((d, i) => {
-                const max = Math.max(...trendDays.map(t => t.litres), 1)
-                const h = d.litres > 0 ? Math.max(6, Math.round((d.litres / max) * 44)) : 3
-                const isToday = i === trendDays.length - 1
-                return (
-                  <div key={d.key} className="flex flex-1 flex-col items-center justify-end gap-1">
-                    <div
-                      className="w-full rounded-[3px] transition-all"
-                      style={{
-                        height: h,
-                        background: isToday ? "var(--ftk-cyan)" : d.litres > 0 ? "rgba(19,6,86,0.16)" : "rgba(19,6,86,0.06)",
-                      }}
-                      title={`${d.key}: ${litres(d.litres)}`}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-            <div className="mt-1.5 flex gap-1.5">
-              {trendDays.map(d => (
-                <div key={d.key} className="flex-1 text-center text-[9px] font-bold" style={{ color: "var(--ftk-ink-faint)" }}>{d.label}</div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="mx-auto max-w-[640px] px-4 py-4">
         {/* Feedback */}
         {feedback && (
@@ -733,19 +672,19 @@ export default function DischargePage() {
           </div>
         )}
 
-        {/* PMS/AGO toggle — never blended, same as the fuel-stock hero never
-            combines PMS-on-hand with AGO-on-hand. Governs History, period
-            totals, and Pricing below, whichever tab is active. */}
+        {/* PMS/AGO/LPG toggle — never blended, same as the fuel-stock hero
+            never combines PMS-on-hand with AGO-on-hand. Governs History,
+            period totals, and Pricing below, whichever tab is active. */}
         {(tab === "records" || tab === "pricing") && (
           <div className="mb-4 flex gap-2">
-            {["PMS", "AGO"].map(p => (
+            {["PMS", "AGO", "LPG"].map(p => (
               <button
                 key={p} type="button" onClick={() => setProductFilter(p)}
                 className={`flex-1 rounded-[12px] py-2.5 text-[13px] font-bold transition ${
                   productFilter === p ? "bg-navy text-white shadow-lift" : "border border-border bg-white text-ink-3"
                 }`}
               >
-                <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : "bi-droplet-fill"} mr-1.5`} />{p}
+                <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : p === "AGO" ? "bi-droplet-fill" : "bi-fire"} mr-1.5`} />{p}
               </button>
             ))}
           </div>
@@ -788,11 +727,11 @@ export default function DischargePage() {
                 <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 px-1 py-4">
                   <div className="px-3 pb-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Expected</div>
-                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.ordered > 0 ? litres(periodTotals.ordered) : "—"}</div>
+                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.ordered > 0 ? qty(periodTotals.ordered) : "—"}</div>
                   </div>
                   <div className="px-3 pb-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Received</div>
-                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{litres(periodTotals.litres)}</div>
+                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{qty(periodTotals.litres)}</div>
                   </div>
                   <div className="px-3 pt-3 text-center">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Amount</div>
@@ -815,7 +754,7 @@ export default function DischargePage() {
                         <div key={t.label} className="flex items-center justify-between text-[12px]">
                           <span className="font-semibold text-white/90">{t.label}</span>
                           <span className="mono font-bold text-white">
-                            {litres(t.litres)}{t.cost > 0 ? ` · ${naira(t.cost)}` : ""}
+                            {qty(t.litres)}{t.cost > 0 ? ` · ${naira(t.cost)}` : ""}
                           </span>
                         </div>
                       ))}
@@ -835,7 +774,7 @@ export default function DischargePage() {
                         <div key={s.label} className="text-[12px]">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-white/90">{s.label}</span>
-                            <span className="mono font-bold text-white">{litres(s.litres)}</span>
+                            <span className="mono font-bold text-white">{qty(s.litres)}</span>
                           </div>
                           <div className="mt-0.5 flex items-center justify-between text-[10.5px] text-white/50">
                             <span>
@@ -941,10 +880,10 @@ export default function DischargePage() {
                                   where the old check only ever fired for
                                   shortage. */}
                               <div className="mono text-[13px] font-extrabold text-ink">
-                                {litres(supplierSum.litres)}
+                                {qty(supplierSum.litres)}
                                 {supplierSum.shortageLitres !== 0 && (
                                   <span className={`ml-1.5 text-[11px] font-bold ${supplierSum.shortageLitres > 0 ? "text-red" : "text-green"}`}>
-                                    {supplierSum.shortageLitres > 0 ? "−" : "+"}{litres(Math.abs(supplierSum.shortageLitres))}
+                                    {supplierSum.shortageLitres > 0 ? "−" : "+"}{qty(Math.abs(supplierSum.shortageLitres))}
                                   </span>
                                 )}
                               </div>
@@ -963,10 +902,10 @@ export default function DischargePage() {
                                       )}
                                     </div>
                                     <div className="flex-shrink-0 text-right">
-                                      <div className="mono text-[12.5px] font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
+                                      <div className="mono text-[12.5px] font-bold text-navy">{qty(r[COL.ACTUAL])}</div>
                                       {Number(r[COL.SHORTAGE]) !== 0 && (
                                         <div className={`mono text-[10px] font-bold ${Number(r[COL.SHORTAGE]) > 0 ? "text-red" : "text-green"}`}>
-                                          {Number(r[COL.SHORTAGE]) > 0 ? "−" : "+"}{litres(Math.abs(Number(r[COL.SHORTAGE])))}
+                                          {Number(r[COL.SHORTAGE]) > 0 ? "−" : "+"}{qty(Math.abs(Number(r[COL.SHORTAGE])))}
                                         </div>
                                       )}
                                     </div>
@@ -1154,8 +1093,8 @@ export default function DischargePage() {
                       const v = Number(form.orderedLitres) - Number(form.actualReceived)
                       if (v === 0) return <div className="mono text-[15px] font-bold text-ink">Exact match</div>
                       return v > 0
-                        ? <div className="mono text-[15px] font-bold text-red">{litres(v)} short</div>
-                        : <div className="mono text-[15px] font-bold text-green">{litres(Math.abs(v))} over</div>
+                        ? <div className="mono text-[15px] font-bold text-red">{formQty(v)} short</div>
+                        : <div className="mono text-[15px] font-bold text-green">{formQty(Math.abs(v))} over</div>
                     })() : (
                       <div className="text-[12.5px] text-ink-4">Enter Ordered and Actual Received above to see this</div>
                     )}
@@ -1273,10 +1212,10 @@ export default function DischargePage() {
                                   per-supplier total already used on the
                                   Records tab. */}
                               <div className="mono text-[15px] font-extrabold text-ink">
-                                {litres(groupLitres)} <span className="text-[11px] font-bold text-ink-4">total across {rows.length} tank{rows.length !== 1 ? "s" : ""}</span>
+                                {qty(groupLitres)} <span className="text-[11px] font-bold text-ink-4">total across {rows.length} tank{rows.length !== 1 ? "s" : ""}</span>
                                 {groupShortage !== 0 && (
                                   <span className={`ml-1.5 text-[12px] font-bold ${groupShortage > 0 ? "text-red" : "text-green"}`}>
-                                    {groupShortage > 0 ? "−" : "+"}{litres(Math.abs(groupShortage))}
+                                    {groupShortage > 0 ? "−" : "+"}{qty(Math.abs(groupShortage))}
                                   </span>
                                 )}
                               </div>
@@ -1298,13 +1237,13 @@ export default function DischargePage() {
                                           difference without showing either
                                           number it's derived from. */}
                                       {orderedVal > 0 && (
-                                        <div className="text-[10px] text-ink-4">Expected {litres(orderedVal)}</div>
+                                        <div className="text-[10px] text-ink-4">Expected {qty(orderedVal)}</div>
                                       )}
                                     </div>
-                                    <div className="mono font-bold text-navy">{litres(r[COL.ACTUAL])}</div>
+                                    <div className="mono font-bold text-navy">{qty(r[COL.ACTUAL])}</div>
                                     {shortageVal !== 0 && (
                                       <span className={`rounded-full px-2 py-[2px] text-[10px] font-bold ${shortageVal > 0 ? "bg-red-light text-red" : "bg-green-light text-green"}`}>
-                                        {shortageVal > 0 ? "−" : "+"}{litres(Math.abs(shortageVal))}
+                                        {shortageVal > 0 ? "−" : "+"}{qty(Math.abs(shortageVal))}
                                       </span>
                                     )}
                                   </div>
@@ -1320,10 +1259,10 @@ export default function DischargePage() {
                             </label>
                             {previewTotal !== null && (
                               <div className="mb-2 space-y-1 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
-                                <div>{litres(groupLitres)} × {naira(Number(priceVal))} = <strong className="text-navy">{naira(previewTotal)}</strong></div>
+                                <div>{qty(groupLitres)} × {naira(Number(priceVal))} = <strong className="text-navy">{naira(previewTotal)}</strong></div>
                                 {previewVarianceCost !== null && (
                                   <div>
-                                    {litres(Math.abs(groupShortage))} {groupShortage > 0 ? "shortage" : "excess"} × {naira(Number(priceVal))} = <strong className={groupShortage > 0 ? "text-red" : "text-green"}>{naira(Math.abs(previewVarianceCost))}</strong> {groupShortage > 0 ? "shortage cost" : "excess value"}
+                                    {qty(Math.abs(groupShortage))} {groupShortage > 0 ? "shortage" : "excess"} × {naira(Number(priceVal))} = <strong className={groupShortage > 0 ? "text-red" : "text-green"}>{naira(Math.abs(previewVarianceCost))}</strong> {groupShortage > 0 ? "shortage cost" : "excess value"}
                                   </div>
                                 )}
                               </div>
@@ -1368,7 +1307,7 @@ export default function DischargePage() {
             <div className="mb-4 space-y-3">
               {dischargeResolutionPrompt.map((p, i) => (
                 <div key={p.tank} className="rounded-[12px] border border-border bg-surface p-3.5">
-                  <div className="mb-2 text-[13px] font-bold text-ink">{p.tank} — {litres(p.actual)} delivered</div>
+                  <div className="mb-2 text-[13px] font-bold text-ink">{p.tank} — {productForTankId(p.tank) === "LPG" ? `${litresValue(p.actual)}KG` : litres(p.actual)} delivered</div>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -1451,7 +1390,7 @@ export default function DischargePage() {
           <div className="w-full max-w-[400px] rounded-t-[20px] bg-white p-5 sm:rounded-[20px]" onClick={e => e.stopPropagation()}>
             <div className="mb-1 text-[15px] font-extrabold text-ink">Delete this discharge record?</div>
             <div className="mb-4 text-[12.5px] text-ink-3">
-              {confirmDeleteDischarge[COL.PRODUCT]} — {litres(confirmDeleteDischarge[COL.ACTUAL])} on {formatDateLabel(confirmDeleteDischarge[COL.DATE])}. This can't be undone.
+              {confirmDeleteDischarge[COL.PRODUCT]} — {productForTankId(confirmDeleteDischarge[COL.PRODUCT]) === "LPG" ? `${litresValue(confirmDeleteDischarge[COL.ACTUAL])}KG` : litres(confirmDeleteDischarge[COL.ACTUAL])} on {formatDateLabel(confirmDeleteDischarge[COL.DATE])}. This can't be undone.
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => setConfirmDeleteDischarge(null)} className="flex-1 rounded-[10px] border border-border py-2.5 text-[13px] font-semibold text-ink-3">

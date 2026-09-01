@@ -88,6 +88,13 @@ function CashierInner() {
           <button type="button" onClick={refresh} className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
             <i className={`bi bi-arrow-clockwise ${loading ? "animate-spin-fast" : ""}`} />
           </button>
+          {/* Was entirely missing — confirmed directly a Cashier had no
+              way to reach their own Profile page at all, no matter how
+              they navigated. Same icon and destination as every other
+              role's Profile link. */}
+          <button type="button" onClick={() => navigate("/profile")} className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
+            <i className="bi bi-person-circle" />
+          </button>
           <button type="button" onClick={auth.logout} className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-red">
             <i className="bi bi-box-arrow-right" />
           </button>

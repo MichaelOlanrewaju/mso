@@ -40,9 +40,17 @@ function Field({ label, hint, children }) {
 export default function AddStaffPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  const { staff, saving, saveStaffMember, inviteStaff } = useStaff(auth.username)
+  const { staff, saving, saveStaffMember, inviteStaff, addPayrollOnly } = useStaff(auth.username)
   usePageTitle(`Add Staff — ${getStation(activeStation()).name}`)
 
+  /* Two distinct ways to add someone, confirmed directly as separate
+     needs: "invite" creates a real login account and emails
+     credentials — for staff who'll actually use the app. "payrollOnly"
+     just adds a name/role/salary to the payroll list, no account, no
+     email — for an Attendant or anyone else who needs to be paid but
+     doesn't need app access. Username/email fields only make sense
+     for "invite"; payrollOnly generates its own username internally. */
+  const [addMode, setAddMode] = useState("invite") // "invite" | "payrollOnly"
   const [username, setUsername]       = useState("")
   const [name, setName]               = useState("")
   const [email, setEmail]             = useState("")
@@ -72,11 +80,32 @@ export default function AddStaffPage() {
   const handleSubmit = async e => {
     e.preventDefault()
     setFeedback(null)
-    const u = username.trim().toLowerCase()
     const n = name.trim()
+    if (!n) { setFeedback({ type: "error", text: "Full name is required." }); return }
+
+    if (addMode === "payrollOnly") {
+      // If username is already in state, this is an existing
+      // payroll-only entry being edited (tapped from the roster below)
+      // — update it in place with saveStaffMember, the same function
+      // "invite" mode's existing-staff path already uses. Only create
+      // a brand new entry via addPayrollOnly when there's genuinely no
+      // username yet.
+      const existingUsername = username.trim().toLowerCase()
+      const res = existingUsername
+        ? await saveStaffMember({ username: existingUsername, name: n, role, phone, basicSalary: Number(basicSalary) || 0 })
+        : await addPayrollOnly({ name: n, role, phone, basicSalary: Number(basicSalary) || 0 })
+      if (res.ok) {
+        setFeedback({ type: "success", text: existingUsername ? `${n}'s record has been updated.` : `${n} added to payroll. No login account was created.` })
+        setUsername(""); setName(""); setEmail(""); setBasicSalary(""); setPhone("")
+      } else {
+        setFeedback({ type: "error", text: res.error || "Couldn't save." })
+      }
+      return
+    }
+
+    const u = username.trim().toLowerCase()
     const em = email.trim().toLowerCase()
     if (!u) { setFeedback({ type: "error", text: "Username is required." }); return }
-    if (!n) { setFeedback({ type: "error", text: "Full name is required." }); return }
     if (!isExisting && !em) { setFeedback({ type: "error", text: "Email is required to invite a new staff member — they'll receive their login credentials there." }); return }
 
     let res
@@ -129,7 +158,7 @@ export default function AddStaffPage() {
             <div className="min-w-0 flex-1">
               <div className="truncate text-[14px] font-bold text-ink">{name || "—"}</div>
               <div className="text-[11px] text-ink-4">
-                @{username || "—"} · {ROLE_LABELS[role] || role}
+                {addMode === "payrollOnly" ? "" : `@${username || "—"} · `}{ROLE_LABELS[role] || role}
                 {basicSalary ? ` · ₦${Number(basicSalary).toLocaleString("en-NG")}` : ""}
               </div>
             </div>
@@ -142,22 +171,46 @@ export default function AddStaffPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="rounded-[14px] border border-border bg-white p-5 shadow-sm">
 
-          <div className="mb-4 text-[13px] font-bold text-ink">
-            {isExisting ? "Update existing staff member" : "Invite a new staff member"}
+          {/* Mode toggle — confirmed directly these are two genuinely
+              separate needs, not variations of the same form. Switching
+              modes doesn't touch Name/Role/Salary/Phone, only whether
+              Username/Email show at all. */}
+          <div className="mb-4 flex gap-2">
+            {[["invite", "Invite (App Login)"], ["payrollOnly", "Add to Payroll Only"]].map(([m, l]) => (
+              <button key={m} type="button" onClick={() => { setAddMode(m); setUsername(""); setFeedback(null) }}
+                className={`flex-1 rounded-[9px] py-2.5 text-[12px] font-bold transition ${
+                  addMode === m ? "bg-navy text-white" : "border border-border bg-white text-ink-3"
+                }`}>
+                {l}
+              </button>
+            ))}
           </div>
 
-          <div className="mb-3 grid grid-cols-2 gap-3">
-            <Field label="Username" hint="lowercase, no spaces">
-              <input type="text" value={username} onChange={e => setUsername(e.target.value)}
-                placeholder="e.g. tobi" className={inputCls} />
-            </Field>
+          <div className="mb-4 text-[13px] font-bold text-ink">
+            {addMode === "payrollOnly"
+              ? (username ? "Update payroll-only entry" : "Add someone to the payroll list — no app access")
+              : isExisting ? "Update existing staff member" : "Invite a new staff member"}
+          </div>
+
+          {addMode === "payrollOnly" ? (
             <Field label="Full Name">
               <input type="text" value={name} onChange={e => setName(e.target.value)}
                 placeholder="e.g. Tobi Adewale" className={inputCls} />
             </Field>
-          </div>
+          ) : (
+            <div className="mb-3 grid grid-cols-2 gap-3">
+              <Field label="Username" hint="lowercase, no spaces">
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)}
+                  placeholder="e.g. tobi" className={inputCls} />
+              </Field>
+              <Field label="Full Name">
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Tobi Adewale" className={inputCls} />
+              </Field>
+            </div>
+          )}
 
-          {!isExisting && (
+          {addMode === "invite" && !isExisting && (
             <Field label="Email address" hint="required for new staff">
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="tobi@example.com" className={inputCls} />
@@ -197,9 +250,13 @@ export default function AddStaffPage() {
             className="flex h-12 w-full items-center justify-center gap-2 rounded-[11px] bg-navy text-[13.5px] font-bold text-white shadow-lift disabled:opacity-60">
             {saving
               ? <><span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> Saving…</>
-              : isExisting
-                ? <><i className="bi bi-pencil-square" /> Update Staff Member</>
-                : <><i className="bi bi-envelope-plus" /> Send Invite</>
+              : addMode === "payrollOnly"
+                ? (username
+                    ? <><i className="bi bi-pencil-square" /> Update Payroll Entry</>
+                    : <><i className="bi bi-person-plus" /> Add to Payroll</>)
+                : isExisting
+                  ? <><i className="bi bi-pencil-square" /> Update Staff Member</>
+                  : <><i className="bi bi-envelope-plus" /> Send Invite</>
             }
           </button>
         </form>
@@ -213,7 +270,17 @@ export default function AddStaffPage() {
             <div className="overflow-hidden rounded-[14px] border border-border bg-white shadow-sm">
               {staff.map((s, idx) => (
                 <button key={s.username} type="button"
-                  onClick={() => { setUsername(s.username); setName(s.name); setRole(s.role); setPhone(s.phone || ""); setBasicSalary(String(s.basicSalary || "")); setEmail(s.email || ""); setFeedback(null) }}
+                  onClick={() => {
+                    const staffHasLogin = s.hasLogin !== false
+                    setAddMode(staffHasLogin ? "invite" : "payrollOnly")
+                    // Username is kept in state either way — needed to
+                    // update the right row — just not shown in the
+                    // payrollOnly form, since there's nothing for GM to
+                    // meaningfully edit there (it was auto-generated).
+                    setUsername(s.username)
+                    setName(s.name); setRole(s.role); setPhone(s.phone || "")
+                    setBasicSalary(String(s.basicSalary || "")); setEmail(s.email || ""); setFeedback(null)
+                  }}
                   className={`flex w-full items-center gap-3 px-4 py-3 text-left active:bg-surface ${idx < staff.length - 1 ? "border-b border-surface" : ""}`}>
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold text-white"
                     style={{ background: avatarBg(s.name) }}>
