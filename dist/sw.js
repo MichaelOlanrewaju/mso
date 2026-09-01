@@ -34,13 +34,13 @@ try {
 
 // CACHE_NAME is injected automatically at build time by the sw-version
 // plugin in vite.config.js. Every production build replaces the
-// "mtidkvp8-8xtute" token below with a unique hash, so the cache name
+// "mtis5gap-gkm4zr" token below with a unique hash, so the cache name
 // changes on EVERY deploy — no one has to remember to bump it. The
 // activate handler deletes every cache whose name !== CACHE_NAME, so a
 // new build always purges the old JS bundle instead of serving it
 // forever. If the token is still present (i.e. the file is served raw,
 // un-built), we fall back to a timestamp so dev never gets stuck either.
-const BUILD_ID = 'mtidkvp8-8xtute'
+const BUILD_ID = 'mtis5gap-gkm4zr'
 // A STABLE fallback — never Date.now(). If this weren't stable, an un-built
 // sw.js would compute a different CACHE_NAME on every evaluation, the
 // browser would treat the worker as "new" forever, and controllerchange
