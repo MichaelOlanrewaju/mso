@@ -40,7 +40,7 @@ function Field({ label, hint, children }) {
 export default function AddStaffPage() {
   const auth = useAuth({ requireAuth: true })
   const navigate = useNavigate()
-  const { staff, saving, saveStaffMember, inviteStaff, addPayrollOnly } = useStaff(auth.username)
+  const { staff, saving, saveStaffMember, inviteStaff, addPayrollOnly, deleteStaff } = useStaff(auth.username)
   usePageTitle(`Add Staff — ${getStation(activeStation()).name}`)
 
   /* Two distinct ways to add someone, confirmed directly as separate
@@ -58,6 +58,8 @@ export default function AddStaffPage() {
   const [basicSalary, setBasicSalary] = useState("")
   const [phone, setPhone]             = useState("")
   const [feedback, setFeedback]       = useState(null)
+  const [confirmDeleteStaff, setConfirmDeleteStaff] = useState(null) // the staff object pending delete confirmation
+  const [deleting, setDeleting] = useState(false)
 
   if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
 
@@ -76,6 +78,15 @@ export default function AddStaffPage() {
   }
 
   const isExisting = staff.some(s => s.username === username.trim().toLowerCase())
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteStaff) return
+    setDeleting(true)
+    const res = await deleteStaff(confirmDeleteStaff.username)
+    setDeleting(false)
+    setConfirmDeleteStaff(null)
+    setFeedback({ type: res.ok ? "success" : "error", text: res.ok ? res.message : (res.error || "Couldn't remove.") })
+  }
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -269,37 +280,74 @@ export default function AddStaffPage() {
             </div>
             <div className="overflow-hidden rounded-[14px] border border-border bg-white shadow-sm">
               {staff.map((s, idx) => (
-                <button key={s.username} type="button"
-                  onClick={() => {
-                    const staffHasLogin = s.hasLogin !== false
-                    setAddMode(staffHasLogin ? "invite" : "payrollOnly")
-                    // Username is kept in state either way — needed to
-                    // update the right row — just not shown in the
-                    // payrollOnly form, since there's nothing for GM to
-                    // meaningfully edit there (it was auto-generated).
-                    setUsername(s.username)
-                    setName(s.name); setRole(s.role); setPhone(s.phone || "")
-                    setBasicSalary(String(s.basicSalary || "")); setEmail(s.email || ""); setFeedback(null)
-                  }}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-left active:bg-surface ${idx < staff.length - 1 ? "border-b border-surface" : ""}`}>
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold text-white"
-                    style={{ background: avatarBg(s.name) }}>
-                    {initials(s.name)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-bold text-ink">{s.name}</div>
-                    <div className="text-[10.5px] capitalize text-ink-4">{ROLE_LABELS[s.role] || s.role}{s.email ? ` · ${s.email}` : ""}</div>
-                  </div>
-                  <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
-                    <div className="mono text-[12px] font-bold text-ink-2">{naira(s.basicSalary)}</div>
-                    <div className="text-[9.5px] text-cyan-dark">tap to edit</div>
-                  </div>
-                </button>
+                <div key={s.username}
+                  className={`flex w-full items-center gap-3 px-4 py-3 ${idx < staff.length - 1 ? "border-b border-surface" : ""}`}>
+                  <button type="button"
+                    onClick={() => {
+                      const staffHasLogin = s.hasLogin !== false
+                      setAddMode(staffHasLogin ? "invite" : "payrollOnly")
+                      // Username is kept in state either way — needed to
+                      // update the right row — just not shown in the
+                      // payrollOnly form, since there's nothing for GM to
+                      // meaningfully edit there (it was auto-generated).
+                      setUsername(s.username)
+                      setName(s.name); setRole(s.role); setPhone(s.phone || "")
+                      setBasicSalary(String(s.basicSalary || "")); setEmail(s.email || ""); setFeedback(null)
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left active:opacity-70">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold text-white"
+                      style={{ background: avatarBg(s.name) }}>
+                      {initials(s.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-bold text-ink">{s.name}</div>
+                      <div className="text-[10.5px] capitalize text-ink-4">{ROLE_LABELS[s.role] || s.role}{s.email ? ` · ${s.email}` : ""}</div>
+                    </div>
+                    <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
+                      <div className="mono text-[12px] font-bold text-ink-2">{naira(s.basicSalary)}</div>
+                      <div className="text-[9.5px] text-cyan-dark">tap to edit</div>
+                    </div>
+                  </button>
+                  {/* Confirmed directly: GM/CEO needed a real way to remove
+                      a mistaken entry themselves, in-app — a separate,
+                      distinct action from tap-to-edit, with a confirmation
+                      step since this can't be undone. */}
+                  <button type="button" onClick={() => setConfirmDeleteStaff(s)}
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[8px] border border-red/20 bg-red-light text-red">
+                    <i className="bi bi-trash3 text-[12px]" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {confirmDeleteStaff && (
+        <div className="fixed inset-0 z-[999] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setConfirmDeleteStaff(null)}>
+          <div className="w-full max-w-[380px] rounded-t-[22px] bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[20px]"
+            onClick={e => e.stopPropagation()}>
+            <div className="mb-1 flex items-center gap-2">
+              <i className="bi bi-exclamation-triangle-fill text-[16px] text-red" />
+              <div className="text-[15px] font-extrabold text-ink">Remove from Payroll?</div>
+            </div>
+            <div className="mb-4 text-[13px] leading-relaxed text-ink-3">
+              {confirmDeleteStaff.name} will be removed from the payroll roster. This can't be undone — any Payroll rows already submitted under their name are left as-is.
+            </div>
+            <div className="flex gap-2.5">
+              <button type="button" onClick={() => setConfirmDeleteStaff(null)} disabled={deleting}
+                className="flex-1 rounded-[11px] border border-border py-3 text-[13px] font-bold text-ink-3">
+                Cancel
+              </button>
+              <button type="button" onClick={handleConfirmDelete} disabled={deleting}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] bg-red py-3 text-[13px] font-bold text-white disabled:opacity-60">
+                {deleting ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" /> : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { activeStation } from "../utils/station"
 import { getToken } from "../utils/session"
 
@@ -122,16 +122,33 @@ export function useAdminOverview() {
   // walks past the earliest stored record, so loading more never needs
   // to know the exact total — it just keeps asking for the next batch
   // until the backend itself says there's nothing further back.
+  const loadingRef = useRef(false)
   const loadMore = useCallback(() => {
+    /* Confirmed directly, tracing a real duplicate-days bug: loadMore
+       reads days.length at call time to compute the next offset — if
+       it fires twice quickly (a fast double-tap, or a scroll listener
+       firing more than once) before the first batch's setDays has
+       actually applied, both calls read the same stale length and
+       fetch the identical offset, then both results get appended.
+       loadingRef blocks a second call from ever starting while one is
+       still in flight; the date-based dedupe on append is a second,
+       independent safeguard in case of any other overlap. */
+    if (loadingRef.current) return
+    loadingRef.current = true
     setStatus(prev => (prev === "ready" ? "loadingMore" : prev))
     fetchBatch(days.length)
       .then(d => {
         if (!d.ok) { setStatus("ready"); return } // keep what we have on a failed "more" request
-        setDays(prevDays => [...prevDays, ...(d.days || [])])
+        setDays(prevDays => {
+          const seen = new Set(prevDays.map(x => x.date))
+          const fresh = (d.days || []).filter(x => !seen.has(x.date))
+          return [...prevDays, ...fresh]
+        })
         setHasMore(!!d.hasMore)
         setStatus("ready")
       })
       .catch(() => setStatus("ready"))
+      .finally(() => { loadingRef.current = false })
   }, [fetchBatch, days.length])
 
   return { status, days, hasMore, load, loadMore }

@@ -171,8 +171,8 @@ function AdminInner() {
 
           {overviewStatus === "ready" && (
             <div className="space-y-2">
-              {overviewDays.map(d => {
-                const hasIssues = d.exists && d.issues && d.issues.length > 0
+              {overviewDays.filter(d => d.exists && d.issues && d.issues.length > 0).map(d => {
+                const hasIssues = true
                 return (
                   <button
                     key={d.date}

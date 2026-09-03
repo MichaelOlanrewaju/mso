@@ -151,9 +151,12 @@ function CashupInner() {
     { label: "POS (MP)", value: naira(Number(posMP) || 0) },
     { label: "POS (ZM)", value: naira(Number(posZM) || 0) },
     { label: "Cash", value: naira(Number(cashAmt) || 0), warn: Number(cashAmt) === 0 },
-    ...(trfTotal > 0 ? [{ label: "Bank Transfers (total)", value: naira(trfTotal) }] : []),
+    ...(Number(trfMP) > 0 ? [{ label: "TRF (M.P)", value: naira(Number(trfMP) || 0) }] : []),
     { label: "POS Charges (MP+ZM+TRF MP, 0.3% each)", value: `−${naira(totalCharges)}` },
     { label: "Expenses (total)", value: naira(totalExpenses) },
+    ...((Number(trfZBAmelia) + Number(trfFCMBTruck) + Number(trfFCMBMD)) > 0
+      ? [{ label: "Payouts (Amelia + Truck + M.D)", value: `−${naira(Number(trfZBAmelia) + Number(trfFCMBTruck) + Number(trfFCMBMD))}` }]
+      : []),
     ...(lubricantTotal > 0 ? [{ label: "Lubricant (total)", value: naira(lubricantTotal) }] : []),
     ...(Number(lpgRemitted) > 0 ? [{ label: "LPG Remitted", value: naira(Number(lpgRemitted)) }] : []),
     ...(emtlAmount > 0 ? [{ label: "EMTL", value: naira(emtlAmount) }] : []),
@@ -314,31 +317,50 @@ function CashupInner() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Bank Transfers" sub="TRF (M.P) carries a 0.3% charge — the others don't">
+            <SectionCard title="Bank Transfers">
               <MoneyRow label="TRF (M.P)" value={trfMP} onChange={setTrfMP} charge={trfMPCharge} net={trfMPNet} />
+            </SectionCard>
+
+            {/* Confirmed directly: these three are expenses — money paid OUT
+                of what was collected, not additional collection channels.
+                Previously grouped under "Bank Transfers" next to TRF (M.P),
+                a genuine collection channel, with a combined "Total
+                Transfers" figure that implied they all added together —
+                misleading, even though the server's own save formula always
+                treated them correctly as deductions regardless of how this
+                screen presented them. */}
+            <SectionCard title="Payouts from Cash" sub="Money spent out of today's collections — subtracted from what goes to the bank">
               <MoneyRow label="TRF to Z.B Amelia" value={trfZBAmelia} onChange={setTrfZBAmelia} />
               <MoneyRow label="TRF to FCMB Truck" value={trfFCMBTruck} onChange={setTrfFCMBTruck} />
               <MoneyRow label="TRF to FCMB M.D" value={trfFCMBMD} onChange={setTrfFCMBMD} />
-              {trfTotal > 0 && (
+              {(Number(trfZBAmelia) + Number(trfFCMBTruck) + Number(trfFCMBMD)) > 0 && (
                 <div className="flex items-center justify-between bg-surface px-4 py-2.5">
-                  <span className="text-[11px] font-semibold text-ink-3">Total Transfers</span>
-                  <span className="mono text-[13.5px] font-extrabold text-ink">{naira(trfTotal)}</span>
+                  <span className="text-[11px] font-semibold text-ink-3">Total Payouts</span>
+                  <span className="mono text-[13.5px] font-extrabold text-red">− {naira(Number(trfZBAmelia) + Number(trfFCMBTruck) + Number(trfFCMBMD))}</span>
                 </div>
               )}
             </SectionCard>
 
-            <SectionCard title="Cash" sub="Count carefully — exact amount">
+            <SectionCard title="Cash" sub="Count carefully — the full amount, before any payouts">
               <MoneyRow label="Physical Cash Collected" value={cashAmt} onChange={setCashAmt} />
               {/* This is the ONE figure the whole reconciliation depends on.
                   If it's adjusted to make the totals look right, a real
                   shortage becomes invisible everywhere — the variance can
-                  only catch what this number honestly reports. */}
+                  only catch what this number honestly reports.
+                  Confirmed directly, tracing a real, repeated mistake: "what
+                  you counted in the drawer" was ambiguous exactly when
+                  Amelia/Truck diesel/Cash-to-MD was already paid out of that
+                  cash before the final count — the honest instinct is to
+                  enter what's physically left, which is net, not gross, and
+                  that mismatch alone created a false shortage exactly equal
+                  to the payout on more than one real day. */}
               <div className="mt-2.5 flex items-start gap-2 rounded-[10px] border border-cyan/25 bg-cyan-light px-3 py-2.5 text-[11.5px] text-cyan-dark">
                 <i className="bi bi-info-circle-fill mt-0.5 flex-shrink-0" />
                 <span>
-                  Enter exactly what you counted in the drawer — nothing more, nothing less. Don't adjust this
-                  to make the totals balance. If cash is short, that's meant to show up automatically; report it
-                  via <strong>Shortage</strong>, don't correct it here.
+                  Enter the full amount collected — <strong>before</strong> Amelia, Truck diesel, or Cash to M.D were paid out of it.
+                  Those go in the Payouts section above and get subtracted automatically. If you already paid one of them out of this
+                  cash before counting it, add that amount back in here. Don't adjust this to make the totals balance — if cash is
+                  short, that's meant to show up automatically; report it via <strong>Shortage</strong>, don't correct it here.
                 </span>
               </div>
 

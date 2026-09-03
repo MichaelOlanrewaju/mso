@@ -45,7 +45,7 @@ function DipInner() {
     updateTank, saveOpening, saveClosing, savePhoto, refresh,
     checkPendingDischarge, resolveDischargeTank,
   } = useDipData(auth.username, date)
-  const { prices } = usePrices()
+  const { prices, loading: pricesLoading } = usePrices()
   const { settings } = useSettings()
   const photoUploadEnabled = settings.photoUploadEnabled !== "false"
 
@@ -104,6 +104,25 @@ function DipInner() {
     return <div className="min-h-screen bg-pagebg" />
   }
 
+  /* This is the actual fix, not just a submit-time guard rail — tracing
+     a real incident confirmed the true problem was timing: prices
+     start at { pms:0, ago:0, lpg:0 } until usePrices()'s fetch
+     resolves, and closing out fast enough (right as the page opens)
+     let someone submit before the real price ever loaded. A check at
+     submit time catches that after the fact; this stops it from ever
+     being possible — Closing mode simply doesn't render its
+     interactive form at all until prices have genuinely finished
+     loading, the same way the page already waits for auth. Opening
+     mode is unaffected, since it never involves a price. */
+  if (mode === "close" && pricesLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-pagebg">
+        <span className="h-6 w-6 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
+        <div className="text-[13px] font-semibold text-ink-3">Loading today's price…</div>
+      </div>
+    )
+  }
+
   const step = STEPS[current]
   const isLast = current === STEPS.length - 1
   const stepKey = step.cfg.id
@@ -148,6 +167,33 @@ function DipInner() {
 
 
   const doSubmit = async () => {
+    /* Confirmed directly, tracing a real incident: MSO's 1 September
+       readings were submitted with every pump at Price=0, cascading
+       into Grand Total=0 and a false ~N22.4M variance — even though
+       the real price (N1,265) had been sitting in the Pricing sheet
+       since 28 August. The cause was a timing gap, not missing data:
+       usePrices() starts at { pms:0, ago:0, lpg:0 } until its fetch
+       resolves, and nothing here ever waited for that or checked the
+       result before allowing submit. A supervisor closing out fast
+       enough, right as the page opened, could submit before the real
+       price loaded. This blocks exactly that gap — only for Closing,
+       since Opening readings don't involve a price at all, and only
+       for products this station's own tanks actually sell. */
+    if (mode === "close") {
+      if (pricesLoading) {
+        toast.showToast("Still loading today's price", "Wait a moment and try again.", "warn")
+        return
+      }
+      const stationProducts = new Set(tanksFor(activeStation()).map(t => t.product))
+      const missing = []
+      if (stationProducts.has("PMS") && !(prices.pms > 0)) missing.push("PMS")
+      if (stationProducts.has("AGO") && !(prices.ago > 0)) missing.push("AGO")
+      if (stationProducts.has("LPG") && !(prices.lpg > 0)) missing.push("LPG")
+      if (missing.length > 0) {
+        toast.showToast("Price missing", `No price set for ${missing.join(", ")}. Ask GM/CEO to set it before closing out.`, "err")
+        return
+      }
+    }
     setSaving(true)
     const result = mode === "open" ? await saveOpening(date) : await saveClosing(date)
     setSaving(false)
@@ -172,6 +218,13 @@ function DipInner() {
     }
 
     if (navigator.vibrate) navigator.vibrate([50, 30, 80])
+
+    /* The reading and its SalesLog entry now save together in a single
+       backend call — confirmed directly as the actual fix for a real,
+       recurring bug (21 July, 1 September on MSO, repeatedly on M&M's
+       P1_AGO): two separate network calls used to make this possible
+       to fail halfway. There's no longer a partial-failure state here
+       to warn about. */
     toast.showToast("Saved", mode === "open" ? "Opening saved — return tonight for closing" : "All readings saved", "ok")
     refresh()
     setTimeout(() => navigate(dashboardPathFor({ role: auth.role, station: auth.station })), 1200)

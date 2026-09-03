@@ -205,35 +205,12 @@ export function useCashupData(username, name, initialDate) {
 
   // All payment channels together — POS, bank transfers, and cash
   const grossTotal = mp + zm + trfTotal + cash
-  /* Two different questions need two different numbers here, and using one
-     value for both was wrong for one of them:
-       - Cash to Bank: what's left to deposit AFTER expenses were paid out
-         of physical cash — correctly SUBTRACTS expenses.
-       - Variance: did the payment channels match what the pumps say was
-         sold. CASH is entered gross — CASH minus TOTAL_EXPENSES
-         consistently equals TO_BANK on every real day checked, which
-         means the money later spent on expenses is already fully inside
-         this CASH figure. So variance uses gross cash, untouched by
-         expenses in either direction: not subtracted (that's what
-         cashToBank is for), and not added back either — an earlier
-         version of this file did add expenses back here, on the mistaken
-         idea that they'd been excluded from CASH and needed restoring.
-         Since they were never excluded, adding them back double-counted
-         every expense as extra income, turning honestly-balanced days
-         into a false "surplus" exactly equal to that day's expenses. */
-  const collectedForCashToBank = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash - totalExpenses
-  const collectedForVariance = mpNet + zmNet + trfMPNet + trfZBNum + trfTruckNum + trfMDNum + cash
-
-  // To Bank is purely the physical cash collected, minus expenses paid out
-  // of that cash — POS/TRF charges never touch physical cash, so they
-  // don't reduce this figure.
-  const cashToBank = Math.max(0, cash - totalExpenses)
-  const variance = expected.hasData ? collectedForVariance - expected.grandTotal : null
 
   /* Priced from the catalogue, not from the row. This figure feeds the day's
      cash reconciliation, so it has to match what the server will actually
      record — anything else and the cashier balances against a number that
-     doesn't exist. */
+     doesn't exist. Moved earlier — cashToBank now needs it below, to match
+     the server's own computedToBank formula exactly. */
   const lubricantTotal = lubricantItems.reduce(
     (s, it) => s + (Number(it.qty) || 0) * (Number(lubPrices[it.product]) || 0),
     0
@@ -244,9 +221,38 @@ export function useCashupData(username, name, initialDate) {
   // a second time — this section previously sent its own guessed
   // lpg_kg/lpg_price/lpg_revenue on every save, silently overwriting
   // whatever Sales had just correctly computed from actual pump data.
+  // Moved earlier — cashToBank now needs lpgSales below.
   const lpgSales = expected.lpgRevenue || 0
   const lpgRemittedNum = Number(lpgRemitted) || 0
   const lpgVariance = lpgSales > 0 ? lpgRemittedNum - lpgSales : null
+
+  /* Confirmed directly: TRF to Z.B Amelia, TRF to FCMB Truck, and TRF to
+     FCMB M.D are all expenses — money paid OUT of what was collected, not
+     separate collection channels, whatever the "TRF" naming and their
+     spot under "Bank Transfers" on the entry screen might suggest. This
+     used to ADD all three into both cashToBank and the live variance
+     preview, the opposite of correct, and the opposite of what the server's
+     own computedToBank formula has done all along — the server always
+     recomputes and saves its own figure regardless of what this sends, so
+     stored data was never actually wrong, but the live preview a
+     supervisor sees while entering cashup was actively misleading,
+     showing a different number than what would actually be saved.
+     Now matches the server's formula exactly:
+       To Bank = Cash − Expenses + LPG + Lubricant − TRF_Truck − Amelia − Cash_to_MD */
+  const cashToBank = Math.max(0, cash - totalExpenses + lpgSales + lubricantTotal - trfZBNum - trfTruckNum - trfMDNum)
+  /* Confirmed directly, catching a mistake in an earlier fix today:
+     Variance must match the server's OWN Collected formula exactly —
+     posMp + posZm + cash + trfMp, confirmed by reading the backend
+     directly. It never subtracts TRF_Truck/Amelia/CashToMD at all,
+     because Cash is entered as the full GROSS figure — the money later
+     spent on those items is already inside it. Subtracting them here
+     too (which an earlier change today did) would double-count the
+     deduction and manufacture a false shortage on this screen exactly
+     equal to whatever was spent on Amelia/Truck/M.D that day, even on
+     a genuinely balanced day. That subtraction belongs to Cash to Bank
+     only (below) — never to Variance. */
+  const collectedForVariance = mpNet + zmNet + trfMPNet + cash
+  const variance = expected.hasData ? collectedForVariance - expected.grandTotal : null
 
   // Sales Cash Summary — PMS / AGO / OIL / GAS split, matching the station's
   // paper daily report. Cash to Bank is one lump figure (payments aren't

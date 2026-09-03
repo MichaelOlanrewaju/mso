@@ -72,8 +72,15 @@ function StatusChip({ status }) {
 }
 
 function PayslipRow({ name, line, isLast }) {
-  const net = (Number(line.basicSalary) || 0) - (Number(line.allowances) || 0) - (Number(line.deductions) || 0) - (Number(line.bonus) || 0)
-  const hasDeductions = Number(line.allowances) > 0 || Number(line.deductions) > 0 || Number(line.bonus) > 0
+  const basic = Number(line.basicSalary) || 0
+  const daysWorked = Number(line.allowances) || 0
+  const totalDays = Number(line.bonus) || 0
+  const deductions = Number(line.deductions) || 0
+  const ratio = totalDays > 0 ? (daysWorked / totalDays) : 1
+  const prorated = Math.round(basic * ratio)
+  const net = prorated - deductions
+  const wasProrated = totalDays > 0 && daysWorked < totalDays
+  const hasDetail = wasProrated || deductions > 0
   return (
     <div className={`px-4 py-4 ${!isLast ? "border-b border-surface" : ""}`}>
       <div className="flex items-center gap-3">
@@ -87,14 +94,20 @@ function PayslipRow({ name, line, isLast }) {
           <div className="text-[9.5px] text-ink-4">net pay</div>
         </div>
       </div>
-      {hasDeductions && (
-        <div className="mt-3 grid grid-cols-4 divide-x divide-border rounded-[10px] border border-border">
-          {[["Basic", line.basicSalary, "text-ink"], ["Allow.", line.allowances, "text-red"], ["Short.", line.deductions, "text-red"], ["Absent", line.bonus, "text-red"]].map(([l, v, c]) => (
-            <div key={l} className="px-2.5 py-2">
-              <div className="text-[8.5px] font-semibold uppercase tracking-[0.3px] text-ink-4">{l}</div>
-              <div className={`mono text-[11.5px] font-bold ${c}`}>{naira(Number(v) || 0)}</div>
-            </div>
-          ))}
+      {hasDetail && (
+        <div className="mt-3 grid grid-cols-3 divide-x divide-border rounded-[10px] border border-border">
+          <div className="px-2.5 py-2">
+            <div className="text-[8.5px] font-semibold uppercase tracking-[0.3px] text-ink-4">Basic</div>
+            <div className="mono text-[11.5px] font-bold text-ink">{naira(basic)}</div>
+          </div>
+          <div className="px-2.5 py-2">
+            <div className="text-[8.5px] font-semibold uppercase tracking-[0.3px] text-ink-4">Attendance</div>
+            <div className="mono text-[11.5px] font-bold text-cyan-dark">{totalDays > 0 ? `${daysWorked}/${totalDays}` : "full"}</div>
+          </div>
+          <div className="px-2.5 py-2">
+            <div className="text-[8.5px] font-semibold uppercase tracking-[0.3px] text-ink-4">Short.</div>
+            <div className="mono text-[11.5px] font-bold text-red">{naira(deductions)}</div>
+          </div>
         </div>
       )}
     </div>
@@ -171,31 +184,36 @@ function GMView({ auth, navigate }) {
 
   const draftEntries = Object.entries(activeDraft)
 
-  /* Net Pay = Basic − Allowance − Shortages − Absent. Confirmed
-     directly: shown to GM as "Allowance"/"Shortages"/"Absent", but
-     kept on the backend's existing allowances/deductions/bonus fields
-     underneath, avoiding a separate translation layer. Allowance here
-     is money already collected during the month (a transport/feeding
-     advance paid out separately), not a bonus on top — so it comes
-     back out at month-end the same as a cash shortage or an absence
-     deduction, not added like the field name "allowance" might
-     normally suggest. */
-  const netFor = (l) => (Number(l.basicSalary) || 0) - (Number(l.allowances) || 0) - (Number(l.deductions) || 0) - (Number(l.bonus) || 0)
+  /* Net Pay = (Basic x DaysWorked / TotalDays) − Shortages. Confirmed
+     directly, reversing an earlier version of this formula: Allowance
+     no longer factors in at all. Instead, GM enters attendance
+     directly — days actually worked out of however many days that
+     attendant's own schedule expects (not necessarily a full
+     calendar month) — and Basic Salary is prorated by that ratio
+     before Shortages come off. Shown to GM as "Days Worked"/"Total
+     Expected Days"/"Shortages", kept on the backend's existing
+     allowances/bonus/deductions fields underneath, avoiding a
+     separate translation layer. Untouched (0/0) defaults to full pay,
+     not zero — a blank row was never meant to silently pay nothing. */
+  const netFor = (l) => {
+    const basic = Number(l.basicSalary) || 0
+    const daysWorked = Number(l.allowances) || 0
+    const totalDays = Number(l.bonus) || 0
+    const ratio = totalDays > 0 ? (daysWorked / totalDays) : 1
+    return Math.round(basic * ratio) - (Number(l.deductions) || 0)
+  }
 
   const draftTotals = useMemo(() => {
     const vals = Object.values(activeDraft)
     const b = vals.reduce((s, l) => s + (Number(l.basicSalary) || 0), 0)
-    const a = vals.reduce((s, l) => s + (Number(l.allowances) || 0), 0)
     const sh = vals.reduce((s, l) => s + (Number(l.deductions) || 0), 0)
-    const ab = vals.reduce((s, l) => s + (Number(l.bonus) || 0), 0)
-    return { b, a, sh, ab, net: b - a - sh - ab, count: vals.length }
+    const net = vals.reduce((s, l) => s + netFor(l), 0)
+    return { b, sh, net, count: vals.length }
   }, [activeDraft])
 
   const recordTotals = useMemo(() => ({
     basic: lines.reduce((s, l) => s + (l.basicSalary || 0), 0),
-    allowance: lines.reduce((s, l) => s + (l.allowances || 0), 0),
     shortages: lines.reduce((s, l) => s + (l.deductions || 0), 0),
-    absent: lines.reduce((s, l) => s + (l.bonus || 0), 0),
     net: lines.reduce((s, l) => s + netFor(l), 0),
     count: lines.length,
   }), [lines])
@@ -251,9 +269,7 @@ function GMView({ auth, navigate }) {
   const reviewRows = [
     { label: "Staff", value: String(draftTotals.count) },
     { label: "Total Basic", value: naira(draftTotals.b) },
-    { label: "Total Allowance", value: `− ${naira(draftTotals.a)}` },
     { label: "Total Shortages", value: `− ${naira(draftTotals.sh)}` },
-    { label: "Total Absent", value: `− ${naira(draftTotals.ab)}` },
     { label: "Net Payroll", value: naira(draftTotals.net) },
     ...(remarks.trim() ? [{ label: "Remarks", value: remarks.trim() }] : []),
   ]
@@ -458,8 +474,8 @@ function GMView({ auth, navigate }) {
                         <div className="mono text-[26px] font-extrabold text-navy">{naira(draftTotals.net)}</div>
                         <div className="text-[11px] text-ink-4">{draftTotals.count} staff · net payroll</div>
                       </div>
-                      <div className="grid grid-cols-4 gap-px border-t border-border bg-border">
-                        {[["Basic", naira(draftTotals.b), "text-ink"], ["Allow.", naira(draftTotals.a), "text-red"], ["Short.", naira(draftTotals.sh), "text-red"], ["Absent", naira(draftTotals.ab), "text-red"]].map(([l, v, c]) => (
+                      <div className="grid grid-cols-2 gap-px border-t border-border bg-border">
+                        {[["Basic", naira(draftTotals.b), "text-ink"], ["Shortages", naira(draftTotals.sh), "text-red"]].map(([l, v, c]) => (
                           <div key={l} className="bg-white px-3 py-2.5">
                             <div className="text-[9px] font-bold uppercase tracking-[0.5px] text-ink-4">{l}</div>
                             <div className={`mono text-[13px] font-bold ${c}`}>{v}</div>
@@ -483,7 +499,7 @@ function GMView({ auth, navigate }) {
                     <div className="mb-5 overflow-hidden rounded-[16px] bg-white p-4 shadow-sm">
                       <textarea
                         rows={3} value={remarks} onChange={e => setRemarks(e.target.value)}
-                        placeholder="e.g. Two staff had a cash shortage deducted this month. One was absent for a week, deducted accordingly."
+                        placeholder="e.g. Two staff had a cash shortage deducted this month. One attendant missed a few shifts, salary prorated accordingly."
                         className="w-full resize-none rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-3 text-[13px] text-ink outline-none focus:border-cyan focus:bg-white"
                       />
                       <div className="mt-2 text-[11px] text-ink-4">Anything the owner should know before approving — a shortage, an absence, anything worth flagging.</div>
@@ -569,15 +585,20 @@ function GMView({ auth, navigate }) {
 }
 
 /* Editable row as a separate component to avoid state issues */
-/* Back to an accordion — confirmed directly: GM now enters four
-   figures (Basic, Allowance, Shortages, Absent), not just one, so an
-   always-visible single input no longer fits. Collapsed state shows
-   the computed Net Pay directly, so GM can scan every staff member's
-   final figure without opening each one — only needs to expand a row
-   to actually change something. */
+/* Accordion — Days Worked, Total Expected Days, Shortages. Confirmed
+   directly: Basic Salary is prorated by attendance (worked/expected
+   days ratio), not reduced by a flat naira "Absent" deduction anymore,
+   and Allowance no longer factors into the calculation at all.
+   Collapsed state shows the computed Net Pay directly, so GM can scan
+   every staff member's final figure without opening each one. */
 function EditableRow({ name, line, isLast, onChange }) {
   const [open, setOpen] = useState(false)
-  const net = (Number(line.basicSalary) || 0) - (Number(line.allowances) || 0) - (Number(line.deductions) || 0) - (Number(line.bonus) || 0)
+  const basic = Number(line.basicSalary) || 0
+  const daysWorked = Number(line.allowances) || 0
+  const totalDays = Number(line.bonus) || 0
+  const ratio = totalDays > 0 ? (daysWorked / totalDays) : 1
+  const prorated = Math.round(basic * ratio)
+  const net = prorated - (Number(line.deductions) || 0)
   return (
     <div className={!isLast ? "border-b border-surface" : ""}>
       <button type="button" onClick={() => setOpen(o => !o)}
@@ -595,22 +616,42 @@ function EditableRow({ name, line, isLast, onChange }) {
       {open && (
         <div className="border-t border-surface bg-[#F8F9FC] px-4 pb-4 pt-3">
           <div className="grid grid-cols-2 gap-3">
-            {[["basicSalary", "Basic Salary (₦)"], ["allowances", "Allowance — already collected (₦)"], ["deductions", "Shortages (₦)"], ["bonus", "Absent (₦)"]].map(([f, l]) => (
-              <label key={f}>
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.4px] text-ink-4">{l}</span>
-                <input type="number" inputMode="decimal" min="0" step="1"
-                  value={line[f]}
-                  onChange={e => onChange(f, e.target.value)}
-                  className="mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none focus:border-navy" />
-              </label>
-            ))}
+            <label>
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.4px] text-ink-4">Basic Salary (₦)</span>
+              <input type="number" inputMode="decimal" min="0" step="1"
+                value={line.basicSalary}
+                onChange={e => onChange("basicSalary", e.target.value)}
+                className="mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none focus:border-navy" />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.4px] text-ink-4">Shortages (₦)</span>
+              <input type="number" inputMode="decimal" min="0" step="1"
+                value={line.deductions}
+                onChange={e => onChange("deductions", e.target.value)}
+                className="mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none focus:border-navy" />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.4px] text-ink-4">Days Worked</span>
+              <input type="number" inputMode="numeric" min="0" step="1"
+                value={line.allowances}
+                onChange={e => onChange("allowances", e.target.value)}
+                className="mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none focus:border-navy" />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.4px] text-ink-4">Total Expected Days</span>
+              <input type="number" inputMode="numeric" min="0" step="1"
+                value={line.bonus}
+                onChange={e => onChange("bonus", e.target.value)}
+                className="mono w-full rounded-[9px] border-2 border-border bg-white px-3 py-2.5 text-[14px] font-bold text-ink outline-none focus:border-navy" />
+            </label>
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5 rounded-[8px] bg-surface px-3 py-2 text-[11px]">
-            <span className="font-bold text-ink">{naira(Number(line.basicSalary) || 0)}</span>
-            <span className="text-ink-4">basic</span>
-            <span className="font-bold text-red">− {naira(Number(line.allowances) || 0)}</span>
+            <span className="font-bold text-ink">{naira(basic)}</span>
+            <span className="text-ink-4">×</span>
+            <span className="font-bold text-cyan-dark">{totalDays > 0 ? `${daysWorked}/${totalDays} days` : "full pay"}</span>
+            <span className="text-ink-4">=</span>
+            <span className="font-bold text-ink">{naira(prorated)}</span>
             <span className="font-bold text-red">− {naira(Number(line.deductions) || 0)}</span>
-            <span className="font-bold text-red">− {naira(Number(line.bonus) || 0)}</span>
             <span className="ml-auto font-extrabold text-navy">= {naira(net)}</span>
           </div>
         </div>
@@ -629,6 +670,7 @@ function OwnerView({ auth, navigate }) {
   const { pending } = usePendingPayroll(auth.username)
   const [feedback, setFeedback] = useState(null)
   const [processing, setProcessing] = useState(null) // "approve" | "reject" | null
+  const [confirmDecision, setConfirmDecision] = useState(null) // "approve" | "reject" | null
   const autoPicked = useRef(false)
   usePageTitle(`Payroll Approval — ${getStation(activeStation()).name}`)
 
@@ -647,11 +689,18 @@ function OwnerView({ auth, navigate }) {
 
   const totals = useMemo(() => ({
     basic: lines.reduce((s, l) => s + (l.basicSalary || 0), 0),
-    net: lines.reduce((s, l) => s + ((l.basicSalary || 0) - (l.allowances || 0) - (l.deductions || 0) - (l.bonus || 0)), 0),
+    net: lines.reduce((s, l) => {
+      const basic = l.basicSalary || 0
+      const daysWorked = l.allowances || 0
+      const totalDays = l.bonus || 0
+      const ratio = totalDays > 0 ? (daysWorked / totalDays) : 1
+      return s + (Math.round(basic * ratio) - (l.deductions || 0))
+    }, 0),
     count: lines.length,
   }), [lines])
 
   const handleDecision = async decision => {
+    setConfirmDecision(null)
     setProcessing(decision)
     setFeedback(null)
     const res = await approvePayrollRun({ month, decision, username: auth.username })
@@ -665,6 +714,21 @@ function OwnerView({ auth, navigate }) {
     })
     setProcessing(null)
   }
+
+  /* Confirmed directly: CEO had no review step before Approve/Reject
+     fired immediately — same speed-bump pattern GM already gets before
+     submitting, so a fat-finger tap doesn't lock in an entire month's
+     payroll (or reject a correct one) with no chance to double-check
+     first. */
+  const decisionReviewRows = [
+    { label: "Staff", value: String(totals.count) },
+    { label: "Net Payroll", value: naira(totals.net) },
+    { label: "Prepared by", value: lines[0]?.preparedBy || "—" },
+    ...(lines[0]?.remarks ? [{ label: "GM's Remarks", value: lines[0].remarks }] : []),
+  ]
+  const decisionReviewWarnings = confirmDecision === "approve"
+    ? ["Once approved, this payroll is final and cannot be changed."]
+    : ["GM will need to revise and resubmit this month's payroll."]
 
   return (
     <div className="min-h-screen pb-20" style={{ background: "#F2F3F7" }}>
@@ -806,19 +870,13 @@ function OwnerView({ auth, navigate }) {
                   ⚠️ Once approved this payroll is final and cannot be changed.
                 </div>
                 <div className="flex gap-3 print:hidden">
-                  <button type="button" onClick={() => handleDecision("reject")} disabled={!!processing}
+                  <button type="button" onClick={() => setConfirmDecision("reject")} disabled={!!processing}
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-[14px] border-2 border-red/20 bg-white py-4 text-[14px] font-bold text-red shadow-sm disabled:opacity-40">
-                    {processing === "reject"
-                      ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-red/30 border-t-red" />
-                      : <><i className="bi bi-x-lg" /> Reject</>
-                    }
+                    <i className="bi bi-x-lg" /> Reject
                   </button>
-                  <button type="button" onClick={() => handleDecision("approve")} disabled={!!processing}
+                  <button type="button" onClick={() => setConfirmDecision("approve")} disabled={!!processing}
                     className="flex flex-[2] items-center justify-center gap-2 rounded-[14px] bg-green py-4 text-[14px] font-bold text-white shadow-lift disabled:opacity-40">
-                    {processing === "approve"
-                      ? <span className="h-4 w-4 animate-spin-fast rounded-full border-2 border-white/30 border-t-white" />
-                      : <><i className="bi bi-check2-all text-[15px]" /> Approve Payroll</>
-                    }
+                    <i className="bi bi-check2-all text-[15px]" /> Approve Payroll
                   </button>
                 </div>
               </>
@@ -858,6 +916,17 @@ function OwnerView({ auth, navigate }) {
           </>
         )}
       </div>
+
+      <ConfirmSubmitModal
+        open={!!confirmDecision}
+        title={confirmDecision === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+        subtitle={`${monthLabel(month)} payroll`}
+        rows={decisionReviewRows}
+        warnings={decisionReviewWarnings}
+        confirming={!!processing}
+        onConfirm={() => handleDecision(confirmDecision)}
+        onCancel={() => setConfirmDecision(null)}
+      />
     </div>
   )
 }

@@ -134,7 +134,28 @@ export function useStaff(actingUsername, viewStation) {
     }
   }, [load, actingUsername])
 
-  return { status, staff, saving, saveStaffMember, inviteStaff, addPayrollOnly, syncAttendants, refresh: load }
+  /* Confirmed directly: GM/CEO needed a real way to remove a mistaken
+     entry themselves, in-app, without a one-off script every time. */
+  const deleteStaff = useCallback(async (targetUsername) => {
+    if (!SCRIPT_URL) return { ok: false, error: "Not connected." }
+    setSaving(true)
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "deleteStaffMember", station: activeStation(), token: getToken(), username: actingUsername, targetUsername }),
+      })
+      const text = await res.text()
+      const d = JSON.parse(text)
+      if (d.ok) load()
+      return d
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) }
+    } finally {
+      if (isMounted.current) setSaving(false)
+    }
+  }, [load, actingUsername])
+
+  return { status, staff, saving, saveStaffMember, inviteStaff, addPayrollOnly, syncAttendants, deleteStaff, refresh: load }
 }
 
 /* ── usePayroll ───────────────────────────────────────────── */

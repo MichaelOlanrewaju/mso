@@ -87,7 +87,7 @@ function StationCard({ station, name, addr, badgeLabel, pumpsLine, fuelLine, sta
       <div className="mb-5 text-[12.5px] text-white/45">{addr}</div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <Stat value={stats.revenue} label="Today's Revenue" />
+        <Stat value={stats.revenue} label="Yesterday's Revenue" />
         <Stat value={stats.litres} label="Litres Sold" />
         <Stat value={pumpsLine} label="PMS Pumps" />
         <Stat value={fuelLine} label="AGO & Gas" />
