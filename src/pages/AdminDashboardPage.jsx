@@ -155,7 +155,7 @@ function AdminInner() {
           {overviewStatus === "loading" && (
             <div className="flex items-center justify-center py-16 text-[13px] text-ink-4">
               <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
-              Loading last 14 days…
+              Loading every day that needs attention…
             </div>
           )}
 

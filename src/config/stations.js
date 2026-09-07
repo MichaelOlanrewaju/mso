@@ -82,9 +82,9 @@ export const STATIONS = {
     ],
     pumps: [
       { id: "P1", tank: "TK1", product: "PMS" },
-      { id: "P4", tank: "TK1", product: "PMS" },
       { id: "P2", tank: "TK2", product: "PMS" },
       { id: "P3", tank: "TK2", product: "PMS" },
+      { id: "P4", tank: "TK1", product: "PMS" },
       { id: "P1_AGO", pumpId: "P1", tank: "TK4", product: "AGO" },
       { id: "LPG1", tank: "TK5", product: "LPG", unit: "KG" },
     ],

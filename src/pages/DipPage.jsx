@@ -184,11 +184,22 @@ function DipInner() {
         toast.showToast("Still loading today's price", "Wait a moment and try again.", "warn")
         return
       }
-      const stationProducts = new Set(tanksFor(activeStation()).map(t => t.product))
+      /* Was checking "does this station have a tank for this product"
+         (stationProducts.has(...)) — too broad. Confirmed directly: a
+         station can have an LPG tank configured but genuinely not be
+         selling it yet, and that tank correctly shows zero litres sold
+         all day. Requiring a price for a product that sold nothing
+         blocked closing out for no real reason. Now checks each
+         tank's own actual diff (open − close) — only a tank that
+         genuinely sold something today needs a price to close it out. */
       const missing = []
-      if (stationProducts.has("PMS") && !(prices.pms > 0)) missing.push("PMS")
-      if (stationProducts.has("AGO") && !(prices.ago > 0)) missing.push("AGO")
-      if (stationProducts.has("LPG") && !(prices.lpg > 0)) missing.push("LPG")
+      tanksFor(activeStation()).forEach(t => {
+        const st = tankState[t.id] || {}
+        const diff = (Number(st.open) || 0) - (Number(st.close) || 0)
+        if (diff <= 0) return // nothing sold on this tank today — no price needed
+        const priceKey = t.product === "AGO" ? "ago" : t.product === "LPG" ? "lpg" : "pms"
+        if (!(prices[priceKey] > 0) && !missing.includes(t.product)) missing.push(t.product)
+      })
       if (missing.length > 0) {
         toast.showToast("Price missing", `No price set for ${missing.join(", ")}. Ask GM/CEO to set it before closing out.`, "err")
         return

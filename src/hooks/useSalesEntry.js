@@ -452,9 +452,13 @@ export function useSalesEntry(username, name, selectedDate) {
           // a duplicate row) and acts as a safety net for anything that
           // failed to save along the way.
           const BATCH_SIZE = 3
+          let anyLockedError = null
           const savePump = p =>
             saveOnePump(p, date, prices, notes).then(res => {
-              if (!res.ok) failedPumps.push(res.pumpLabel || pumpId(p))
+              if (!res.ok) {
+                failedPumps.push(res.pumpLabel || pumpId(p))
+                if (res.locked && !anyLockedError) anyLockedError = res.error
+              }
               return res
             })
 
@@ -467,7 +471,18 @@ export function useSalesEntry(username, name, selectedDate) {
           return chain.then(() => {
             setSaving(false)
             if (failedPumps.length > 0) {
-              return { ok: false, error: `Reading didn't save for: ${failedPumps.join(", ")}. Please try those pumps again.` }
+              /* Confirmed directly, tracing two real incidents (MSO 6
+                 Sept, M&M 5 Sept): a locked/busy response used to fall
+                 back to this same generic message as every other kind
+                 of failure, which told a supervisor to just try again
+                 without saying why — surfacing the real reason here
+                 instead, since "wait a moment, someone else is saving
+                 right now" is a genuinely different situation from a
+                 network failure. */
+              const message = anyLockedError
+                ? `${anyLockedError} (${failedPumps.join(", ")})`
+                : `Reading didn't save for: ${failedPumps.join(", ")}. Please try those pumps again.`
+              return { ok: false, error: message }
             }
             return d
           })

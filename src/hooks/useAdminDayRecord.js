@@ -105,17 +105,38 @@ export function useAdminOverview() {
       .finally(() => clearTimeout(timeoutId))
   }, [])
 
+  /* Confirmed directly: the Admin overview should show every day that
+     genuinely needs attention at once, not force a manual "Load More"
+     click per batch. This walks every batch automatically on initial
+     load, stopping the moment the backend says there's nothing further
+     back — hasMore already reflects exactly that, so this just keeps
+     asking until it turns false. MAX_BATCHES is a safety cap only
+     (40 batches = up to 560 days), never expected to be hit given how
+     recently this station started — it exists so a backend bug can
+     never turn this into a runaway loop of requests. */
+  const MAX_BATCHES = 40
   const load = useCallback(() => {
     if (!SCRIPT_URL) return
     setStatus("loading")
-    fetchBatch(0)
-      .then(d => {
-        if (!d.ok) { setStatus("error"); setDays([]); return }
-        setDays(d.days || [])
-        setHasMore(!!d.hasMore)
-        setStatus("ready")
-      })
-      .catch(() => { setStatus("error"); setDays([]) })
+
+    const loadAll = (offset, accumulated, batchCount) => {
+      fetchBatch(offset)
+        .then(d => {
+          if (!d.ok) { setStatus("error"); setDays(accumulated); return }
+          const merged = [...accumulated, ...(d.days || [])]
+          if (d.hasMore && batchCount < MAX_BATCHES) {
+            setDays(merged) // keep the screen updated as more comes in
+            loadAll(merged.length, merged, batchCount + 1)
+          } else {
+            setDays(merged)
+            setHasMore(false)
+            setStatus("ready")
+          }
+        })
+        .catch(() => { setStatus("error"); setDays(accumulated) })
+    }
+
+    loadAll(0, [], 1)
   }, [fetchBatch])
 
   // Every day already fetched is skipped by the backend the moment it

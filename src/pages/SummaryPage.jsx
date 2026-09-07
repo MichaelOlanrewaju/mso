@@ -59,8 +59,16 @@ function tankRows(report, marginByTank) {
 
 function pumpRows(report) {
   const map = report.pumpMetres || {}
+  /* Was Object.keys(map).sort() — plain alphabetical, which put LPG1
+     first and scattered P1_AGO in the middle (LPG1, P1, P1_AGO, P2, P3,
+     P4) — never actually the order anyone wanted. Confirmed directly:
+     staff prefer P1, P2, P3, P4, P1_AGO, matching how they think about
+     the pumps physically, not string order. Sorting by each pump's
+     position in the station's own configured list respects that, and
+     works the same way for MSO too. */
+  const order = pumpsFor(activeStation()).map(p => p.id)
   return Object.keys(map)
-    .sort()
+    .sort((a, b) => order.indexOf(a) - order.indexOf(b))
     .map(pump => {
       const sessions = map[pump].sessions || []
       const totalDiff = sessions.reduce((sum, s) => sum + Number(s.diff || 0), 0)
