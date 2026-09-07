@@ -50,6 +50,7 @@ const DebtorsPage            = lazy(() => import("./pages/DebtorsPage"))
 const OrdersPage             = lazy(() => import("./pages/OrdersPage"))
 const VariancePage           = lazy(() => import("./pages/VariancePage"))
 const PnLPage                = lazy(() => import("./pages/PnLPage"))
+const StockPLPage            = lazy(() => import("./pages/StockPLPage"))
 const NotFoundPage           = lazy(() => import("./pages/NotFoundPage"))
 
 function RouteLoading() {
@@ -120,6 +121,7 @@ export default function App() {
           <Route path="/orders/:station" element={<StationGuard><OrdersPage /></StationGuard>} />
           <Route path="/variance/:station" element={<StationGuard><VariancePage /></StationGuard>} />
           <Route path="/pnl/:station" element={<StationGuard><PnLPage /></StationGuard>} />
+          <Route path="/stock-pl/:station" element={<StationGuard><StockPLPage /></StationGuard>} />
           <Route path="/payroll/:station" element={<StationGuard><PayrollPage /></StationGuard>} />
           <Route path="/add-staff/:station" element={<StationGuard><AddStaffPage /></StationGuard>} />
           <Route path="/attendants/:station" element={<StationGuard><AttendantsPage /></StationGuard>} />

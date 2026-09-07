@@ -12,6 +12,7 @@ const ACTIONS = [
   { icon: "bi-box-arrow-in-down",      iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Orders",             href: `/orders/${activeStation()}`,   roles: ["ceo","owner","gm"] },
   { icon: "bi-wallet2",                iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Payroll",            href: `/payroll/${activeStation()}`,  roles: ["ceo","owner","gm"] },
   { icon: "bi-bar-chart-line-fill",    iconBg: "#EDE9FE", iconColor: "#6D28D9", label: "P&L Report",        href: `/pnl/${activeStation()}`,      roles: ["ceo","owner","gm"] },
+  { icon: "bi-layers-fill",            iconBg: "#ECFDF5", iconColor: "#059669", label: "Stock P&L",          href: `/stock-pl/${activeStation()}`, roles: ["ceo","owner","gm"] },
   { icon: "bi-graph-up-arrow",         iconBg: "var(--brand-accent-light)", iconColor: "#0891B2", label: "Variance",           href: `/variance/${activeStation()}`, roles: ["ceo","owner","gm"] },
   { icon: "bi-printer-fill",           iconBg: "#EEF0FB", iconColor: "var(--brand-primary)", label: "Summary",            href: `/summary/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-exclamation-triangle",   iconBg: "#FFF1F2", iconColor: "#DC2626", label: "Shortage",           href: `/shortage/${activeStation()}`, roles: ["ceo","owner","gm","supervisor","cashier"] },

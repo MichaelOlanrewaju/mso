@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import CashupApprovalPreview from "../components/dashboard/CashupApprovalPreview"
 import CashAtHandCard from "../components/dashboard/CashAtHandCard"
+import StockPLSummaryCard from "../components/dashboard/StockPLSummaryCard"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
@@ -168,6 +169,10 @@ function GMInner() {
                 on the CEO dashboard but was never actually added here. */}
             <div className="enter mb-3" style={delay(1)}>
               <CashAtHandCard />
+            </div>
+
+            <div className="enter mb-3" style={delay(1)}>
+              <StockPLSummaryCard auth={auth} />
             </div>
 
             {notifPermission === "default" && (

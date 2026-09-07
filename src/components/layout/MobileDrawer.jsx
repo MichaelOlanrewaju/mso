@@ -14,6 +14,7 @@ const buildLinks = () => [
   { href: `/orders/${activeStation()}`,   icon: "bi-box-arrow-in-down",      color: "var(--brand-accent)", text: "Orders" },
   { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",         color: "#0891B2", text: "Variance" },
   { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",    color: "#06091A", text: "P&L" },
+  { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",            color: "#059669", text: "Stock P&L" },
   { href: `/summary/${activeStation()}`,  icon: "bi-printer",                color: "#06091A", text: "Summary" },
   { href: `/records/${activeStation()}`,  icon: "bi-journal-text",           color: "#06091A", text: "Records" },
   { href: `/activity/${activeStation()}`, icon: "bi-journal-check",          color: "#06091A", text: "Activity Log" },

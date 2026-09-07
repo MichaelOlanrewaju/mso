@@ -22,6 +22,7 @@ const buildSections = () => [
       { href: `/records/${activeStation()}`,  icon: "bi-journal-text",         text: "Records" },
       { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",       text: "Stock Variance" },
       { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",  text: "P&L Report" },
+      { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",          text: "Stock P&L" },
       { href: `/price/${activeStation()}`,    icon: "bi-tag",                  text: "Pump Prices" },
       { href: `/lubricant/${activeStation()}`, icon: "bi-droplet-fill",        text: "Oil" },
       { href: `/activity/${activeStation()}`, icon: "bi-journal-check",        text: "Activity Log" },

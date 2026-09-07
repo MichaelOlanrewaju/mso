@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import CashupApprovalPreview from "../components/dashboard/CashupApprovalPreview"
 import CashAtHandCard from "../components/dashboard/CashAtHandCard"
+import StockPLSummaryCard from "../components/dashboard/StockPLSummaryCard"
 import PhotoUploadToggleCard from "../components/dashboard/PhotoUploadToggleCard"
 import DischargeEditToggleCard from "../components/dashboard/DischargeEditToggleCard"
 import { getStation } from "../config/stations"
@@ -194,6 +195,10 @@ function DashboardInner() {
                 fuel and cash, so they read naturally as a pair. */}
             <div className="enter mb-5" style={delay(1)}>
               <CashAtHandCard />
+            </div>
+
+            <div className="enter mb-5" style={delay(1)}>
+              <StockPLSummaryCard auth={auth} />
             </div>
 
             {/* ── Needs attention ───────────────────────────────────────

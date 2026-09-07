@@ -1,0 +1,7 @@
+# MSO Digital Operations — Netlify SPA fallback
+# Any request that doesn't match a real file (an actual image, the JS
+# bundle, etc.) falls through to index.html so React Router can handle
+# it client-side. Netlify always checks for an existing file first, so
+# this does NOT break image loading — it only affects app routes like
+# /dashboard-mso that don't correspond to a physical file.
+/*    /index.html   200
