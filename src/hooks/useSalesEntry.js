@@ -73,28 +73,53 @@ function diffFor(r) {
    never made it to PumpMetres at all after his connection stalled mid-
    submit. 25 seconds is generous for a normal request but short enough
    that a genuinely dead connection surfaces as a real, actionable error
-   instead of an indefinite wait. */
+   instead of an indefinite wait.
+
+   Now also retries a genuinely retryable failure (a dropped connection,
+   a timeout, or a 5xx from the server) up to twice more before giving
+   up — a brief signal drop at the pump no longer means an instant,
+   unnecessary failure. This is safe specifically because savePumpMetre's
+   own duplicate-check and the now-fixed, genuinely-blocking withLock (see
+   Code.gs) mean a retried save that actually succeeded the first time
+   gets correctly recognized as a duplicate, not double-written — this
+   pairing is what makes retrying here safe at all, not something to
+   copy onto every other save blindly. A real validation error (bad
+   price, missing field) is never retried — only genuine network-level
+   failures are. */
 async function post(payload) {
   const coords = await getCurrentCoords()
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 25000)
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
-      redirect: "follow",
-      signal: controller.signal,
-    })
-    return await res.json()
-  } catch (e) {
-    if (e.name === "AbortError") {
-      return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved." }
+  const backoffMs = [600, 1400]
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
+    let networkFailed = false
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ ...payload, lat: coords?.lat, lng: coords?.lng }),
+        redirect: "follow",
+        signal: controller.signal,
+      })
+      if (res.ok) return await res.json()
+      if (res.status < 500) return await res.json() // a real error response, not worth retrying
+      networkFailed = true // 5xx — server-side hiccup, worth another try
+    } catch (e) {
+      networkFailed = true // network drop, timeout, DNS failure, etc.
+    } finally {
+      clearTimeout(timeoutId)
     }
-    return { ok: false, error: "Network error — check your connection and try again." }
-  } finally {
-    clearTimeout(timeoutId)
+
+    if (networkFailed && attempt < 2) {
+      await new Promise(resolve => setTimeout(resolve, backoffMs[attempt]))
+      continue
+    }
+    if (networkFailed) {
+      return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved.", networkFailure: true }
+    }
   }
+  return { ok: false, error: "Network error — check your connection and try again.", networkFailure: true }
 }
 
 export function useSalesEntry(username, name, selectedDate) {

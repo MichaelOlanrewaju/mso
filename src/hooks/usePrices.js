@@ -15,6 +15,8 @@ export function usePrices() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const isMounted = useRef(true)
+  const pricesRef = useRef(prices)
+  pricesRef.current = prices
 
   useEffect(() => {
     isMounted.current = true
@@ -26,23 +28,28 @@ export function usePrices() {
   const load = useCallback(() => {
     if (!SCRIPT_URL) {
       setLoading(false)
-      return
+      return Promise.resolve({ pms: 0, ago: 0, lpg: 0 })
     }
     setLoading(true)
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getCurrentPrices")
     url.searchParams.set("station", activeStation())
-    fetch(url.toString(), { method: "GET", redirect: "follow" })
+    return fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
       .then(d => {
-        if (!isMounted.current || !d.ok) return
-        setPrices({ pms: Number(d.pmsPrice) || 0, ago: Number(d.agoPrice) || 0, lpg: Number(d.lpgPrice) || 0 })
-        setSince({ pms: d.pmsSince || "default", ago: d.agoSince || "default", lpg: d.lpgSince || "default" })
-        setHistory(Array.isArray(d.history) ? d.history : [])
-        setLoading(false)
+        if (!d.ok) return pricesRef.current // fetch failed server-side — caller falls back to whatever it already had
+        const fresh = { pms: Number(d.pmsPrice) || 0, ago: Number(d.agoPrice) || 0, lpg: Number(d.lpgPrice) || 0 }
+        if (isMounted.current) {
+          setPrices(fresh)
+          setSince({ pms: d.pmsSince || "default", ago: d.agoSince || "default", lpg: d.lpgSince || "default" })
+          setHistory(Array.isArray(d.history) ? d.history : [])
+          setLoading(false)
+        }
+        return fresh
       })
       .catch(() => {
         if (isMounted.current) setLoading(false)
+        return pricesRef.current // network failure — caller falls back to whatever it already had
       })
   }, [])
 

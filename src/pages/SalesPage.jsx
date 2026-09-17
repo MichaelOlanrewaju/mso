@@ -57,7 +57,7 @@ function SalesInner() {
     saveStep, savingStep, pumpLocks, requestEditPump, requestingEdit,
     attendantId, setAttendantId, attendantName, setAttendantName,
   } = useSalesEntry(auth.username, auth.name, date)
-  const { prices } = usePrices()
+  const { prices, refresh: refreshPrices } = usePrices()
   const { settings } = useSettings()
   const photoUploadEnabled = settings.photoUploadEnabled !== "false"
   const { attendants } = useAttendants(auth.username)
@@ -199,7 +199,24 @@ function SalesInner() {
   }
 
   const handleSubmit = async () => {
-    const result = await submit(date, prices, notes)
+    /* Confirmed directly, tracing a real incident across MSO's 13-16
+       September: this used to submit with whatever `prices` already
+       held in state — loaded once, whenever this page first opened,
+       however long ago that was. The app has a mechanism to detect a
+       price change mid-session (usePriceWatch) and shows a banner, but
+       dismissing or missing that banner left the stale price in state
+       indefinitely, with nothing forcing a refresh before the actual,
+       money-affecting submission happened. Every pump closed out over
+       four days kept using a price that had already changed days
+       earlier. This fetches the price genuinely fresh, right here, at
+       the actual moment of submission. */
+    let freshPrices
+    try {
+      freshPrices = await refreshPrices()
+    } catch (e) {
+      freshPrices = prices // refresh itself failed — fall back rather than blocking the whole submission
+    }
+    const result = await submit(date, freshPrices, notes)
     if (!result.ok) {
       toast.showToast("Could not save", result.error || "Please try again", "err")
       return

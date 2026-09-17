@@ -14,6 +14,49 @@ function todayISO() {
   return new Date().toISOString().split("T")[0]
 }
 
+/* Retries a genuinely retryable failure (dropped connection, timeout,
+   5xx) up to twice more before giving up — same pattern as pump/dip
+   submission, since cash-up is entering real money figures and is at
+   least as critical to protect from a brief signal drop at the
+   station. Safe to retry because saveDailyReport shares the same
+   duplicate-check and now-fixed, genuinely-blocking withLock as
+   savePumpMetre (see Code.gs) — a retried save that actually
+   succeeded the first time is correctly recognized, not
+   double-written. */
+async function postSaveDailyReport(body) {
+  const backoffMs = [600, 1400]
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
+    let networkFailed = false
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(body),
+        redirect: "follow",
+        signal: controller.signal,
+      })
+      if (res.ok) return await res.json()
+      if (res.status < 500) return await res.json()
+      networkFailed = true
+    } catch (e) {
+      networkFailed = true
+    } finally {
+      clearTimeout(timeoutId)
+    }
+
+    if (networkFailed && attempt < 2) {
+      await new Promise(resolve => setTimeout(resolve, backoffMs[attempt]))
+      continue
+    }
+    if (networkFailed) {
+      return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved.", networkFailure: true }
+    }
+  }
+  return { ok: false, error: "Network error — check your connection and try again.", networkFailure: true }
+}
+
 export function useCashupData(username, name, initialDate) {
   const [date, setDate] = useState(initialDate || todayISO())
   const [expected, setExpected] = useState({
@@ -335,7 +378,7 @@ export function useCashupData(username, name, initialDate) {
 
   const uploadPosProof = file => uploadProof(file, "moniepoint-settlement", setPosProofUploading, setPosProofFileId)
 
-  const submit = useCallback(() => {
+  const submit = useCallback(async () => {
     if (mp === 0 && zm === 0 && cash === 0 && trfTotal === 0) {
       return Promise.resolve({ ok: false, error: "Enter at least one payment amount" })
     }
@@ -370,47 +413,33 @@ export function useCashupData(username, name, initialDate) {
        network here used to hang indefinitely with no error and no way to
        know whether real money figures actually saved — the same gap
        confirmed on pump/dip submission, fixed here too since cash-up is
-       at least as critical. */
-    return getCurrentCoords().then(coords => {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 25000)
-      return fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "saveDailyReport", station: activeStation(), username, date, data, lat: coords?.lat, lng: coords?.lng }),
-        redirect: "follow",
-        signal: controller.signal,
-      }).finally(() => clearTimeout(timeoutId))
+       at least as critical. Now also retried on a genuine network failure
+       — see postSaveDailyReport above. */
+    const coords = await getCurrentCoords()
+    const d = await postSaveDailyReport({
+      action: "saveDailyReport", station: activeStation(), username, date, data,
+      lat: coords?.lat, lng: coords?.lng,
     })
-      .then(res => res.json())
-      .then(d => {
-        if (!d.ok) {
-          setSaving(false)
-          return d
-        }
-        const lubSaves = lubricantItems
-          .filter(it => Number(it.qty) > 0 && it.product)
-          .map(it =>
-            fetch(SCRIPT_URL, {
-              method: "POST",
-              headers: { "Content-Type": "text/plain" },
-              // unitPrice is deliberately NOT sent. The server looks it up.
-              body: JSON.stringify({ action: "saveLubricant", station: activeStation(), username, date, product: it.product, qty: Number(it.qty) }),
-              redirect: "follow",
-            })
-          )
-        return Promise.all(lubSaves).then(() => {
-          setSaving(false)
-          return d
+
+    if (!d.ok) {
+      setSaving(false)
+      return d
+    }
+
+    const lubSaves = lubricantItems
+      .filter(it => Number(it.qty) > 0 && it.product)
+      .map(it =>
+        fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          // unitPrice is deliberately NOT sent. The server looks it up.
+          body: JSON.stringify({ action: "saveLubricant", station: activeStation(), username, date, product: it.product, qty: Number(it.qty) }),
+          redirect: "follow",
         })
-      })
-      .catch((e) => {
-        setSaving(false)
-        if (e.name === "AbortError") {
-          return { ok: false, error: "This is taking too long — check your connection and try again. Nothing was saved." }
-        }
-        return { ok: false, error: "Network error — check connection" }
-      })
+      )
+    await Promise.all(lubSaves)
+    setSaving(false)
+    return d
   }, [mp, zm, cash, trfTotal, trfMPNum, trfZBNum, trfTruckNum, trfMDNum, totalExpenses, cashToBank, mpCharge, zmCharge, trfMPCharge, emtlAmount, expected, lubricantItems, lubricantTotal, username, lpgRemittedNum, cashSummary, date, cashupLocked, remarks])
 
   return {

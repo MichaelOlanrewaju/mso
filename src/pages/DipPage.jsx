@@ -45,7 +45,7 @@ function DipInner() {
     updateTank, saveOpening, saveClosing, savePhoto, refresh,
     checkPendingDischarge, resolveDischargeTank,
   } = useDipData(auth.username, date)
-  const { prices, loading: pricesLoading } = usePrices()
+  const { prices, loading: pricesLoading, refresh: refreshPrices } = usePrices()
   const { settings } = useSettings()
   const photoUploadEnabled = settings.photoUploadEnabled !== "false"
 
@@ -180,6 +180,24 @@ function DipInner() {
        since Opening readings don't involve a price at all, and only
        for products this station's own tanks actually sell. */
     if (mode === "close") {
+      /* Confirmed directly, tracing a real incident across MSO's 13-16
+         September: the app already has a mechanism to detect a price
+         change mid-session (usePriceWatch, polling every 30s) and shows
+         a banner urging a cutover — but that banner's "Remind me later"
+         button just hides it, and nothing forces the actual price used
+         for submission to refresh. A dismissed or simply unseen banner
+         left the stale price in place indefinitely; every pump closed
+         out over the next four days kept using it. This fetches the
+         price genuinely fresh, right here, at the actual moment of
+         submission — not whatever was loaded whenever this page first
+         opened, however long ago that was. */
+      let freshPrices
+      try {
+        freshPrices = await refreshPrices()
+      } catch (e) {
+        freshPrices = prices // refresh itself failed — fall back to what's already loaded rather than blocking the whole submission
+      }
+
       if (pricesLoading) {
         toast.showToast("Still loading today's price", "Wait a moment and try again.", "warn")
         return
@@ -198,7 +216,7 @@ function DipInner() {
         const diff = (Number(st.open) || 0) - (Number(st.close) || 0)
         if (diff <= 0) return // nothing sold on this tank today — no price needed
         const priceKey = t.product === "AGO" ? "ago" : t.product === "LPG" ? "lpg" : "pms"
-        if (!(prices[priceKey] > 0) && !missing.includes(t.product)) missing.push(t.product)
+        if (!(freshPrices[priceKey] > 0) && !missing.includes(t.product)) missing.push(t.product)
       })
       if (missing.length > 0) {
         toast.showToast("Price missing", `No price set for ${missing.join(", ")}. Ask GM/CEO to set it before closing out.`, "err")
