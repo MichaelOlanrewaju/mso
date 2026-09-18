@@ -210,30 +210,34 @@ function DashboardInner() {
                 as "Needs your attention / Needs your attention / 3 items
                 waiting on you" — the exact same phrase twice in a row. */}
             <div className="enter mb-6" style={delay(2)}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <div className="flex flex-col gap-4 lg:col-span-8">
-                  <PayrollApprovalCard
-                    pendingPayroll={pendingPayroll}
-                    onApprove={handleApprovePayroll}
-                    onReject={handleRejectPayroll}
-                  />
-                  <AlertsCard
-                    tankLevels={data?.tankLevels}
-                    editRequests={editRequests}
-                    onApproveEdit={handleApproveEdit}
-                    onRejectEdit={handleRejectEdit}
-                    shortages={shortages}
-                    onReviewShortage={handleReviewShortage}
-                    pendingPayroll={pendingPayroll}
-                    pendingCashups={pendingCashups}
-                    onApproveCashup={handleApproveCashup}
-                    onRejectCashup={handleRejectCashup}
-                  />
-                </div>
-                <div className="lg:col-span-4">
-                  <QuickActionsCard role={auth.role} username={auth.username} />
-                </div>
+              <div className="grid grid-cols-1 gap-4">
+                <PayrollApprovalCard
+                  pendingPayroll={pendingPayroll}
+                  onApprove={handleApprovePayroll}
+                  onReject={handleRejectPayroll}
+                />
+                <AlertsCard
+                  tankLevels={data?.tankLevels}
+                  editRequests={editRequests}
+                  onApproveEdit={handleApproveEdit}
+                  onRejectEdit={handleRejectEdit}
+                  shortages={shortages}
+                  onReviewShortage={handleReviewShortage}
+                  pendingPayroll={pendingPayroll}
+                  pendingCashups={pendingCashups}
+                  onApproveCashup={handleApproveCashup}
+                  onRejectCashup={handleRejectCashup}
+                />
               </div>
+            </div>
+
+            {/* Quick Actions — deliberately its own full-width section, not
+                squeezed into a narrow side column. Confirmed directly: it
+                was confined to a 4/12 slice next to Alerts, capped at 3
+                columns even on desktop despite having far more space
+                available if given the room. */}
+            <div className="enter mb-6" style={delay(2)}>
+              <QuickActionsCard role={auth.role} username={auth.username} />
             </div>
 
             {/* ── Today's Operations ────────────────────────────────────

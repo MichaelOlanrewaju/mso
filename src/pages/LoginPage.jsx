@@ -78,8 +78,8 @@ export default function LoginPage() {
         <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-14">
           {/* Logo */}
           <button type="button" onClick={() => navigate("/")} className="flex w-fit items-center gap-3" style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <img src="/images/msolimpid.png" alt="MSO Limpid"
-              style={{ height: 40, width: "auto", display: "block", filter: "brightness(0) invert(1)" }}
+            <img src="/images/msolimpid-v2.png" alt="MSO Limpid"
+              style={{ height: 40, width: "auto", display: "block" }}
               onError={e => { e.target.style.display="none" }} />
             <div className="text-left">
               <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "-.025em", lineHeight: 1.15 }}>Digital</div>
@@ -90,7 +90,7 @@ export default function LoginPage() {
           {/* Value points */}
           <div>
             <h2 style={{ fontSize: "clamp(28px, 2.6vw, 38px)", fontWeight: 800, color: "#fff", letterSpacing: "-.04em", lineHeight: 1.06, marginBottom: 12 }}>
-              Two stations.<br /><span style={{ color: "#6DE0FF" }}>One platform.</span>
+              Three stations.<br /><span style={{ color: "#6DE0FF" }}>One platform.</span>
             </h2>
             <p style={{ fontSize: 14.5, color: "rgba(255,255,255,.45)", lineHeight: 1.7, maxWidth: 380, marginBottom: 36 }}>
               Sales, tanks, discharge, expenses, payroll and cash — reconciled daily, visible from anywhere.
@@ -112,10 +112,10 @@ export default function LoginPage() {
           </div>
 
           {/* Station status */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center gap-[6px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.50)" }}>
               <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#22C55E", boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
-              MSO Limpid
+              Mobil
             </span>
             <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
             <span className="inline-flex items-center gap-[6px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.50)" }}>
@@ -123,7 +123,12 @@ export default function LoginPage() {
               M&amp;M Oil &amp; Gas
             </span>
             <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
-            <span style={{ fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,.30)" }}>Both stations live</span>
+            <span className="inline-flex items-center gap-[6px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.36)" }}>
+              <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#F59E0B", boxShadow: "0 0 6px rgba(245,158,11,.6)" }} />
+              MSO Limpid
+            </span>
+            <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
+            <span style={{ fontSize: 11.5, fontWeight: 500, color: "rgba(255,255,255,.30)" }}>2 of 3 stations live</span>
           </div>
         </div>
       </div>
@@ -149,8 +154,8 @@ export default function LoginPage() {
           {/* Logo above card — hidden on desktop where the brand panel
               already carries identity */}
           <div className="mb-7 flex flex-col items-center gap-2.5 lg:hidden" style={{ animation:"riseIn 0.65s 0.05s both cubic-bezier(0.22,1,0.36,1)" }}>
-            <img src="/images/msolimpid.png" alt="MSO Limpid"
-              style={{ height:48, width:"auto", display:"block", filter:"brightness(0) invert(1)" }}
+            <img src="/images/msolimpid-v2.png" alt="MSO Limpid"
+              style={{ height:48, width:"auto", display:"block" }}
               onError={e => { e.target.style.display="none" }} />
             <div style={{ fontSize:16, fontWeight:800, color:"#fff", letterSpacing:"-0.03em" }}>Digital Platform</div>
           </div>

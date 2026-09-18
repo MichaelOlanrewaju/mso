@@ -2,10 +2,12 @@ import React from "react"
 import { useSettings } from "../../hooks/useSettings"
 import { useToast } from "../layout/ToastProvider"
 
-/* CEO/Owner-only security switch: whether supervisors can attach a photo
-   to dip/pump readings at all. Off by exception, not by default — this is
-   for a specific situation where the CEO wants no photo evidence path
-   available, not a general preference. */
+/* CEO/Owner-only security switch: whether supervisors can attach an
+   EXISTING image (from their gallery/files) to dip/pump readings. Live
+   camera capture always stays available regardless of this setting —
+   confirmed directly: turning this off should only remove the path where
+   an arbitrary, unverifiable image could be picked from storage, not
+   disable evidence photos entirely. */
 export default function PhotoUploadToggleCard({ role, username }) {
   const { settings, saving, saveSetting } = useSettings()
   const toast = useToast()
@@ -19,8 +21,8 @@ export default function PhotoUploadToggleCard({ role, username }) {
     const res = await saveSetting("photoUploadEnabled", next, username)
     if (res.ok) {
       toast.showToast(
-        next === "true" ? "Photo upload enabled" : "Photo upload disabled",
-        next === "true" ? "Supervisors can attach photos to dip/pump readings again." : "Dip and pump entry photo upload is now switched off for everyone.",
+        next === "true" ? "Gallery attach enabled" : "Gallery attach disabled",
+        next === "true" ? "Supervisors can attach existing photos again, in addition to live capture." : "Supervisors can still take a live photo — gallery attach is now off for everyone.",
         next === "true" ? "ok" : "warn"
       )
     } else {
@@ -39,7 +41,7 @@ export default function PhotoUploadToggleCard({ role, username }) {
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-bold text-ink">Dip / Pump Photo Upload</div>
         <div className="text-[11px] text-ink-4">
-          {enabled ? "Supervisors can attach photos to readings" : "Photo upload is switched off for everyone"}
+          {enabled ? "Supervisors can attach photos from gallery or camera" : "Gallery attach is off — live camera capture still works"}
         </div>
       </div>
       <button

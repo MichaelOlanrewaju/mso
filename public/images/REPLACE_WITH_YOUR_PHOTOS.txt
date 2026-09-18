@@ -1,0 +1,13 @@
+BEFORE GO-LIVE — replace Unsplash placeholders with your real station photos:
+
+1. Copy your photos into this /images/ folder:
+   - KM14.jpeg               → main station photo (used on all 3 slides + login)
+   - KM1_1074 copy.jpg.jpeg  → second station photo (login float card)
+
+2. In index.html, update the 3 slide background-image URLs to:
+   url('images/KM14.jpeg')                    ← slides 1 & 2
+   url('images/KM1_1074 copy.jpg.jpeg')       ← slide 3
+
+3. In login.html, update the two photo-bg URLs to:
+   .photo-main-bg  → url('images/KM14.jpeg')
+   .photo-float-bg → url('images/KM1_1074 copy.jpg.jpeg')

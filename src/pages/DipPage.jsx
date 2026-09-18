@@ -418,19 +418,16 @@ function DipInner() {
                 />
               )}
 
-              {status !== "loading" && !isLocked && photoUploadEnabled && (
+              {status !== "loading" && !isLocked && (
                 <PhotoCapture
                   photo={photos[stepKey]}
                   onCapture={handlePhoto}
-                  label={`Add ${step.cfg.id} photo`}
-                  sub="Optional evidence photo"
+                  label={photoUploadEnabled ? `Add ${step.cfg.id} photo` : `Take ${step.cfg.id} photo`}
+                  sub={photoUploadEnabled ? "Optional evidence photo" : "Camera only — gallery attach is switched off"}
                   progress={uploadProgress[stepKey]}
+                  cameraOnly={!photoUploadEnabled}
+                  onNumberDetected={num => updateTank(step.cfg.id, mode === "open" ? "open" : "close", num)}
                 />
-              )}
-              {status !== "loading" && !isLocked && !photoUploadEnabled && (
-                <div className="flex items-center gap-2 rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-[12px] text-ink-4">
-                  <i className="bi bi-camera-video-off" /> Photo upload is currently switched off
-                </div>
               )}
             </div>
           </div>

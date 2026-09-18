@@ -53,11 +53,11 @@ export default function StationSwitcherCard({ show = true }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 px-3 pb-3">
-        {STATION_KEYS.map(key => {
+        {STATION_KEYS.filter(key => !getStation(key).comingSoon).map(key => {
           const st = getStation(key)
           const active = key === current
-          const accent = key === "mso" ? "#179DD0" : "#eaaa18"
-          const base = key === "mso" ? "#130656" : "#5f1f33"
+          const accent = st.theme.accent
+          const base = st.theme.primary
           return (
             <button
               key={key}

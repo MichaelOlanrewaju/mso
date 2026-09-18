@@ -95,7 +95,7 @@ export default function KpiGrid({ status, data }) {
         <KpiCard
           variant="hero"
           icon="bi-graph-up-arrow"
-          iconBg="rgba(23,157,208,.18)"
+          iconBg="color-mix(in srgb,var(--brand-accent) 18%,transparent)"
           iconColor="var(--brand-accent)"
           label="Grand Total"
           value={totalValue}

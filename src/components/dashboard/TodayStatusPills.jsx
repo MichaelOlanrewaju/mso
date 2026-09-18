@@ -38,7 +38,7 @@ function Step({ step, state, loading }) {
         style={{
           borderColor: ring,
           background: tint,
-          boxShadow: isActive ? "0 4px 14px rgba(23,157,208,.22)" : "none",
+          boxShadow: isActive ? "0 4px 14px color-mix(in srgb,var(--brand-accent) 22%,transparent)" : "none",
         }}
       >
         {isDone ? (

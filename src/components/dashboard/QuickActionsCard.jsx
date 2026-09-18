@@ -53,7 +53,7 @@ export default function QuickActionsCard({ role, username }) {
   return (
     <div className="rounded-panel border border-border bg-white p-4 shadow-card">
       <div className="mb-3.5 text-[13px] font-extrabold tracking-[-0.02em] text-ink">Quick actions</div>
-      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         {filtered.map(a => (
           <button key={a.href} type="button" onClick={() => navigate(a.href)}
             aria-label={a.label}

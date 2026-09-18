@@ -27,7 +27,7 @@ import { naira, litres, litresValue } from "../../utils/format"
 function Chip({ tone = "muted", pulse, children }) {
   const tones = {
     live: { bg: "rgba(34,197,94,.16)", fg: "#4ADE80" },
-    open: { bg: "rgba(23,157,208,.18)", fg: "#7FCDEA" },
+    open: { bg: "rgba(100,116,139,.20)", fg: "#94A3B8" },
     up: { bg: "rgba(34,197,94,.16)", fg: "#4ADE80" },
     down: { bg: "rgba(239,68,68,.16)", fg: "#FCA5A5" },
     muted: { bg: "rgba(255,255,255,.08)", fg: "rgba(255,255,255,.65)" },
@@ -301,7 +301,7 @@ export default function DayHero({ status, data }) {
       <span
         aria-hidden
         className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full"
-        style={{ background: "radial-gradient(circle,rgba(23,157,208,.38),transparent 68%)" }}
+        style={{ background: "radial-gradient(circle,color-mix(in srgb,var(--brand-accent) 38%,transparent),transparent 68%)" }}
       />
 
       <div className="relative z-[2] p-5 md:p-6">

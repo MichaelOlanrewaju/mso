@@ -1,15 +1,30 @@
 import React, { useRef, useState } from "react"
 import { useDriveImage } from "../../hooks/useDriveImage"
+import { useOcrReading } from "../../hooks/useOcrReading"
 
-export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress }) {
+export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress, cameraOnly = false, onNumberDetected }) {
   const inputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const { readNumber, status: ocrStatus } = useOcrReading()
 
   const handleChange = e => {
     const file = e.target.files && e.target.files[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = ev => onCapture(ev.target.result, file.type)
+    reader.onload = ev => {
+      const dataUri = ev.target.result
+      onCapture(dataUri, file.type)
+      /* Runs right here, in the same motion as the capture itself — not a
+         separate step, and not continuous video scanning. Confirmed
+         directly as the right shape: fast enough to feel immediate,
+         without the lag and lower reliability a live-video approach would
+         add on top of an already-hard case (digit segments on an LCD). */
+      if (onNumberDetected) {
+        readNumber(dataUri).then(num => {
+          if (num) onNumberDetected(num)
+        })
+      }
+    }
     reader.readAsDataURL(file)
   }
 
@@ -31,7 +46,21 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
 
   return (
     <>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleChange} />
+      {/* Confirmed directly: a plain <input type="file" accept="image/*">
+         shows BOTH "Take Photo" and "Choose from Gallery" as one combined
+         option on mobile — there's no way to offer live capture without
+         also offering gallery attachment unless the `capture` attribute is
+         set. Adding it restricts the input to camera-only, which is
+         exactly what's needed when attach-from-gallery is switched off but
+         live capture should keep working. */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleChange}
+        {...(cameraOnly ? { capture: "environment" } : {})}
+      />
       <div
         className={`relative mt-3.5 flex w-full items-center gap-3 overflow-hidden rounded-[14px] border-[1.5px] px-3.5 py-3 transition-all ${
           done ? "border-green-light bg-green-light" : "border-dashed border-border bg-surface"
@@ -79,10 +108,10 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
           className="relative flex-1 text-left"
         >
           <div className={`text-[12.5px] font-bold ${done ? "text-green" : "text-ink-2"}`}>
-            {uploading ? `Uploading… ${progress}%` : done ? "Photo saved" : label}
+            {uploading ? `Uploading… ${progress}%` : ocrStatus === "reading" ? "Reading number…" : done ? "Photo saved" : label}
           </div>
           <div className="text-[10.5px] font-medium text-ink-4">
-            {uploading ? "Compressed and sending" : done ? "Tap thumbnail to view · tap here to retake" : sub}
+            {uploading ? "Compressed and sending" : ocrStatus === "reading" ? "Checking the photo for a reading" : done ? "Tap thumbnail to view · tap here to retake" : sub}
           </div>
         </button>
 

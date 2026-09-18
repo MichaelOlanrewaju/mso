@@ -7,15 +7,15 @@ import { InstallStrip } from "../components/pwa/PWABanners"
 const SLIDES = [
   {
     photo: "/images/KM1_1031.jpeg",
-    tag: "Both Stations Live · Lagos",
+    tag: "All Stations Live · Lagos",
     h1: ["Every litre.", "Every naira.", "Accounted."],
     accent: 2,
-    p: "Real-time operations platform for MSO Limpid Co. Ltd and M&M Oil & Gas Ltd.",
+    p: "Real-time operations platform for Mobil Idowu Egba, M&M Oil & Gas Ltd, and MSO Limpid Co. Ltd.",
   },
   {
     photo: "/images/_KM12485 copy.jpg.jpeg",
     tag: "Live Sales & Tank Tracking",
-    h1: ["Two stations.", "One platform."],
+    h1: ["Three stations.", "One platform."],
     accent: 1,
     p: "Monitor sales, tank levels, discharge, expenses and cash reconciliation — from anywhere.",
   },
@@ -168,8 +168,8 @@ export default function LandingPage() {
         style={{ top: "env(safe-area-inset-top)", paddingTop: 24 }}>
         {/* Logo */}
         <div className="flex items-center gap-[11px]">
-          <img src="/images/msolimpid.png" alt="MSO Limpid"
-            style={{ height: 36, width: "auto", display: "block", filter: "brightness(0) invert(1)" }}
+          <img src="/images/msolimpid-v2.png" alt="MSO Limpid"
+            style={{ height: 36, width: "auto", display: "block" }}
             onError={e => { e.target.style.display="none" }} />
           <div>
             <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: "-.025em", lineHeight: 1.15 }}>Digital</div>
@@ -259,12 +259,17 @@ export default function LandingPage() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-[5px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
                 <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#22C55E", boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
-                MSO Limpid
+                Mobil
               </span>
               <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
               <span className="inline-flex items-center gap-[5px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
                 <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "var(--brand-accent)", boxShadow: "0 0 6px rgba(23,157,208,.7)" }} />
                 M&amp;M Oil &amp; Gas
+              </span>
+              <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
+              <span className="inline-flex items-center gap-[5px] text-[12px] font-semibold" style={{ color: "rgba(255,255,255,.34)" }}>
+                <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#F59E0B", boxShadow: "0 0 6px rgba(245,158,11,.6)" }} />
+                MSO Limpid <span style={{ opacity: 0.6 }}>· Coming Soon</span>
               </span>
             </div>
           </div>
@@ -307,7 +312,7 @@ export default function LandingPage() {
         <div className="flex flex-wrap items-center justify-center gap-2">
           <span className="inline-flex items-center gap-[5px] text-[11.5px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
             <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#22C55E", boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
-            MSO Limpid
+            Mobil
           </span>
           <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
           <span className="inline-flex items-center gap-[5px] text-[11.5px] font-semibold" style={{ color: "rgba(255,255,255,.48)" }}>
@@ -315,7 +320,12 @@ export default function LandingPage() {
             M&amp;M Oil &amp; Gas
           </span>
           <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
-          <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,.28)" }}>Both stations live</span>
+          <span className="inline-flex items-center gap-[5px] text-[11.5px] font-semibold" style={{ color: "rgba(255,255,255,.34)" }}>
+            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: "#F59E0B", boxShadow: "0 0 6px rgba(245,158,11,.6)" }} />
+            MSO Limpid
+          </span>
+          <span style={{ color: "rgba(255,255,255,.18)", fontSize: 11 }}>·</span>
+          <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,.28)" }}>2 of 3 stations live</span>
         </div>
       </div>
 

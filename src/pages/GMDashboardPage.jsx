@@ -212,26 +212,27 @@ function GMInner() {
 
             <div className="enter mb-5" style={delay(3)}>
               <SectionLabel>Needs your attention</SectionLabel>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                <div className="lg:col-span-8">
-                  <AlertsCard
-                    tankLevels={data?.tankLevels}
-                    editRequests={editRequests}
-                    onApproveEdit={handleApprove}
-                    onRejectEdit={handleReject}
-                    shortages={shortages}
-                    onReviewShortage={handleReviewShortage}
-                    pendingPayroll={pendingPayroll}
-                    payrollReadOnly
-                    pendingCashups={pendingCashups}
-                    onApproveCashup={handleApproveCashup}
-                    onRejectCashup={handleRejectCashup}
-                  />
-                </div>
-                <div className="lg:col-span-4 space-y-3">
-                  <QuickActionsCard role={auth.role} username={auth.username} />
-                </div>
-              </div>
+              <AlertsCard
+                tankLevels={data?.tankLevels}
+                editRequests={editRequests}
+                onApproveEdit={handleApprove}
+                onRejectEdit={handleReject}
+                shortages={shortages}
+                onReviewShortage={handleReviewShortage}
+                pendingPayroll={pendingPayroll}
+                payrollReadOnly
+                pendingCashups={pendingCashups}
+                onApproveCashup={handleApproveCashup}
+                onRejectCashup={handleRejectCashup}
+              />
+            </div>
+
+            {/* Quick Actions — its own full-width section, not squeezed into
+                a narrow side column. Confirmed directly: was confined to
+                4/12 next to Alerts, capped at 3 columns even on desktop
+                despite far more space being available. */}
+            <div className="enter mb-5" style={delay(3)}>
+              <QuickActionsCard role={auth.role} username={auth.username} />
             </div>
 
 

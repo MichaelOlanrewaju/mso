@@ -14,18 +14,30 @@
 export const STATIONS = {
   mso: {
     key: "mso",
-    name: "MSO Limpid",
-    legalName: "MSO Limpid Co. Ltd",
-    short: "MSO",
+    /* Confirmed directly: this station is genuinely, physically branded
+       Mobil — MSO Limpid is the parent company, but the pump signage and
+       real-world identity here is Mobil. Only the DISPLAY changes; the
+       key stays "mso" since that's what SHEET_ID_MSO, getSheet('mso') and
+       every backend handler already use, and this station's own data is
+       completely unaffected by the rename. */
+    name: "Mobil",
+    legalName: "Mobil Idowu Egba",
+    short: "Mobil",
     theme: {
-      primary: "#130656",   // navy
-      accent: "#179DD0",    // cyan
-      primaryDark: "#0D0440",
-      accentDark: "#1188B5",
-      accentLight: "#EAF6FC",
-      primaryLight: "#E9E7F5",
-      gradient: "linear-gradient(135deg,#130656 0%,#1a0875 52%,#179DD0 175%)",
-      gradientBtn: "linear-gradient(135deg,#130656,#179DD0)",
+      /* Confirmed directly: no red at all — #00AAFB is Mobil's real
+         color here, used prominently. Primary is a deep, dark shade of
+         that SAME blue (for backgrounds/headers, where a theme needs
+         depth and contrast) rather than a different hue entirely, so
+         the two colors read as one cohesive blue identity, not two
+         colors bolted together. */
+      primary: "#003D5C",    // deep Mobil blue
+      accent: "#00AAFB",     // Mobil light blue — the dominant, most-used color
+      primaryDark: "#002639",
+      accentDark: "#0088C9",
+      accentLight: "#E6F7FF",
+      primaryLight: "#E1F5FF",
+      gradient: "linear-gradient(135deg,#003D5C 0%,#002639 100%)",
+      gradientBtn: "linear-gradient(135deg,#003D5C,#00AAFB)",
     },
     tanks: [
       { id: "TK1", product: "PMS", cap: 45000, pumps: ["P5", "P6"] },
@@ -88,6 +100,34 @@ export const STATIONS = {
       { id: "P1_AGO", pumpId: "P1", tank: "TK4", product: "AGO" },
       { id: "LPG1", tank: "TK5", product: "LPG", unit: "KG" },
     ],
+  },
+
+  msoo: {
+    key: "msoo",
+    /* A brand new, third station — takes over the "MSO" name and the
+       original navy/cyan colors, since this is the one genuinely
+       branded MSO. Confirmed directly: not built out yet — no real
+       tank/pump setup or backend sheet exists for it. comingSoon
+       gates it to a placeholder screen wherever it's selected, rather
+       than a broken or empty dashboard. */
+    name: "MSO Limpid",
+    legalName: "MSO Limpid Co. Ltd",
+    short: "MSO",
+    comingSoon: true,
+    theme: {
+      primary: "#130656",   // navy
+      accent: "#179DD0",    // cyan
+      primaryDark: "#0D0440",
+      accentDark: "#1188B5",
+      accentLight: "#EAF6FC",
+      primaryLight: "#E9E7F5",
+      gradient: "linear-gradient(135deg,#130656 0%,#1a0875 52%,#179DD0 175%)",
+      gradientBtn: "linear-gradient(135deg,#130656,#179DD0)",
+    },
+    // Not built out yet — deliberately empty until the real tank/pump
+    // setup is provided.
+    tanks: [],
+    pumps: [],
   },
 }
 
