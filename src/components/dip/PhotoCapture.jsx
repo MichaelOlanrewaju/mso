@@ -5,7 +5,7 @@ import { useOcrReading } from "../../hooks/useOcrReading"
 export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress, cameraOnly = false, onNumberDetected }) {
   const inputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const { readNumber, status: ocrStatus } = useOcrReading()
+  const { readNumber, status: ocrStatus, lastError: ocrError } = useOcrReading()
 
   const handleChange = e => {
     const file = e.target.files && e.target.files[0]
@@ -107,11 +107,11 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
           onClick={() => inputRef.current && inputRef.current.click()}
           className="relative flex-1 text-left"
         >
-          <div className={`text-[12.5px] font-bold ${done ? "text-green" : "text-ink-2"}`}>
-            {uploading ? `Uploading… ${progress}%` : ocrStatus === "reading" ? "Reading number…" : done ? "Photo saved" : label}
+          <div className={`text-[12.5px] font-bold ${done ? "text-green" : ocrStatus === "error" ? "text-red" : "text-ink-2"}`}>
+            {uploading ? `Uploading… ${progress}%` : ocrStatus === "reading" ? "Reading number…" : ocrStatus === "error" ? "Couldn't read a number" : done ? "Photo saved" : label}
           </div>
           <div className="text-[10.5px] font-medium text-ink-4">
-            {uploading ? "Compressed and sending" : ocrStatus === "reading" ? "Checking the photo for a reading" : done ? "Tap thumbnail to view · tap here to retake" : sub}
+            {uploading ? "Compressed and sending" : ocrStatus === "reading" ? "Checking the photo for a reading" : ocrStatus === "error" ? (ocrError || "Enter the reading manually") : done ? "Tap thumbnail to view · tap here to retake" : sub}
           </div>
         </button>
 

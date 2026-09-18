@@ -21,6 +21,7 @@ import { useState, useCallback, useRef } from "react"
 export function useOcrReading() {
   const [status, setStatus] = useState("idle") // idle | reading | done | error
   const [confidence, setConfidence] = useState(null)
+  const [lastError, setLastError] = useState(null)
   const workerRef = useRef(null)
 
   const getWorker = useCallback(async () => {
@@ -41,6 +42,7 @@ export function useOcrReading() {
   const readNumber = useCallback(async dataUri => {
     setStatus("reading")
     setConfidence(null)
+    setLastError(null)
     try {
       const worker = await getWorker()
       const { data } = await worker.recognize(dataUri)
@@ -54,10 +56,17 @@ export function useOcrReading() {
       if (!cleaned || Number.isNaN(Number(cleaned))) return null
       return cleaned
     } catch (e) {
+      /* Confirmed directly, tracing a real "detects nothing at all" report:
+         this used to swallow the error completely — neither the developer
+         nor whoever was testing could see what actually failed. Logged to
+         the console now (visible in any browser's devtools, including on
+         a phone via remote debugging) rather than hidden. */
+      console.error("[OCR] Tesseract recognition failed:", e)
+      setLastError(e && e.message ? e.message : String(e))
       setStatus("error")
       return null
     }
   }, [getWorker])
 
-  return { readNumber, status, confidence }
+  return { readNumber, status, confidence, lastError }
 }
