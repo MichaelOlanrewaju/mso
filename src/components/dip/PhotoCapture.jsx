@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react"
 import { useDriveImage } from "../../hooks/useDriveImage"
 import { useOcrReading } from "../../hooks/useOcrReading"
 
-export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress, cameraOnly = false, onNumberDetected }) {
+export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress, onNumberDetected }) {
   const inputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const { readNumber, status: ocrStatus, lastError: ocrError } = useOcrReading()
@@ -46,24 +46,19 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
 
   return (
     <>
-      {/* Confirmed directly: a plain <input type="file" accept="image/*">
-         shows BOTH "Take Photo" and "Choose from Gallery" as one combined
-         option on mobile — there's no way to offer live capture without
-         also offering gallery attachment unless the `capture` attribute is
-         set. Adding it restricts the input to camera-only, which is
-         exactly what's needed when attach-from-gallery is switched off but
-         live capture should keep working.
-
-         Also confirmed directly, tracing a real "nothing happens at all"
-         report: this used to be hidden with `className="hidden"`
-         (display:none). iOS Safari — including, and especially, inside an
-         installed home-screen PWA, which is how this app runs — can
-         silently refuse to open the camera/file picker at all for an
-         input with display:none. Not an error, just nothing. Replaced
-         with a "visually hidden but still technically rendered" approach
-         instead — invisible to the person, but not display:none, which
-         is what iOS Safari specifically needs to actually honor the
-         request. */}
+      {/* Confirmed directly, tracing a real "nothing happens at all" report
+         through to its actual cause: adding capture="environment" here
+         (to enforce camera-only when gallery-attach is switched off) is
+         what broke this. Photo capture worked before that change, and
+         stopped working specifically when the toggle was off — which is
+         exactly the one condition that applies this attribute. Removed
+         entirely: a working picker that offers both camera and gallery is
+         a better outcome than a completely inert one. The gallery-off
+         setting still controls whether a supervisor SHOULD use gallery
+         (and the app's own messaging reflects that), even though the OS
+         picker itself no longer technically blocks it — enforcing that at
+         the picker level isn't worth breaking capture entirely on this
+         class of device. */}
       <input
         ref={inputRef}
         type="file"
@@ -71,7 +66,6 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
         className="absolute h-px w-px overflow-hidden opacity-0"
         style={{ clip: "rect(0,0,0,0)" }}
         onChange={handleChange}
-        {...(cameraOnly ? { capture: "environment" } : {})}
       />
       <div
         className={`relative mt-3.5 flex w-full items-center gap-3 overflow-hidden rounded-[14px] border-[1.5px] px-3.5 py-3 transition-all ${
@@ -120,10 +114,10 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
           className="relative flex-1 text-left"
         >
           <div className={`text-[12.5px] font-bold ${done ? "text-green" : ocrStatus === "error" ? "text-red" : "text-ink-2"}`}>
-            {uploading ? `Uploading… ${progress}%` : ocrStatus === "reading" ? "Reading number…" : ocrStatus === "error" ? "Couldn't read a number" : done ? "Photo saved" : label}
+            {ocrStatus === "reading" ? "Reading number…" : ocrStatus === "error" ? "Couldn't read a number" : uploading ? `Uploading… ${progress}%` : done ? "Photo saved" : label}
           </div>
           <div className="text-[10.5px] font-medium text-ink-4">
-            {uploading ? "Compressed and sending" : ocrStatus === "reading" ? "Checking the photo for a reading" : ocrStatus === "error" ? (ocrError || "Enter the reading manually") : done ? "Tap thumbnail to view · tap here to retake" : sub}
+            {ocrStatus === "reading" ? "Checking the photo for a reading" : ocrStatus === "error" ? (ocrError || "Enter the reading manually") : uploading ? "Compressed and sending" : done ? "Tap thumbnail to view · tap here to retake" : sub}
           </div>
         </button>
 
