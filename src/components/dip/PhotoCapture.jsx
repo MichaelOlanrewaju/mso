@@ -10,17 +10,23 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
   const handleChange = e => {
     const file = e.target.files && e.target.files[0]
     if (!file) return
+    // TEMPORARY DIAGNOSTIC — remove once the real cause is confirmed
+    window.alert("DEBUG 1: handleChange fired, file picked")
     const reader = new FileReader()
     reader.onload = ev => {
+      window.alert("DEBUG 2: FileReader onload fired")
       const dataUri = ev.target.result
       onCapture(dataUri, file.type)
+      window.alert("DEBUG 3: onCapture called, onNumberDetected is " + (onNumberDetected ? "present" : "MISSING"))
       /* Runs right here, in the same motion as the capture itself — not a
          separate step, and not continuous video scanning. Confirmed
          directly as the right shape: fast enough to feel immediate,
          without the lag and lower reliability a live-video approach would
          add on top of an already-hard case (digit segments on an LCD). */
       if (onNumberDetected) {
+        window.alert("DEBUG 4: about to call readNumber")
         readNumber(dataUri).then(num => {
+          window.alert("DEBUG 5: readNumber resolved with " + num)
           if (num) onNumberDetected(num)
         })
       }
