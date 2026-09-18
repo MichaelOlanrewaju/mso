@@ -52,12 +52,24 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
          also offering gallery attachment unless the `capture` attribute is
          set. Adding it restricts the input to camera-only, which is
          exactly what's needed when attach-from-gallery is switched off but
-         live capture should keep working. */}
+         live capture should keep working.
+
+         Also confirmed directly, tracing a real "nothing happens at all"
+         report: this used to be hidden with `className="hidden"`
+         (display:none). iOS Safari — including, and especially, inside an
+         installed home-screen PWA, which is how this app runs — can
+         silently refuse to open the camera/file picker at all for an
+         input with display:none. Not an error, just nothing. Replaced
+         with a "visually hidden but still technically rendered" approach
+         instead — invisible to the person, but not display:none, which
+         is what iOS Safari specifically needs to actually honor the
+         request. */}
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        className="hidden"
+        className="absolute h-px w-px overflow-hidden opacity-0"
+        style={{ clip: "rect(0,0,0,0)" }}
         onChange={handleChange}
         {...(cameraOnly ? { capture: "environment" } : {})}
       />
