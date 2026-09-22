@@ -286,7 +286,12 @@ export default function DayHero({ status, data }) {
 
   // The split row only earns its place when it has something to say. On an
   // empty day it's three columns of zeros — so it doesn't render at all.
-  const showSplit = loading || opening || !noData
+  // Exception: confirmed directly, tracing a real complaint — if there's
+  // genuinely no data yet today (before an opening dip), but yesterday's
+  // closing figures are available as a fallback, those are real, known
+  // numbers worth showing — not the "three columns of zeros" this
+  // exception was originally written to avoid.
+  const showSplit = loading || opening || !noData || Boolean(stock)
 
   return (
     <section
@@ -364,6 +369,23 @@ export default function DayHero({ status, data }) {
                   sub={pumpCount ? "Opening readings in" : "None yet"}
                 />
               </div>
+            </>
+          ) : noData && stock ? (
+            <>
+              {/* Confirmed directly, tracing a real complaint: overnight,
+                  before today's opening dip is taken, what's actually in
+                  the tank is knowable — it's simply yesterday's closing
+                  reading, since nothing physically changes in between.
+                  Clearly labeled "As of yesterday's closing" rather than
+                  "From opening dip", so this carried-forward figure is
+                  never mistaken for a fresh reading. */}
+              <Split label="PMS in tanks" tint="var(--brand-accent)" value={litres(stock.pms)} sub="As of yesterday's closing" />
+              <Split label="AGO in tanks" tint="#7C3AED" value={litres(stock.ago)} sub="As of yesterday's closing" />
+              {stock.lpg > 0 && (
+                <div className="hidden flex-1 sm:block">
+                  <Split label="LPG in tanks" tint="#F0B429" value={`${litresValue(stock.lpg, { maximumFractionDigits: 0 })}KG`} sub="As of yesterday's closing" />
+                </div>
+              )}
             </>
           ) : (
             <>
