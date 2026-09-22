@@ -27,33 +27,9 @@ export function useOcrReading() {
   const getWorker = useCallback(async () => {
     if (workerRef.current) return workerRef.current
     const { createWorker } = await import("tesseract.js")
-    /* Confirmed directly, tracing a real "works nowhere on iOS, not even
-       alert()" report through to a documented, known cause: Tesseract's
-       worker normally loads from the CDN, a different origin than the
-       app itself, and falls back to a blob: URL to make that work.
-       WKWebView — what an installed iOS home-screen app runs inside,
-       even though it looks like Safari — can silently block that
-       cross-origin/blob worker from ever starting. Not an error, just
-       nothing, which matches exactly what was seen. The worker script
-       (small, tens of KB) is now self-hosted at /tesseract/worker.min.js
-       instead, with workerBlobURL disabled so it's forced to load
-       same-origin, which WKWebView doesn't block. The much larger core
-       engine and language data still load from the CDN as before — only
-       the worker bootstrap file itself needed to move. */
-    const worker = await createWorker("eng", undefined, {
-      workerPath: "/tesseract/worker.min.js",
-      workerBlobURL: false,
-    })
+    const worker = await createWorker("eng")
     await worker.setParameters({
       tessedit_char_whitelist: "0123456789.",
-      /* Confirmed directly, tracing a real "resolves with null despite a
-         clean, close, well-lit photo" report: Tesseract's default mode
-         assumes a full page of mixed text and layout — the wrong
-         assumption for a single, isolated number reading. PSM 7 tells it
-         to treat the whole image as one line of text instead, which is
-         the standard, documented setting for exactly this kind of task
-         (meter readings, plates, codes). */
-      tessedit_pageseg_mode: "7",
     })
     workerRef.current = worker
     return worker
@@ -76,18 +52,8 @@ export function useOcrReading() {
       // can still slip into the raw text.
       const cleaned = raw.replace(/[^\d.]/g, "")
       setConfidence(Math.round(data.confidence || 0))
-      if (!cleaned || Number.isNaN(Number(cleaned))) {
-        /* Confirmed directly, tracing a real "resolved with null" report:
-           this used to discard the raw text entirely on a failed read,
-           leaving no way to tell "Tesseract saw nothing at all" apart
-           from "Tesseract saw something, but it didn't clean up into a
-           valid number" — two very different situations that call for
-           different next steps. Surfaced here instead of thrown away. */
-        setLastError(raw ? `Detected "${raw}" — not a valid number` : "No text detected in the photo")
-        setStatus("error")
-        return null
-      }
       setStatus("done")
+      if (!cleaned || Number.isNaN(Number(cleaned))) return null
       return cleaned
     } catch (e) {
       /* Confirmed directly, tracing a real "detects nothing at all" report:

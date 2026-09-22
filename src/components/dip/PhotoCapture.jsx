@@ -13,20 +13,17 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
     const reader = new FileReader()
     reader.onload = ev => {
       const dataUri = ev.target.result
-      /* Runs right here, the moment the captured photo is available — not
-         after the save/upload starts. Confirmed directly: OCR should fire
-         immediately on capture, not once the photo is already on its way
-         to being saved. Reading the number and saving the photo are two
-         independent things happening on the same picture, so neither
-         needs to wait for the other — but OCR goes first here so its
-         status is the first thing the supervisor sees, not buried behind
-         an upload that's already under way. */
+      onCapture(dataUri, file.type)
+      /* Runs right here, in the same motion as the capture itself — not a
+         separate step, and not continuous video scanning. Confirmed
+         directly as the right shape: fast enough to feel immediate,
+         without the lag and lower reliability a live-video approach would
+         add on top of an already-hard case (digit segments on an LCD). */
       if (onNumberDetected) {
         readNumber(dataUri).then(num => {
           if (num) onNumberDetected(num)
         })
       }
-      onCapture(dataUri, file.type)
     }
     reader.readAsDataURL(file)
   }
