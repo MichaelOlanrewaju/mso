@@ -51,6 +51,8 @@ const OrdersPage             = lazy(() => import("./pages/OrdersPage"))
 const VariancePage           = lazy(() => import("./pages/VariancePage"))
 const PnLPage                = lazy(() => import("./pages/PnLPage"))
 const StockPLPage            = lazy(() => import("./pages/StockPLPage"))
+const StockBatchesPage       = lazy(() => import("./pages/StockBatchesPage"))
+const NotesPage              = lazy(() => import("./pages/NotesPage"))
 const NotFoundPage           = lazy(() => import("./pages/NotFoundPage"))
 
 function RouteLoading() {
@@ -122,6 +124,7 @@ export default function App() {
           <Route path="/variance/:station" element={<StationGuard><VariancePage /></StationGuard>} />
           <Route path="/pnl/:station" element={<StationGuard><PnLPage /></StationGuard>} />
           <Route path="/stock-pl/:station" element={<StationGuard><StockPLPage /></StationGuard>} />
+          <Route path="/stock-pl/:station/batches" element={<StationGuard><StockBatchesPage /></StationGuard>} />
           <Route path="/payroll/:station" element={<StationGuard><PayrollPage /></StationGuard>} />
           <Route path="/add-staff/:station" element={<StationGuard><AddStaffPage /></StationGuard>} />
           <Route path="/attendants/:station" element={<StationGuard><AttendantsPage /></StationGuard>} />
@@ -132,6 +135,9 @@ export default function App() {
           <Route path="/excess/:station" element={<StationGuard><ExcessPage /></StationGuard>} />
           <Route path="/attendance/:station" element={<StationGuard><AttendancePage /></StationGuard>} />
           <Route path="/chat/:station" element={<StationGuard><ChatPage /></StationGuard>} />
+          {/* Private notes (CEO/GM) — not tied to a station, so no station guard; the page itself checks the role. */}
+          <Route path="/notes" element={<NotesPage />} />
+          <Route path="/notes/:noteId" element={<NotesPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/station-assignments" element={<StationAssignmentPage />} />
           <Route path="/correct-prices" element={<PriceCorrectionPage />} />

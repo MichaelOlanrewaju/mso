@@ -9,8 +9,10 @@ import react from "@vitejs/plugin-react"
    returning users onto the fresh JS bundle instead of a stale cached one
    — the root cause of "I deployed the fix but the app still runs old code
    (phantom session-expired)". No manual version bump ever needed again. */
+const BUILD_ID = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8)
+
 function swVersionPlugin() {
-  const buildId = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8)
+  const buildId = BUILD_ID
   return {
     name: "mso-sw-version",
     apply: "build",
@@ -38,6 +40,8 @@ function swVersionPlugin() {
 
 export default defineConfig({
   plugins: [react(), swVersionPlugin()],
+  // Same id as the service-worker cache name, shown in the app as "Version …".
+  define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
   server: { port: 5173 },
   esbuild: {
     drop: ["console", "debugger"],

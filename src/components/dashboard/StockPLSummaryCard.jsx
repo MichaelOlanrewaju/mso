@@ -8,13 +8,13 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 
 function toISO(d) { return d.toISOString().split("T")[0] }
 
-/* Read-only preview of today's Stock P&L — deliberately uses the
-   same read-only getStockPL action the page itself uses on load, so
-   this card can never accidentally trigger the FIFO computation
-   (that only ever happens from an explicit "Compute" tap on the
-   Stock P&L page itself). If today hasn't been computed yet, this
-   just says so and invites a tap through, rather than showing a
-   stale or fabricated number. */
+/* Read-only preview of today's Tank and Pump Analysis — deliberately
+   uses the same read-only getStockPL action the page itself uses on
+   load, so this card can never accidentally trigger the FIFO
+   computation (that only ever happens from an explicit "Compute" tap
+   on the page itself). If today hasn't been computed yet, this just
+   says so and invites a tap through, rather than showing a stale or
+   fabricated number. */
 export default function StockPLSummaryCard({ auth }) {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
@@ -47,7 +47,7 @@ export default function StockPLSummaryCard({ auth }) {
       <div className="flex items-center justify-between p-4">
         <div>
           <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.8px] text-ink-4">
-            <i className="bi bi-layers-fill" /> Stock P&amp;L — Today
+            <i className="bi bi-layers-fill" /> Tank and Pump Analysis — Today
           </div>
           <div className={`mono mt-1 text-[24px] font-black tracking-tight ${computed && overall < 0 ? "text-red" : "text-ink"}`}>
             {loading ? "…" : computed ? naira(overall) : "Not computed yet"}

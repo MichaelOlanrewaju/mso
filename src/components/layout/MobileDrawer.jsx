@@ -2,6 +2,7 @@ import React from "react"
 import { activeStation } from "../../utils/station"
 import { getStation } from "../../config/stations"
 import { useNavigate } from "react-router-dom"
+import { BUILD_ID } from "../../utils/buildInfo"
 
 // NOTE: MobileDrawer is only ever rendered for owner/gm (supervisor and
 // cashier have their own dedicated mobile dashboard UIs) — so nothing here
@@ -14,13 +15,13 @@ const buildLinks = () => [
   { href: `/orders/${activeStation()}`,   icon: "bi-box-arrow-in-down",      color: "var(--brand-accent)", text: "Orders" },
   { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",         color: "#0891B2", text: "Variance" },
   { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",    color: "#06091A", text: "P&L" },
-  { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",            color: "#059669", text: "Stock P&L" },
+  { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",            color: "#059669", text: "Tank and Pump Analysis" },
   { href: `/summary/${activeStation()}`,  icon: "bi-printer",                color: "#06091A", text: "Summary" },
   { href: `/records/${activeStation()}`,  icon: "bi-journal-text",           color: "#06091A", text: "Records" },
   { href: `/activity/${activeStation()}`, icon: "bi-journal-check",          color: "#06091A", text: "Activity Log" },
   { href: `/payroll/${activeStation()}`,  icon: "bi-wallet2",                color: "var(--brand-primary)", text: "Payroll" },
   { href: `/add-staff/${activeStation()}`,icon: "bi-person-plus",            color: "var(--brand-primary)", text: "Add Staff" },
-  { href: `/chat/${activeStation()}`,     icon: "bi-chat-dots",              color: "#7C3AED", text: "Staff Chat" },
+  { href: "/notes",                       icon: "bi-journal-text",           color: "#D99A00", text: "Notes" },
   { href: "/profile",      icon: "bi-person-circle",          color: "#64748B", text: "My Profile" },
 ]
 
@@ -69,6 +70,7 @@ export default function MobileDrawer({ open, onClose, onLogout }) {
             className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-red/20 bg-red-light py-3 text-[13px] font-bold text-red">
             <i className="bi bi-box-arrow-right" /> Sign Out
           </button>
+          <div className="mt-2.5 text-center text-[10px] text-ink-4">Version {BUILD_ID}</div>
         </div>
       </div>
     </>

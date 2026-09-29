@@ -476,7 +476,6 @@ function SalesInner() {
                   sub={photoUploadEnabled ? "Optional evidence photo" : "Camera only — gallery attach is switched off"}
                   progress={uploadProgress[stepKey]}
                   cameraOnly={!photoUploadEnabled}
-                  onNumberDetected={num => updateReading(step.pump.id, mode === "open" ? "open" : "close", num)}
                 />
               )}
             </div>

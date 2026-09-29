@@ -11,10 +11,25 @@ const BRAND_POINTS = [
   { icon: "bi-shield-check", title: "Role-based access", sub: "Owner, GM, Supervisor and Cashier views" },
 ]
 
+/* Confirmed directly: a live clock, not just static marketing copy —
+   this is what makes the brand panel feel like it belongs to a real,
+   currently-running operations system rather than a fixed poster.
+   Updates once a minute — second-level precision would add nothing
+   useful here and only cost extra renders. */
+function useLiveClock() {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000)
+    return () => clearInterval(id)
+  }, [])
+  return now
+}
+
 export default function LoginPage() {
   usePageTitle("Sign In — MSO Digital")
   const auth = useAuth({ requireAuth: false })
   const navigate = useNavigate()
+  const now = useLiveClock()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPass, setShowPass] = useState(false)
@@ -76,16 +91,26 @@ export default function LoginPage() {
         <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 50% at 20% 85%, rgba(23,157,208,.14) 0%, transparent 65%)" }} />
 
         <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-14">
-          {/* Logo */}
-          <button type="button" onClick={() => navigate("/")} className="flex w-fit items-center gap-3" style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <img src="/images/msolimpid-v2.png" alt="MSO Limpid"
-              style={{ height: 40, width: "auto", display: "block" }}
-              onError={e => { e.target.style.display="none" }} />
-            <div className="text-left">
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "-.025em", lineHeight: 1.15 }}>Digital</div>
-              <div style={{ fontSize: 9.5, color: "rgba(255,255,255,.32)", letterSpacing: ".6px", textTransform: "uppercase", fontWeight: 600, marginTop: 2 }}>Operations Portal</div>
+          {/* Logo + live clock */}
+          <div className="flex items-start justify-between">
+            <button type="button" onClick={() => navigate("/")} className="flex w-fit items-center gap-3" style={{ background: "none", border: "none", cursor: "pointer" }}>
+              <img src="/images/msolimpid-v2.png" alt="MSO Limpid"
+                style={{ height: 40, width: "auto", display: "block" }}
+                onError={e => { e.target.style.display="none" }} />
+              <div className="text-left">
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "-.025em", lineHeight: 1.15 }}>Digital</div>
+                <div style={{ fontSize: 9.5, color: "rgba(255,255,255,.32)", letterSpacing: ".6px", textTransform: "uppercase", fontWeight: 600, marginTop: 2 }}>Operations Portal</div>
+              </div>
+            </button>
+            <div className="text-right">
+              <div className="mono" style={{ fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: "-.02em", lineHeight: 1 }}>
+                {now.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.38)", fontWeight: 600, marginTop: 3 }}>
+                {now.toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}
+              </div>
             </div>
-          </button>
+          </div>
 
           {/* Value points */}
           <div>

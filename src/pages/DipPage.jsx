@@ -426,7 +426,6 @@ function DipInner() {
                   sub={photoUploadEnabled ? "Optional evidence photo" : "Camera only — gallery attach is switched off"}
                   progress={uploadProgress[stepKey]}
                   cameraOnly={!photoUploadEnabled}
-                  onNumberDetected={num => updateTank(step.cfg.id, mode === "open" ? "open" : "close", num)}
                 />
               )}
             </div>

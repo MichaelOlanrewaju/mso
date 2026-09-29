@@ -1,3 +1,4 @@
+import { clearNotesCache } from "../utils/notesCache"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { activeStation, hasChosenStation, setActiveStation, clearActiveStation } from "../utils/station"
@@ -261,6 +262,7 @@ export function useAuth({ requireAuth = false, stationFilter = null } = {}) {
         fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "logout", token }) }).catch(() => {})
       }
     } catch { /* never block logout */ }
+    clearNotesCache()
     clearSession()
     setUser(null)
     navigate("/", { replace: true })

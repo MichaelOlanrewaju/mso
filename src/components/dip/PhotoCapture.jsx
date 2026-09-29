@@ -1,30 +1,15 @@
 import React, { useRef, useState } from "react"
 import { useDriveImage } from "../../hooks/useDriveImage"
-import { useOcrReading } from "../../hooks/useOcrReading"
 
-export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress, onNumberDetected }) {
+export default function PhotoCapture({ photo, onCapture, label = "Add dip photo", sub = "Optional evidence photo", progress }) {
   const inputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const { readNumber, status: ocrStatus, lastError: ocrError } = useOcrReading()
 
   const handleChange = e => {
     const file = e.target.files && e.target.files[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = ev => {
-      const dataUri = ev.target.result
-      onCapture(dataUri, file.type)
-      /* Runs right here, in the same motion as the capture itself — not a
-         separate step, and not continuous video scanning. Confirmed
-         directly as the right shape: fast enough to feel immediate,
-         without the lag and lower reliability a live-video approach would
-         add on top of an already-hard case (digit segments on an LCD). */
-      if (onNumberDetected) {
-        readNumber(dataUri).then(num => {
-          if (num) onNumberDetected(num)
-        })
-      }
-    }
+    reader.onload = ev => onCapture(ev.target.result, file.type)
     reader.readAsDataURL(file)
   }
 
@@ -113,11 +98,11 @@ export default function PhotoCapture({ photo, onCapture, label = "Add dip photo"
           onClick={() => inputRef.current && inputRef.current.click()}
           className="relative flex-1 text-left"
         >
-          <div className={`text-[12.5px] font-bold ${done ? "text-green" : ocrStatus === "error" ? "text-red" : "text-ink-2"}`}>
-            {ocrStatus === "reading" ? "Reading number…" : ocrStatus === "error" ? "Couldn't read a number" : uploading ? `Uploading… ${progress}%` : done ? "Photo saved" : label}
+          <div className={`text-[12.5px] font-bold ${done ? "text-green" : "text-ink-2"}`}>
+            {uploading ? `Uploading… ${progress}%` : done ? "Photo saved" : label}
           </div>
           <div className="text-[10.5px] font-medium text-ink-4">
-            {ocrStatus === "reading" ? "Checking the photo for a reading" : ocrStatus === "error" ? (ocrError || "Enter the reading manually") : uploading ? "Compressed and sending" : done ? "Tap thumbnail to view · tap here to retake" : sub}
+            {uploading ? "Compressed and sending" : done ? "Tap thumbnail to view · tap here to retake" : sub}
           </div>
         </button>
 

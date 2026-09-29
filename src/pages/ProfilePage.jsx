@@ -1,3 +1,4 @@
+import { BUILD_ID } from "../utils/buildInfo"
 import React, { useEffect, useRef, useState } from "react"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
@@ -425,6 +426,7 @@ export default function ProfilePage() {
           </>
         )}
       </div>
+      <div className="pb-6 text-center text-[10.5px] text-ink-4">Version {BUILD_ID}</div>
     </div>
   )
 }

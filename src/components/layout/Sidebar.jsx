@@ -22,7 +22,7 @@ const buildSections = () => [
       { href: `/records/${activeStation()}`,  icon: "bi-journal-text",         text: "Records" },
       { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",       text: "Stock Variance" },
       { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",  text: "P&L Report" },
-      { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",          text: "Stock P&L" },
+      { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",          text: "Tank and Pump Analysis" },
       { href: `/price/${activeStation()}`,    icon: "bi-tag",                  text: "Pump Prices" },
       { href: `/lubricant/${activeStation()}`, icon: "bi-droplet-fill",        text: "Oil" },
       { href: `/activity/${activeStation()}`, icon: "bi-journal-check",        text: "Activity Log" },
@@ -45,7 +45,14 @@ const buildSections = () => [
     ],
   },
   {
+    label: "Notes",
+    links: [{ href: "/notes", icon: "bi-journal-text", text: "My Notes" }],
+  },
+  {
+    /* Staff Chat is desktop-only for the CEO and GM now — on a phone, Notes
+       takes its place (confirmed directly). */
     label: "Communication",
+    desktopOnly: true,
     links: [{ href: `/chat/${activeStation()}`, icon: "bi-chat-dots",          text: "Staff Chat" }],
   },
   {
@@ -118,7 +125,7 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
           if (section.ownerOrGm && !ownerOrGm) return null
           if (section.pickOnly && !canPickStation) return null
           return (
-            <div key={section.label} className="mb-4">
+            <div key={section.label} className={`mb-4 ${section.desktopOnly ? "hidden lg:block" : ""}`}>
               <div className="mb-1 px-3 text-[9.5px] font-bold uppercase tracking-[1px] text-ink-4">
                 {section.label}
               </div>

@@ -39,9 +39,12 @@ export default function BottomNav({ homePath }) {
           <i className="bi bi-wallet2" />
           <span>Payroll</span>
         </NavLink>
-        <NavLink to={`/chat/${activeStation()}`} className={itemClass}>
-          <i className="bi bi-chat-dots-fill" />
-          <span>Chat</span>
+        {/* Notes replaced Chat here — confirmed directly. Staff Chat is still
+            reachable on desktop. Notes is not station-specific, so no station
+            in the path. */}
+        <NavLink to="/notes" className={itemClass}>
+          <i className="bi bi-journal-text" />
+          <span>Notes</span>
         </NavLink>
       </div>
     </nav>
