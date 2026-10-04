@@ -40,6 +40,12 @@ function swVersionPlugin() {
 
 export default defineConfig({
   plugins: [react(), swVersionPlugin()],
+  resolve: {
+    // Prevent duplicate React instances from ever being resolved into separate
+    // module copies. A duplicate React dispatcher makes hooks such as useState
+    // fail at runtime with "Cannot read properties of null (reading useState)".
+    dedupe: ["react", "react-dom"],
+  },
   // Same id as the service-worker cache name, shown in the app as "Version …".
   define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
   server: { port: 5173 },

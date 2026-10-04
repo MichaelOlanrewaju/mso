@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import ProofPhotoViewer from "../components/cashup/ProofPhotoViewer"
 import Sidebar from "../components/layout/Sidebar"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
@@ -353,7 +354,7 @@ function RecordsInner() {
   const reconciliationVariance = actualCollected - expectedRevenue
 
   return (
-    <div className="flex min-h-screen">
+    <div className="mso-ops-page flex min-h-screen">
       <SafeAreaDebug />
 
       <Sidebar
@@ -379,6 +380,7 @@ function RecordsInner() {
 
         <div className="flex-1 p-3.5 pb-[100px] md:p-[22px] md:pb-[22px]">
           <div className="mx-auto max-w-[900px]">
+            <OpsContextStrip area="Records & Audit" />
             <div className="mb-5 flex items-center gap-3 rounded-card border border-cyan/15 bg-white px-3.5 py-3 shadow-card">
               <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]" style={{ background: "var(--brand-gradient-btn)" }}>
                 <i className="bi bi-calendar3 text-white" />

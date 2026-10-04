@@ -295,7 +295,7 @@ export default function StockBatchesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface pb-24">
+    <div className="mso-ops-page min-h-screen bg-surface pb-24">
       <SafeAreaDebug />
       <div className="sticky top-0 z-10 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] shadow-sm">
         <div className="flex items-center justify-between">

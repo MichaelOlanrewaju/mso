@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react"
-import { litres } from "../utils/format"
+import { litres, litresValue } from "../utils/format"
+import { tanksFor } from "../config/stations"
 import { setActiveStation } from "../utils/station"
 import { useAuth } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
+import { roleLabel } from "../utils/format"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 
@@ -58,7 +60,11 @@ const CARD_THEME = {
   },
 }
 
-function StationCard({ station, name, addr, badgeLabel, pumpsLine, fuelLine, stats, onSelect, comingSoon }) {
+/* Whether a station has an LPG tank comes from its own config, so the LPG tile appears
+   exactly where LPG is actually sold rather than being hard-coded per station. */
+const stationHasLpg = key => tanksFor(key).some(t => t.product === "LPG")
+
+function StationCard({ station, name, addr, badgeLabel, pumpsLine, fuelLine, stats, hasLpg, onSelect, comingSoon }) {
   const t = CARD_THEME[station] || CARD_THEME.mso
 
   const Stat = ({ value, label }) => (
@@ -72,13 +78,13 @@ function StationCard({ station, name, addr, badgeLabel, pumpsLine, fuelLine, sta
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative overflow-hidden rounded-[20px] border p-[26px] text-left transition-all duration-200 hover:-translate-y-1 ${comingSoon ? "opacity-80" : ""}`}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-[22px] border p-5 text-left transition-all duration-200 hover:-translate-y-1 sm:p-[26px] ${comingSoon ? "opacity-80" : ""}`}
       style={{ background: t.surface, borderColor: t.border }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = t.borderHover)}
       onMouseLeave={e => (e.currentTarget.style.borderColor = t.border)}
     >
       <div
-        className="absolute right-6 top-6 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 group-hover:translate-x-[3px]"
+        className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 group-hover:translate-x-[3px] sm:right-6 sm:top-6"
         style={{ background: t.accentSoft, color: t.accent }}
       >
         <i className={`bi ${comingSoon ? "bi-hourglass-split" : "bi-arrow-right"} text-[13px]`} />
@@ -94,27 +100,46 @@ function StationCard({ station, name, addr, badgeLabel, pumpsLine, fuelLine, sta
         {badgeLabel}
       </div>
 
-      <div className="mb-1.5 text-[19px] font-black tracking-[-0.03em]" style={{ color: t.name }}>{name}</div>
-      <div className="mb-5 text-[12.5px] text-white/45">{addr}</div>
+      <div className="mb-1.5 pr-10 text-[19px] font-black tracking-[-0.03em]" style={{ color: t.name }}>{name}</div>
+      <div className="mb-5 text-[12px] text-white/45">{addr}</div>
 
       {comingSoon ? (
-        <div className="rounded-[10px] px-[13px] py-[16px] text-center text-[12.5px] font-semibold text-white/50" style={{ background: t.tile }}>
-          Setup in progress — check back soon
+        <div className="flex flex-1 flex-col justify-between rounded-[12px] px-[13px] py-4" style={{ background: t.tile }}>
+          <div>
+            <div className="text-[11px] font-extrabold uppercase tracking-[0.6px]" style={{ color: t.accent }}>Workspace preparing</div>
+            <div className="mt-1.5 text-[12px] leading-relaxed text-white/45">Station setup is still in progress. The workspace will appear here when it is ready.</div>
+          </div>
+          <div className="mt-5 flex items-center justify-between text-[10.5px] font-bold text-white/35"><span>Coming soon</span><i className="bi bi-arrow-up-right" /></div>
         </div>
       ) : (
         <>
-          <div className="mb-2.5 rounded-[10px] px-[15px] py-[13px]" style={{ background: t.tile }}>
-            <div className="font-mono text-[21px] font-extrabold leading-tight tracking-[-0.02em]" style={{ color: t.accent }}>
+          <div className="mb-2.5 rounded-[12px] px-[15px] py-[13px]" style={{ background: t.tile }}>
+            <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-white/35">Latest available snapshot</div>
+            <div className="mt-1 font-mono text-[21px] font-extrabold leading-tight tracking-[-0.02em]" style={{ color: t.accent }}>
               {stats.revenue}
             </div>
-            <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-white/45">Yesterday's Revenue</div>
+            <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-white/45">Yesterday's revenue</div>
           </div>
-          <div className="mb-2.5 grid grid-cols-2 gap-2.5">
-            <Stat value={stats.litres} label="Litres Sold" />
-            <Stat value={pumpsLine} label="PMS Pumps" />
-          </div>
-          <div className="text-[11.5px] font-medium" style={{ color: t.accent }}>
-            {fuelLine}
+          {stats.split ? (
+            /* Each product on its own. LPG is sold by weight, so it is shown in kg and is
+               never added into a litres total. */
+            <div className="mb-4 grid grid-cols-2 gap-2.5">
+              <Stat value={stats.pms} label="PMS litres sold" />
+              <Stat value={stats.ago} label="AGO litres sold" />
+              {hasLpg && <Stat value={stats.lpg} label="LPG kg sold" />}
+              <div className={hasLpg ? "" : "col-span-2"}><Stat value={pumpsLine} label="Pump layout" /></div>
+            </div>
+          ) : (
+            /* Fallback for a backend that hasn't been updated to send the split yet:
+               the combined figure, exactly as before. */
+            <div className="mb-4 grid grid-cols-2 gap-2.5">
+              <Stat value={stats.litres} label="Litres sold" />
+              <Stat value={pumpsLine} label="Pump layout" />
+            </div>
+          )}
+          <div className="mt-auto flex items-center justify-between border-t border-white/10 pt-3.5">
+            <div className="text-[10.5px] font-semibold" style={{ color: t.accent }}><i className="bi bi-fuel-pump mr-1.5" />{fuelLine}</div>
+            <div className="text-[10.5px] font-extrabold text-white/55 transition-colors group-hover:text-white">Open station <i className="bi bi-arrow-right ml-1" /></div>
           </div>
         </>
       )}
@@ -170,14 +195,18 @@ export default function SelectStationPage() {
     window.location.href = `/dashboard/${station}`
   }
 
-  const msoStats = {
-    revenue: stats.mso ? `₦${Number(stats.mso.revenue).toLocaleString("en-NG")}` : "—",
-    litres: stats.mso ? `${litres(stats.mso.litres)}` : "—",
-  }
-  const mrsStats = {
-    revenue: stats.mrs ? `₦${Number(stats.mrs.revenue).toLocaleString("en-NG")}` : "—",
-    litres: stats.mrs ? `${litres(stats.mrs.litres)}` : "—",
-  }
+  /* `split` is true while loading (dashes, so the layout doesn't jump when numbers arrive)
+     and whenever the backend sends the per-product figures. */
+  const buildStats = s => ({
+    revenue: s ? `₦${Number(s.revenue).toLocaleString("en-NG")}` : "—",
+    litres: s ? `${litres(s.litres)}` : "—",
+    split: s ? s.pmsLitres !== undefined : true,
+    pms: s && s.pmsLitres !== undefined ? litres(s.pmsLitres) : "—",
+    ago: s && s.agoLitres !== undefined ? litres(s.agoLitres) : "—",
+    lpg: s && s.lpgKg !== undefined ? `${litresValue(s.lpgKg)} kg` : "—",
+  })
+  const msoStats = buildStats(stats.mso)
+  const mrsStats = buildStats(stats.mrs)
 
   return (
     <div className="relative flex min-h-screen items-start overflow-x-hidden bg-[#0A0E1A] py-10 text-white sm:items-center sm:py-0">
@@ -209,17 +238,27 @@ export default function SelectStationPage() {
           </div>
         </div>
 
-        <div className="mb-2.5 font-mono text-[12.5px] font-semibold uppercase tracking-[0.6px] text-white/35">
-          Welcome back, {(auth.name || auth.username || "").split(" ")[0]}
+        <div className="mb-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.8px] text-white/30">
+          Welcome back, {(auth.name || auth.username || "").split(" ")[0]} · {roleLabel(auth.role)}
         </div>
-        <h1 className="mb-2.5 text-[clamp(1.8rem,4vw,2.7rem)] font-black leading-[1.05] tracking-[-0.04em] text-white">
-          Select a Station
+        <h1 className="mb-2 text-[clamp(1.9rem,4vw,2.8rem)] font-black leading-[1.03] tracking-[-0.045em] text-white">
+          Choose your workspace
         </h1>
-        <p className="mb-2.5 text-[14.5px] text-white/40">Choose which station you want to manage today</p>
-        <div className="mb-10 font-mono text-[11.5px] tracking-[0.3px] text-white/20">{clockLine}</div>
+        <p className="mx-auto mb-3 max-w-[520px] text-[14px] leading-relaxed text-white/40">Select a station to open its live operations dashboard, records, cash-up and daily controls.</p>
+        <div className="mx-auto mb-8 flex w-fit items-center gap-2 rounded-full border border-cyan/20 bg-cyan/5 px-3 py-1.5 text-[10px] font-bold text-white/45">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green" /> Live station data · {clockLine}
+        </div>
 
-        {/* Order: Mobil, M&M, MSO last — confirmed directly */}
-        <div className="mb-9 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-3 flex items-center justify-between px-1 text-left">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase tracking-[1px] text-white/30">Your stations</div>
+            <div className="mt-0.5 text-[12px] font-semibold text-white/55">Choose where you want to work</div>
+          </div>
+          <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.7px] text-white/30">2 live · 1 preparing</div>
+        </div>
+
+        {/* Live stations first; the preparing workspace stays visible without competing with active stations. */}
+        <div className="mb-9 grid grid-cols-1 gap-[18px] sm:grid-cols-2">
           <StationCard
             station="mso"
             name="Mobil Idowu Egba"
@@ -228,6 +267,7 @@ export default function SelectStationPage() {
             pumpsLine="P1–P6"
             fuelLine="TK4 + LPG"
             stats={msoStats}
+            hasLpg={stationHasLpg("mso")}
             onSelect={() => selectStation("mso")}
           />
           <StationCard
@@ -238,8 +278,10 @@ export default function SelectStationPage() {
             pumpsLine="P1–P4"
             fuelLine="TK4 + LPG"
             stats={mrsStats}
+            hasLpg={stationHasLpg("mrs")}
             onSelect={() => selectStation("mrs")}
           />
+          <div className="sm:col-span-2">
           <StationCard
             station="msoo"
             name="MSO Limpid Co. Ltd"
@@ -251,6 +293,7 @@ export default function SelectStationPage() {
               setTimeout(() => setComingSoonNotice(false), 3000)
             }}
           />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:justify-between">

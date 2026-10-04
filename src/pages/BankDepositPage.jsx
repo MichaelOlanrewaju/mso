@@ -151,7 +151,7 @@ export default function BankDepositPage() {
   if (!canView) return null
 
   return (
-    <div className="flex min-h-screen bg-pagebg">
+    <div className="mso-ops-page flex min-h-screen bg-pagebg">
       <Sidebar
         isOwner={false} isGM={auth.role === "gm"}
         name={auth.name || auth.username} role={roleLabel(auth.role)}

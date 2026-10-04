@@ -3,6 +3,7 @@ import { litres } from "../utils/format"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import DateRow from "../components/dip/DateRow"
 import StatusStrip from "../components/dip/StatusStrip"
 import ModeToggle from "../components/dip/ModeToggle"
@@ -13,6 +14,7 @@ import PumpStepsDrawer from "../components/sales/PumpStepsDrawer"
 import PhotoCapture from "../components/dip/PhotoCapture"
 import PriceCutoverModal from "../components/sales/PriceCutoverModal"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
+import { WorkflowActionBar } from "../components/ui/system/DataTable"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePrices } from "../hooks/usePrices"
 import { usePriceCutover } from "../hooks/usePriceCutover"
@@ -315,7 +317,7 @@ function SalesInner() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #F5F3FF 0%, #F1F5FB 220px)" }}>
+    <div className="mso-ops-page min-h-screen" style={{ background: "linear-gradient(180deg, #F5F3FF 0%, #F1F5FB 220px)" }}>
       <PriceCutoverModal
         open={cutoverProduct === "PMS" || cutoverProduct === "AGO"}
         product={cutoverProduct}
@@ -353,6 +355,7 @@ function SalesInner() {
       </div>
 
       <div className="px-4 py-4 pb-[100px]">
+        <div className="mx-auto max-w-[640px]"><OpsContextStrip area="Fuel Sales" step={`Pump ${current + 1} / ${STEPS.length}`} /></div>
         <div className="mx-auto max-w-[640px]">
           <DateRow date={date} onChange={handleDateChange} supName={auth.name || auth.username} />
 
@@ -496,7 +499,10 @@ function SalesInner() {
         </div>
       </div>
 
-      <WizardNav onBack={goPrev} onNext={goNext} isLast={isLast} saving={submitting || savingStep} />
+      <WorkflowActionBar
+        status={`${mode === "open" ? "Opening" : "Closing"} · Pump ${current + 1} of ${STEPS.length}`}
+        primary={<WizardNav onBack={goPrev} onNext={goNext} isLast={isLast} saving={submitting || savingStep} />}
+      />
 
       <PumpStepsDrawer
         open={drawerOpen}

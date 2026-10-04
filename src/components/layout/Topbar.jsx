@@ -6,12 +6,9 @@ import { useClock } from "../../hooks/useClock"
 
 export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefresh, title = "Dashboard" }) {
   const { time, date } = useClock()
-
   const navigate = useNavigate()
-  const stationName = getStation(activeStation()).name
+  const station = getStation(activeStation())
 
-  /* Only people with access to more than one station see a switcher. A
-     supervisor tied to MSO has nothing to switch to. */
   let canSwitchStation = false
   try {
     const raw = localStorage.getItem("mso_session")
@@ -21,101 +18,85 @@ export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefres
       const role = String(u.role || "").toLowerCase()
       canSwitchStation = st === "both" || role === "owner" || role === "ceo"
     }
-  } catch { /* no session — no switcher */ }
+  } catch {}
 
   return (
-    <header
-      className="sticky top-0 z-[900] flex flex-shrink-0 items-center justify-between gap-2.5 border-b border-border bg-white px-[14px] pb-2.5 pt-[max(var(--sat),52px)] shadow-[0_1px_4px_rgba(0,0,0,.04)] md:px-[22px] md:pt-[max(var(--sat),14px)]"
-      style={{ minHeight: "calc(60px + max(var(--sat), 52px))" }}
-    >
-      <div
-        className={`pulse-line absolute bottom-0 left-0 right-0 h-[2px] transition-opacity duration-500 ${
-          loading ? "opacity-100" : "opacity-0"
-        }`}
-      />
+    <header className="sticky top-0 z-[900] border-b border-border bg-white/95 px-3 pb-3 pt-[max(var(--sat),10px)] backdrop-blur-xl md:px-6 md:py-3">
+      <div className="mx-auto flex min-h-[46px] max-w-[1480px] items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[11px] border border-border bg-surface text-ink-2 transition hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan-dark lg:hidden"
+          >
+            <i className={`bi ${sidebarOpen ? "bi-x-lg" : "bi-list"} text-[17px]`} />
+          </button>
 
-      <div className="flex min-w-0 flex-shrink items-center gap-3.5 overflow-hidden">
-        <button
-          type="button"
-          onClick={onToggleSidebar}
-          aria-label="Toggle menu"
-          className={`flex h-[38px] w-[38px] flex-shrink-0 appearance-none items-center justify-center rounded-[9px] border border-border bg-surface text-xl text-navy transition-all duration-150 lg:hidden
-            ${sidebarOpen ? "border-cyan/30 bg-cyan-light text-cyan-dark" : "hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan-dark"}`}
-        >
-          <i className={`bi ${sidebarOpen ? "bi-x-lg" : "bi-list"}`} />
-        </button>
-        <div className="min-w-0 overflow-hidden">
-          <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-extrabold tracking-[-0.03em] leading-tight text-navy md:text-[17px]">
-            {title}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-[15px] font-extrabold tracking-[-.025em] text-ink md:text-[17px]">{title}</h1>
+              <span className="hidden rounded-full bg-surface px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-[.12em] text-ink-4 sm:inline-flex">Operations</span>
+            </div>
+            <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[9.5px] font-semibold text-ink-4 md:text-[10px]">
+              <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green" />
+              {canSwitchStation ? (
+                <button
+                  type="button"
+                  onClick={() => navigate("/select")}
+                  className="truncate rounded-md px-1 font-bold text-brand transition hover:bg-brand-accent-light"
+                  aria-label={`Viewing ${station.name}. Tap to switch station.`}
+                >
+                  {station.name} <i className="bi bi-chevron-down ml-0.5 text-[8px]" />
+                </button>
+              ) : (
+                <span className="truncate font-bold text-brand">{station.name}</span>
+              )}
+              <span className="text-border">•</span>
+              <span className="hidden truncate sm:inline">{date}</span>
+            </div>
           </div>
-          {/* The station is named on every single screen, always. Brand colour
-              alone distinguishes MSO from M&M, but colour is not enough at 6am —
-              and the most dangerous mistake this app can make is someone
-              entering one station's readings while looking at the other's. */}
-          <div className="mt-px flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-              style={{ background: "var(--brand-accent)" }}
-            />
-            {/* Owners and anyone on `both` get a one-tap way back to the station
-                picker — no digging through a menu to move between MSO and M&M. */}
-            {canSwitchStation ? (
-              <button
-                type="button"
-                onClick={() => navigate("/select")}
-                title="Switch station"
-                aria-label={`Viewing ${stationName}. Tap to switch station.`}
-                className="flex items-center gap-1 truncate rounded-full px-1.5 py-px text-[9.5px] font-bold text-brand transition-colors hover:bg-surface active:scale-95 md:text-[10.5px]"
-              >
-                {stationName}
-                <i className="bi bi-chevron-expand text-[8px] opacity-60" />
-              </button>
-            ) : (
-              <span className="truncate text-[9.5px] font-bold text-brand md:text-[10.5px]">
-                {stationName}
-              </span>
-            )}
-            <span className="text-border">·</span>
-            <span className="truncate text-[9.5px] text-ink-4 md:text-[10.5px]">{date}</span>
+        </div>
+
+        <div className="flex flex-shrink-0 items-center gap-1.5 md:gap-2">
+          {loading && (
+            <div className="hidden items-center gap-1.5 rounded-full bg-cyan-light px-2.5 py-1.5 text-[10px] font-bold text-cyan-dark sm:flex">
+              <span className="h-2.5 w-2.5 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
+              Syncing
+            </div>
+          )}
+
+          <div className="hidden items-center gap-1.5 rounded-full border border-green/15 bg-green-light px-2.5 py-1.5 text-[10px] font-extrabold text-green sm:inline-flex">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green" />
+            LIVE
           </div>
+
+          <div className="mono hidden rounded-[9px] border border-border bg-surface px-2.5 py-1.5 text-[10px] font-semibold text-ink-2 lg:block">
+            {time}
+          </div>
+
+          <button
+            type="button"
+            onClick={onRefresh}
+            title="Refresh data"
+            aria-label="Refresh data"
+            className="flex h-10 w-10 items-center justify-center rounded-[11px] border border-border bg-white text-ink-3 transition hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan-dark"
+          >
+            <i className={`bi bi-arrow-clockwise text-[15px] ${loading ? "animate-spin-fast" : ""}`} />
+          </button>
+
+          <button
+            type="button"
+            title="Notifications"
+            aria-label="Notifications"
+            className="relative flex h-10 w-10 items-center justify-center rounded-[11px] border border-border bg-white text-ink-3 transition hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan-dark"
+          >
+            <i className="bi bi-bell text-[15px]" />
+            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red ring-2 ring-white" />
+          </button>
         </div>
       </div>
-
-      <div className="flex flex-shrink-0 items-center gap-1.5 md:gap-2">
-        {loading && (
-          <div className="hidden items-center gap-1.5 text-[11px] font-semibold text-cyan md:flex">
-            <div className="h-3.5 w-3.5 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
-            Fetching…
-          </div>
-        )}
-        <div className="hidden items-center gap-1 rounded-full border border-navy/10 bg-[#EEF0FB] px-3 py-[5px] text-[11px] font-bold text-navy md:inline-flex">
-          <i className="bi bi-geo-alt-fill text-[10px]" />
-          &nbsp;MSO
-        </div>
-        <div className="hidden items-center gap-1 rounded-full border border-[#BBF7D0] bg-green-light px-3 py-[5px] text-[11px] font-bold text-green md:inline-flex">
-          <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-green" />
-          &nbsp;LIVE
-        </div>
-        <div className="mono hidden rounded-lg border border-border bg-surface px-[11px] py-[5px] text-xs tracking-[0.02em] text-ink-2 lg:block">
-          {time}
-        </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          title="Refresh"
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-border bg-surface text-[15px] text-ink-3 transition-all duration-150 hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan md:h-[38px] md:w-[38px] md:text-base"
-        >
-          <i className={`bi bi-arrow-clockwise ${loading ? "animate-spin-fast" : ""}`} />
-        </button>
-        <button
-          type="button"
-          className="relative flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-border bg-surface text-[15px] text-ink-3 transition-all duration-150 hover:border-cyan/30 hover:bg-cyan-light hover:text-cyan md:h-[38px] md:w-[38px] md:text-base"
-        >
-          <i className="bi bi-bell" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-[1.5px] border-white bg-red" />
-        </button>
-      </div>
+      <div className={`pulse-line absolute bottom-0 left-0 right-0 h-px transition-opacity duration-500 ${loading ? "opacity-100" : "opacity-0"}`} />
     </header>
   )
 }

@@ -6,6 +6,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, litres } from "../utils/format"
 import { getToken } from "../utils/session"
+import { PageHeader, SectionHeader, StatCard, StatusBadge, DataToolbar, EmptyState } from "../components/ui/system/Ui"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -125,60 +126,26 @@ export default function PnLPage() {
     <div className="min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
 
-      {/* Dark header */}
-      <div style={{ background: "linear-gradient(135deg,#06091A,#0D1226)" }}>
-        <div className="mx-auto max-w-[640px] px-4 pb-5 pt-[max(var(--sat),52px)] lg:max-w-[960px]">
-          <div className="mb-4 flex items-center gap-3">
-            <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/70">
-              <i className="bi bi-arrow-left" />
-            </button>
-            <div>
-              <div className="text-[17px] font-extrabold text-white">Profit &amp; Loss</div>
-              <div className="text-[10px] text-white/40">{getStation(activeStation()).legalName}</div>
-            </div>
-          </div>
-
-          {/* Week / Month / Year toggle */}
-          <div className="mb-3 flex gap-2">
-            {[["week", "Week"], ["month", "Month"], ["year", "Year"]].map(([m, l]) => (
-              <button key={m} type="button" onClick={() => { setMode(m); setOffset(0) }}
-                className={`flex-1 rounded-[10px] py-2 text-[12px] font-bold ${mode === m ? "bg-cyan text-white" : "bg-white/10 text-white/60"}`}>
-                {l}
-              </button>
-            ))}
-          </div>
-
-          {/* Prev / period label / next */}
-          <div className="mb-4 flex items-center justify-between rounded-[12px] bg-white/5 px-2 py-1.5">
-            <button type="button" onClick={() => setOffset(o => o - 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-white/70 active:bg-white/10">
-              <i className="bi bi-chevron-left" />
-            </button>
-            <div className="text-center">
-              <div className="text-[13px] font-bold text-white">{range.label}</div>
-              {range.subLabel && <div className="text-[10px] text-white/40">{range.subLabel}</div>}
-            </div>
-            <button type="button" onClick={() => setOffset(o => Math.min(0, o + 1))} disabled={offset >= 0}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-white/70 active:bg-white/10 disabled:opacity-30">
-              <i className="bi bi-chevron-right" />
-            </button>
-          </div>
-
-          {/* Big net profit number */}
-          {data && (
-            <>
-              <div className="mb-0.5 text-[9.5px] font-bold uppercase tracking-[1px] text-white/40">Net Profit</div>
-              <div className="mono mb-1 text-[34px] font-extrabold leading-none text-white">
-                {naira(data.netProfit)}
+      <main className="mso-mobile-page-space mx-auto w-full max-w-[1180px] px-4 py-6 md:px-7 lg:py-8">
+        <PageHeader eyebrow="Finance / Performance" title="Profit & Loss" description={`Management view for ${getStation(activeStation()).legalName}.`} back onBack={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} meta={data ? <StatusBadge tone={data.netProfit >= 0 ? "success" : "danger"}>{data.margin}% margin</StatusBadge> : null} />
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <div className="mso-surface mso-surface-pad">
+            <div className="mso-eyebrow mb-2">Reporting period</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {[['week','Week'],['month','Month'],['year','Year']].map(([m,l]) => (
+                <button key={m} type="button" onClick={() => { setMode(m); setOffset(0) }} className={`rounded-[9px] border px-3.5 py-2 text-[11px] font-bold transition ${mode===m ? "border-brand bg-brand text-white" : "border-border bg-white text-ink-3 hover:border-brand/30 hover:text-brand"}`}>{l}</button>
+              ))}
+              <div className="ml-0 flex items-center rounded-[9px] border border-border bg-surface p-1">
+                <button type="button" onClick={() => setOffset(o => o - 1)} className="flex h-8 w-8 items-center justify-center rounded-[7px] text-ink-3 hover:bg-white"><i className="bi bi-chevron-left" /></button>
+                <div className="min-w-[150px] px-2 text-center"><div className="text-[12px] font-bold text-ink">{range.label}</div>{range.subLabel && <div className="text-[9px] text-ink-4">{range.subLabel}</div>}</div>
+                <button type="button" onClick={() => setOffset(o => Math.min(0, o + 1))} disabled={offset >= 0} className="flex h-8 w-8 items-center justify-center rounded-[7px] text-ink-3 hover:bg-white disabled:opacity-30"><i className="bi bi-chevron-right" /></button>
               </div>
-              <div className="text-[11px] text-white/40">{data.margin}% margin</div>
-            </>
-          )}
+            </div>
+          </div>
+          {data && <StatCard label="Net profit" value={naira(data.netProfit)} hint={`${data.margin}% margin`} icon="bi-graph-up-arrow" tone={data.netProfit >= 0 ? "positive" : "negative"} />}
         </div>
-      </div>
 
-      <div className="mx-auto max-w-[640px] px-4 py-4 lg:max-w-[960px]">
+      <div className="w-full">
         {loading && <div className="flex justify-center py-12"><span className="h-6 w-6 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" /></div>}
 
         {!loading && error && (
@@ -295,6 +262,7 @@ export default function PnLPage() {
           </div>
         )}
       </div>
+      </main>
     </div>
   )
 }

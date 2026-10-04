@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getStation, tanksFor } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
@@ -622,14 +623,14 @@ export default function DischargePage() {
   const labelCls = "mb-1 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4"
 
   return (
-    <div className="fintech-dark min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
+    <div className="mso-ops-page fintech-dark min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
       <SafeAreaDebug />
 
       {/* Compact and sticky — always reachable, never eats permanent
           screen space the way the richer stat card below would if it
           stayed pinned too. */}
       <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),52px)" }}>
-        <div className="flex items-center gap-3 px-4 pb-2.5">
+        <div className="mx-auto flex max-w-[1120px] items-center gap-3 px-4 pb-2.5 sm:px-6">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border transition hover:bg-surface"
             style={{ borderColor: "var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
@@ -645,14 +646,14 @@ export default function DischargePage() {
             </div>
           )}
         </div>
-        <div className="flex gap-1.5 border-t px-3 py-2" style={{ borderColor: "var(--ftk-card-border)" }}>
+        <div className="mx-auto flex max-w-[1120px] gap-1.5 overflow-x-auto border-t px-3 py-2 sm:px-6" style={{ borderColor: "var(--ftk-card-border)" }}>
           {[
             ["records", "Records", records.length],
             ...(isSupervisor ? [["record", "Record Discharge", null]] : []),
             ...(isGM ? [["pricing", pending.length > 0 ? `Price Discharge (${pending.length})` : "Price Discharge", null]] : []),
           ].map(([k, l]) => (
             <button key={k} type="button" onClick={() => { setTab(k); setFeedback(null) }}
-              className="flex-1 rounded-full py-1.5 text-[11.5px] font-bold transition"
+              className="min-w-[112px] flex-1 rounded-full py-1.5 text-[11.5px] font-bold transition"
               style={tab === k
                 ? { background: "var(--ftk-ink)", color: "#fff" }
                 : { background: "var(--ftk-bg)", color: "var(--ftk-ink-dim)" }}>
@@ -662,7 +663,8 @@ export default function DischargePage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[640px] px-4 py-4">
+      <div className="mx-auto max-w-[1120px] px-4 py-4 sm:px-6 lg:py-6">
+        <OpsContextStrip area="Fuel Delivery" step="Discharge control" />
         {/* Feedback */}
         {feedback && (
           <div className={`mb-4 flex items-start gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>
@@ -672,21 +674,40 @@ export default function DischargePage() {
           </div>
         )}
 
-        {/* PMS/AGO/LPG toggle — never blended, same as the fuel-stock hero
-            never combines PMS-on-hand with AGO-on-hand. Governs History,
-            period totals, and Pricing below, whichever tab is active. */}
+        {/* Product scope + management overview. UI-only presentation layer; all figures
+            continue to come from the existing discharge records/calculations. */}
         {(tab === "records" || tab === "pricing") && (
-          <div className="mb-4 flex gap-2">
-            {["PMS", "AGO", "LPG"].map(p => (
-              <button
-                key={p} type="button" onClick={() => setProductFilter(p)}
-                className={`flex-1 rounded-[12px] py-2.5 text-[13px] font-bold transition ${
-                  productFilter === p ? "bg-navy text-white shadow-lift" : "border border-border bg-white text-ink-3"
-                }`}
-              >
-                <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : p === "AGO" ? "bi-droplet-fill" : "bi-fire"} mr-1.5`} />{p}
-              </button>
-            ))}
+          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+            <div className="rounded-[18px] border border-white/70 bg-white p-2 shadow-sm">
+              <div className="grid grid-cols-3 gap-1.5">
+                {["PMS", "AGO", "LPG"].map(p => (
+                  <button
+                    key={p} type="button" onClick={() => setProductFilter(p)}
+                    className={`min-h-[44px] rounded-[12px] px-3 py-2 text-[12px] font-extrabold transition sm:text-[13px] ${
+                      productFilter === p ? "bg-navy text-white shadow-lift" : "bg-surface text-ink-3 hover:bg-surface/70"
+                    }`}
+                  >
+                    <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : p === "AGO" ? "bi-droplet-fill" : "bi-fire"} mr-1.5`} />{p}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+              {[
+                ["Deliveries", periodTotals.count, "bi-truck"],
+                ["Received", periodTotals.litres ? qty(periodTotals.litres) : "—", "bi-box-seam"],
+                ["Variance", periodTotals.shortageLitres ? qty(Math.abs(periodTotals.shortageLitres)) : "Exact", periodTotals.shortageLitres > 0 ? "bi-arrow-down-right" : "bi-check2"],
+                ["Pricing", pending.length ? `${pending.length} pending` : "Up to date", pending.length ? "bi-hourglass-split" : "bi-check-circle"]
+              ].map(([label,value,icon],i)=>(
+                <div key={label} className="rounded-[14px] border border-border bg-white px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9.5px] font-bold uppercase tracking-[0.45px] text-ink-4">{label}</span>
+                    <i className={`bi ${icon} text-[11px] ${i === 2 && periodTotals.shortageLitres > 0 ? "text-red" : "text-cyan-dark"}`} />
+                  </div>
+                  <div className="mono mt-1 truncate text-[14px] font-extrabold text-ink">{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -695,7 +716,7 @@ export default function DischargePage() {
             supplier's records too, with no way to isolate just one.
             Records-tab only, since pricing is already grouped this way. */}
         {tab === "records" && allSuppliers.length > 1 && (
-          <div className="mb-4">
+          <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <select
               value={supplierFilter}
               onChange={e => setSupplierFilter(e.target.value)}
@@ -714,7 +735,7 @@ export default function DischargePage() {
           <>
             {/* Owner/GM summary strip — running totals by period, front and center */}
             {isGMOrOwner && !loading && productFilteredRecords.length > 0 && (
-              <div className="mb-4 overflow-hidden rounded-[16px] shadow-lift" style={{ background: "var(--brand-gradient-btn)" }}>
+              <div className="mb-5 overflow-hidden rounded-[18px] shadow-lift" style={{ background: "var(--brand-gradient-btn)" }}>
                 <div className="flex gap-1 px-3 pt-3">
                   {[["week", "This Week"], ["month", "This Month"], ["all", "All Time"]].map(([k, l]) => (
                     <button key={k} type="button" onClick={() => setPeriod(k)}
@@ -724,20 +745,20 @@ export default function DischargePage() {
                   ))}
                 </div>
                 <div className="px-4 pb-1 pt-2 text-[10.5px] font-semibold text-white/50">{periodLabel} · {periodTotals.count} record{periodTotals.count !== 1 ? "s" : ""}</div>
-                <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 px-1 py-4">
-                  <div className="px-3 pb-3 text-center">
+                <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 px-1 py-3.5 sm:grid-cols-4 sm:divide-y-0">
+                  <div className="px-3 py-2 text-center sm:py-3">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Expected</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.ordered > 0 ? qty(periodTotals.ordered) : "—"}</div>
                   </div>
-                  <div className="px-3 pb-3 text-center">
+                  <div className="px-3 py-2 text-center sm:py-3">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Received</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{qty(periodTotals.litres)}</div>
                   </div>
-                  <div className="px-3 pt-3 text-center">
+                  <div className="px-3 py-2 text-center sm:py-3">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Amount</div>
                     <div className="mono mt-1 text-[15px] font-extrabold text-white">{naira(periodTotals.cost)}</div>
                   </div>
-                  <div className="px-3 pt-3 text-center">
+                  <div className="px-3 py-2 text-center sm:py-3">
                     <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Variance Cost</div>
                     <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : periodTotals.shortageAmount < 0 ? "text-green" : "text-white"}`}>{periodTotals.shortageAmount < 0 ? `+${naira(Math.abs(periodTotals.shortageAmount))}` : naira(periodTotals.shortageAmount)}</div>
                   </div>
@@ -769,7 +790,7 @@ export default function DischargePage() {
                 {periodBySupplier.length > 0 && (
                   <div className="border-t border-white/10 px-4 py-3">
                     <div className="mb-2 text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">By Supplier</div>
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {periodBySupplier.map(s => (
                         <div key={s.label} className="text-[12px]">
                           <div className="flex items-center justify-between">
@@ -818,11 +839,11 @@ export default function DischargePage() {
                 {groupedRecords.map((group, gi) => {
                   const allPriced = group.items.every(isPriced)
                   return (
-                    <div key={gi} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
+                    <div key={gi} className="overflow-hidden rounded-[18px] border border-border/70 bg-white shadow-sm transition hover:shadow-md">
                       {/* One card per day — the day's total is the headline,
                           not each tank buried in its own separate card. */}
-                      <div className="flex items-center gap-3 border-b border-surface px-4 py-3.5">
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-navy/8 text-[16px] text-navy">
+                      <div className="flex items-center gap-3 border-b border-surface bg-surface/35 px-4 py-3.5 sm:px-5">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] bg-navy/8 text-[16px] text-navy">
                           <i className="bi bi-calendar3" />
                         </div>
                         <div className="flex-1">
@@ -891,10 +912,10 @@ export default function DischargePage() {
                             <div className="space-y-2">
                               {supplierItems.map((r, i) => (
                                 <div key={i}>
-                                  <div className="flex items-center gap-2.5">
+                                  <div className="flex items-center gap-2.5 rounded-[11px] border border-border/70 bg-surface/30 px-2.5 py-2">
                                     <i className={`bi ${productIcon(r[COL.PRODUCT])} flex-shrink-0 text-[13px] text-ink-4`} />
                                     <div className="min-w-0 flex-1">
-                                      <div className="text-[12.5px] font-bold text-ink">{r[COL.PRODUCT]}</div>
+                                      <div className="text-[12.5px] font-extrabold text-ink">{r[COL.PRODUCT]}</div>
                                       {(r[COL.SUPPLIER] || r[COL.DRIVER]) && (
                                         <div className="truncate text-[10px] text-ink-4">
                                           {r[COL.SUPPLIER]}{r[COL.SUPPLIER] && r[COL.DRIVER] && " · "}{r[COL.DRIVER] && `Driver: ${r[COL.DRIVER]}`}
@@ -1031,12 +1052,12 @@ export default function DischargePage() {
 
         {/* ── RECORD DISCHARGE TAB (Supervisor only) ── */}
         {tab === "record" && isSupervisor && (
-          <div className="overflow-hidden rounded-[16px] bg-white shadow-sm">
-            <div className="border-b border-surface px-5 py-4">
+          <div className="overflow-hidden rounded-[18px] border border-border/70 bg-white shadow-sm">
+            <div className="border-b border-surface bg-surface/35 px-5 py-4 sm:px-6">
               <div className="text-[14.5px] font-extrabold text-ink">New Discharge Record</div>
               <div className="mt-0.5 text-[11.5px] text-ink-4">Log a fuel discharge as it's received at the station</div>
             </div>
-            <div className="space-y-4 p-5">
+            <div className="space-y-5 p-4 sm:p-6">
               <div>
                 <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-cyan-dark">Discharge Details</div>
                 <div className="space-y-3">
@@ -1168,7 +1189,7 @@ export default function DischargePage() {
 
                 return (
                   <div key={date} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
-                    <div className="flex items-center gap-3 border-b border-surface px-4 py-3.5">
+                    <div className="flex items-center gap-3 border-b border-surface bg-surface/35 px-4 py-3.5 sm:px-5">
                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-amber-light text-[16px] text-amber">
                         <i className="bi bi-calendar3" />
                       </div>

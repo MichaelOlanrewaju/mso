@@ -60,7 +60,7 @@ export default function ShiftsPage() {
   const inputCls = "w-full rounded-[10px] border border-border bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan"
 
   return (
-    <div className="min-h-screen bg-pagebg pb-16">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">

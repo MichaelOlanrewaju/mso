@@ -77,7 +77,7 @@ export default function LubricantPage() {
   const [lines, setLines] = useState([{ ...BLANK_LINE }])
   const [voiding, setVoiding] = useState(null)
 
-  if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
+  if (auth.loading || !auth.user) return <div className="mso-ops-page min-h-screen bg-pagebg" />
 
   /* A cashier sells oil but doesn't manage it — they see products, prices and
      stock in the cash-up dropdown, which is everything they need. This page sets

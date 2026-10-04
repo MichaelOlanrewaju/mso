@@ -3,6 +3,7 @@ import { litres, litresValue } from "../utils/format"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import DateRow from "../components/dip/DateRow"
 import StatusStrip from "../components/dip/StatusStrip"
 import ModeToggle from "../components/dip/ModeToggle"
@@ -338,7 +339,7 @@ function DipInner() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #F5F3FF 0%, #F1F5FB 220px)" }}>
+    <div className="mso-ops-page min-h-screen" style={{ background: "linear-gradient(180deg, #F5F3FF 0%, #F1F5FB 220px)" }}>
       <SafeAreaDebug />
       <div
         className="sticky top-0 z-[200] px-4 pb-4 text-white shadow-lg"
@@ -367,6 +368,7 @@ function DipInner() {
       </div>
 
       <div className="px-4 py-4 pb-[100px]">
+        <div className="mx-auto max-w-[640px]"><OpsContextStrip area="Tank Dip" step={`Step ${current + 1} / ${STEPS.length}`} /></div>
         <div className="mx-auto max-w-[640px]">
           <DateRow date={date} onChange={handleDateChange} supName={auth.name || auth.username} />
           <ModeToggle mode={mode} onChange={m => { setMode(m); setEditRequested(false) }} hasOpening={hasOpening} hasClosing={hasClosing} />

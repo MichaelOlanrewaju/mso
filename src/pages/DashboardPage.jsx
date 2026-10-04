@@ -9,6 +9,7 @@ import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import DayHero from "../components/dashboard/DayHero"
 import MorningReadingsCard from "../components/dashboard/MorningReadingsCard"
 import OilCard from "../components/dashboard/OilCard"
@@ -139,7 +140,7 @@ function DashboardInner() {
     Object.keys(data?.pumpMetres || {}).length > 0
 
   return (
-    <div className="flex min-h-screen">
+    <div className="mso-ops-page flex min-h-screen">
       <SafeAreaDebug />
 
       <Sidebar
@@ -161,8 +162,9 @@ function DashboardInner() {
           onRefresh={refresh}
         />
 
-        <div className="flex-1 p-3.5 pb-[calc(14px+64px)] md:p-6 md:pb-6">
-          <div className="mx-auto w-full max-w-[1400px]">
+        <main className="mso-mobile-page-space flex-1 p-3.5 pb-[calc(82px+var(--sab))] md:p-7 md:pb-8">
+          <div className="mso-page-content">
+            <OpsContextStrip area="Command Center" />
             <div className="enter" style={delay(0)}>
             </div>
 
@@ -335,7 +337,7 @@ function DashboardInner() {
               </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
 
       <BottomNav />

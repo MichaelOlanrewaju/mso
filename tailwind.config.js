@@ -44,21 +44,21 @@ export default {
         "brand-btn": "var(--brand-gradient-btn)",
       },
       boxShadow: {
-        card: "0 1px 3px rgba(15,23,42,.05), 0 4px 16px rgba(15,23,42,.07)",
+        card: "0 1px 2px rgba(15,23,42,.035), 0 8px 24px rgba(15,23,42,.055)",
         // Raised state for cards that carry a decision — the attention
         // rail sits visually above ordinary reporting cards.
         urgent: "0 2px 6px rgba(220,38,38,.08), 0 12px 32px -8px rgba(220,38,38,.18)",
         inset: "inset 0 1px 0 rgba(255,255,255,.10)",
-        lift: "0 8px 28px rgba(15,23,42,.12)",
+        lift: "0 10px 30px rgba(15,23,42,.10)",
         glow: "0 0 0 1px rgba(23,157,208,.18), 0 24px 60px -12px rgba(6,9,26,.55)",
         hero: "0 1px 3px rgba(6,9,26,.3), 0 16px 32px -8px rgba(6,9,26,.45), inset 0 1px 0 rgba(255,255,255,.04)",
       },
       borderRadius: {
         card: "14px",
-        panel: "20px",
+        panel: "18px",
       },
       spacing: {
-        sidebar: "256px",
+        sidebar: "240px",
       },
       keyframes: {
         "pulse-dot": {

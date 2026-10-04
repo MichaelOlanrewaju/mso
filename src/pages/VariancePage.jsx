@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 
@@ -45,7 +46,7 @@ export default function VariancePage() {
   const totalVariance = data.reduce((s,r) => s + (r.variance||0), 0)
 
   return (
-    <div className="min-h-screen bg-pagebg pb-16">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-3">
@@ -61,6 +62,7 @@ export default function VariancePage() {
       </div>
 
       <div className="mx-auto max-w-[640px] px-4 py-4">
+        <OpsContextStrip area="Stock Control" step="Variance analysis" tone="warning" />
         {/* Date range */}
         <div className="mb-4 flex items-center gap-3 rounded-[14px] bg-white p-4 shadow-sm">
           <div className="flex-1">

@@ -3,6 +3,7 @@ import { activeStation } from "../utils/station"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePrices } from "../hooks/usePrices"
 import { usePageTitle } from "../hooks/usePageTitle"
@@ -55,7 +56,7 @@ export default function PricePage() {
   }
 
   return (
-    <div className="min-h-screen bg-pagebg pb-10">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-10">
       <SafeAreaDebug />
       <div
         className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]"
@@ -75,6 +76,7 @@ export default function PricePage() {
       </div>
 
       <div className="mx-auto max-w-[480px] px-4 py-5">
+        <OpsContextStrip area="Pricing" step="Pump prices" />
         {loading ? (
           <div className="flex items-center justify-center py-16 text-[13px] text-ink-4">
             <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />

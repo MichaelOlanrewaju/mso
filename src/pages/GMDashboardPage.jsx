@@ -6,6 +6,7 @@ import Topbar from "../components/layout/Topbar"
 import BottomNav from "../components/layout/BottomNav"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import SectionLabel from "../components/dashboard/SectionLabel"
 import DayHero from "../components/dashboard/DayHero"
 import MorningReadingsCard from "../components/dashboard/MorningReadingsCard"
@@ -115,7 +116,7 @@ function GMInner() {
     Object.keys(data?.pumpMetres || {}).length > 0
 
   return (
-    <div className="flex min-h-screen">
+    <div className="mso-ops-page flex min-h-screen">
       <SafeAreaDebug />
 
       <Sidebar
@@ -141,6 +142,7 @@ function GMInner() {
 
         <div className="flex-1 p-3.5 pb-[100px] md:p-6 md:pb-6">
           <div className="mx-auto w-full max-w-[1400px]">
+            <OpsContextStrip area="Management Command Center" step="GM view" />
             {/* Only for people who oversee both sites — a GM tied to one station
                 has nothing to switch to and never sees this. */}
             <div className="enter" style={delay(0)}>

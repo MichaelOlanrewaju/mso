@@ -215,6 +215,20 @@
      where there's no need for touch-target-sized gaps and where light
      grays read as barely-there ink. Scoped to .print-release only, so
      none of this touches the app's normal on-screen appearance. */
+  /* Daily Summary: keep the polished on-screen command centre out of the
+     print stream. The printout uses the dedicated A4 report instead, so
+     printing is stable regardless of desktop/mobile screen width. */
+  .print-release .print-screen {
+    display: none !important;
+  }
+
+  .print-release .print-document {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    color: #000 !important;
+  }
+
   .print-release {
     font-size: 12.5px !important;
   }
@@ -360,4 +374,347 @@ input[type="date"]:not([class]):focus {
   background: var(--ftk-card);
   border: 1px solid var(--ftk-card-border);
   box-shadow: 0 2px 14px rgba(19,6,86,0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MSO FRONT-END SYSTEM v2
+   A restrained enterprise operations language: clearer hierarchy,
+   quieter surfaces, stronger data emphasis, and consistent controls.
+   These rules intentionally sit after the legacy utility layer so the
+   existing pages inherit the new visual system without changing behavior.
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --mso-bg: #f6f8fc;
+  --mso-surface: #ffffff;
+  --mso-surface-2: #f8fafc;
+  --mso-line: #e5eaf2;
+  --mso-line-strong: #d7deea;
+  --mso-ink: #101828;
+  --mso-muted: #667085;
+  --mso-subtle: #98a2b3;
+  --mso-focus: rgba(23,157,208,.22);
+  --mso-radius: 14px;
+  --mso-radius-sm: 10px;
+  --mso-shadow: 0 1px 2px rgba(16,24,40,.03), 0 8px 24px rgba(16,24,40,.045);
+}
+
+html { background: var(--mso-bg); }
+body {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(23,157,208,.035), transparent 28rem),
+    var(--mso-bg);
+  color: var(--mso-ink);
+}
+
+/* Shared surface language */
+.rounded-card,
+.rounded-panel {
+  border-color: var(--mso-line);
+}
+
+.bg-pagebg { background-color: var(--mso-bg) !important; }
+.bg-surface { background-color: var(--mso-surface-2) !important; }
+.border-border { border-color: var(--mso-line) !important; }
+
+/* Make ordinary white cards feel like one product instead of isolated boxes. */
+.rounded-card.bg-white,
+.rounded-panel.bg-white,
+.rounded-card.border.bg-white,
+.rounded-panel.border.bg-white {
+  box-shadow: var(--mso-shadow);
+}
+
+/* Global form language */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border-color: var(--mso-line-strong);
+  border-radius: var(--mso-radius-sm);
+  background: #fff;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-accent) !important;
+  box-shadow: 0 0 0 4px var(--mso-focus) !important;
+  outline: none !important;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--mso-focus);
+  outline-offset: 2px;
+}
+
+/* Tables: compact, readable, operational */
+table { border-collapse: separate; border-spacing: 0; }
+thead th {
+  background: #f8fafc;
+  color: #667085;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+tbody tr { transition: background-color .15s ease; }
+tbody tr:hover { background: rgba(23,157,208,.025); }
+
+/* Better touch targets without forcing huge desktop controls. */
+@media (max-width: 1023px) {
+  button,
+  a[role="button"],
+  input,
+  select { min-height: 42px; }
+}
+
+/* Page-shell rhythm used by the internal app. */
+.mso-page-content {
+  width: min(100%, 1480px);
+  margin-inline: auto;
+}
+
+.mso-eyebrow {
+  color: var(--brand-accent-dark);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.mso-page-title {
+  color: var(--mso-ink);
+  font-size: clamp(20px, 2.1vw, 28px);
+  font-weight: 800;
+  letter-spacing: -.035em;
+  line-height: 1.08;
+}
+
+.mso-page-subtitle {
+  color: var(--mso-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Mobile navigation should feel like a native command surface. */
+@media (max-width: 1023px) {
+  .mso-mobile-page-space {
+    padding-bottom: calc(82px + var(--sab)) !important;
+  }
+}
+
+/* Reduce decorative motion on operational surfaces. */
+@media (prefers-reduced-motion: no-preference) {
+  .mso-interactive {
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+  }
+  .mso-interactive:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@media (max-width: 640px) {
+  .rounded-card,
+  .rounded-panel { border-radius: 12px; }
+  .mso-page-title { font-size: 21px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MSO FRONT-END SYSTEM v3 — operational UI primitives
+═══════════════════════════════════════════════════════════════ */
+.mso-page-header {
+  display:flex; align-items:flex-start; justify-content:space-between; gap:20px;
+  margin:0 auto 22px; width:min(100%,1480px);
+}
+.mso-page-header-main { display:flex; align-items:flex-start; gap:12px; min-width:0; }
+.mso-page-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+.mso-icon-button {
+  display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px;
+  flex:0 0 auto; border:1px solid var(--mso-line); border-radius:11px; background:#fff; color:var(--mso-muted);
+  box-shadow:0 1px 2px rgba(16,24,40,.03); transition:.16s ease;
+}
+.mso-icon-button:hover { color:var(--brand-accent-dark); border-color:rgba(23,157,208,.28); background:var(--brand-accent-light); }
+.mso-page-meta { margin-top:7px; color:var(--mso-subtle); font-size:11px; font-weight:600; }
+.mso-section-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:0 0 12px; }
+.mso-section-title { margin:0; color:var(--mso-ink); font-size:15px; line-height:1.25; font-weight:800; letter-spacing:-.02em; }
+.mso-section-description { margin:4px 0 0; color:var(--mso-muted); font-size:11px; line-height:1.5; }
+.mso-surface { background:#fff; border:1px solid var(--mso-line); border-radius:var(--mso-radius); box-shadow:var(--mso-shadow); }
+.mso-surface-pad { padding:18px; }
+.mso-stat-card { min-width:0; padding:17px; background:#fff; border:1px solid var(--mso-line); border-radius:14px; box-shadow:var(--mso-shadow); }
+.mso-stat-label { color:var(--mso-muted); font-size:9px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+.mso-stat-value { margin-top:7px; color:var(--mso-ink); font-family:'JetBrains Mono',monospace; font-size:21px; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+.mso-stat-hint { margin-top:6px; color:var(--mso-subtle); font-size:10px; font-weight:600; }
+.mso-stat-icon { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:var(--mso-surface-2); color:var(--brand-accent-dark); }
+.mso-stat-positive .mso-stat-icon { background:#ecfdf3; color:#15803d; }
+.mso-stat-negative .mso-stat-icon { background:#fef2f2; color:#dc2626; }
+.mso-stat-warning .mso-stat-icon { background:#fff7ed; color:#c2410c; }
+.mso-status { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--mso-line); border-radius:999px; padding:5px 9px; font-size:10px; font-weight:800; white-space:nowrap; }
+.mso-status-dot { width:6px; height:6px; border-radius:50%; background:#98a2b3; }
+.mso-status-success { color:#166534; background:#f0fdf4; border-color:#bbf7d0; }
+.mso-status-success .mso-status-dot { background:#16a34a; }
+.mso-status-warning { color:#9a3412; background:#fff7ed; border-color:#fed7aa; }
+.mso-status-warning .mso-status-dot { background:#f97316; }
+.mso-status-danger { color:#b91c1c; background:#fef2f2; border-color:#fecaca; }
+.mso-status-danger .mso-status-dot { background:#dc2626; }
+.mso-status-info { color:#075985; background:#f0f9ff; border-color:#bae6fd; }
+.mso-status-info .mso-status-dot { background:#0284c7; }
+.mso-toolbar { display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:10px; background:#f8fafc; border:1px solid var(--mso-line); border-radius:12px; }
+.mso-search { display:flex; align-items:center; gap:8px; min-width:220px; flex:1; height:38px; padding:0 11px; background:#fff; border:1px solid var(--mso-line-strong); border-radius:9px; color:var(--mso-subtle); }
+.mso-search input { min-width:0; width:100%; height:100%; border:0 !important; outline:0 !important; box-shadow:none !important; padding:0 !important; font-size:12px; }
+.mso-toolbar-filters,.mso-toolbar-actions { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.mso-empty { display:flex; min-height:220px; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:28px; border:1px dashed var(--mso-line-strong); border-radius:14px; background:#fbfcfe; }
+.mso-empty-icon { display:flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:13px; background:#eef2f7; color:#667085; font-size:20px; }
+.mso-empty-title { margin-top:12px; color:var(--mso-ink); font-size:13px; font-weight:800; }
+.mso-empty-description { max-width:420px; margin-top:5px; color:var(--mso-muted); font-size:11px; line-height:1.6; }
+
+/* Standardize common old page surfaces without touching business logic. */
+.mso-page-content > .rounded-card,
+.mso-page-content > .rounded-panel { border-radius:14px; }
+.mso-page-content .shadow-sm { box-shadow:var(--mso-shadow) !important; }
+.mso-page-content .shadow-md { box-shadow:var(--mso-shadow) !important; }
+
+@media (max-width: 767px) {
+  .mso-page-header { margin-bottom:16px; gap:12px; }
+  .mso-page-actions { width:100%; justify-content:stretch; }
+  .mso-page-actions > * { flex:1; }
+  .mso-page-title { font-size:21px; }
+  .mso-section-header { align-items:flex-start; }
+  .mso-surface-pad { padding:14px; }
+  .mso-toolbar { align-items:stretch; }
+  .mso-search { min-width:100%; }
+}
+
+.mso-table-wrap { overflow:auto; border:1px solid var(--mso-line); border-radius:14px; background:#fff; box-shadow:var(--mso-shadow); }
+.mso-table-wrap table { width:100%; min-width:680px; }
+.mso-table-wrap thead th { position:sticky; top:0; z-index:1; padding:11px 13px; border-bottom:1px solid var(--mso-line); }
+.mso-table-wrap tbody td { padding:12px 13px; border-bottom:1px solid #eef1f5; color:#334155; font-size:11.5px; }
+.mso-table-wrap tbody tr:last-child td { border-bottom:0; }
+.mso-table-wrap tbody tr:hover { background:#f8fbfd; }
+.mso-money { font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums; font-weight:800; letter-spacing:-.02em; }
+.mso-number { font-family:'JetBrains Mono',monospace; font-variant-numeric:tabular-nums; font-weight:700; }
+.mso-page-content .rounded-[28px], .mso-page-content .rounded-[24px] { border-radius:16px !important; }
+@media (max-width: 767px) {
+  .mso-table-wrap { margin-inline:-2px; border-radius:12px; }
+  .mso-table-wrap table { min-width:620px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MSO FRONT-END SYSTEM v4 — operational screen layer
+   Shared visual treatment for workflows that pre-date the v3 page system.
+═══════════════════════════════════════════════════════════════ */
+.mso-ops-page {
+  --ops-gutter: clamp(14px, 2.2vw, 30px);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(23,157,208,.055), transparent 28rem),
+    linear-gradient(180deg, #f7f9fc 0%, #f3f6fa 100%);
+  color: var(--mso-ink);
+}
+.mso-ops-page .rounded-card,
+.mso-ops-page .rounded-panel {
+  border-radius: 14px !important;
+  border-color: var(--mso-line) !important;
+  box-shadow: 0 1px 2px rgba(16,24,40,.035), 0 8px 24px rgba(16,24,40,.035) !important;
+}
+.mso-ops-page input:not([type="checkbox"]):not([type="radio"]),
+.mso-ops-page select,
+.mso-ops-page textarea {
+  border-color: #d9e0e8;
+  border-radius: 10px;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.mso-ops-page input:focus,
+.mso-ops-page select:focus,
+.mso-ops-page textarea:focus {
+  border-color: rgba(23,157,208,.55) !important;
+  box-shadow: 0 0 0 3px rgba(23,157,208,.10) !important;
+}
+.mso-ops-page button:not(.mso-icon-button) { transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease; }
+.mso-ops-page button:not(.mso-icon-button):active { transform: translateY(1px); }
+.mso-ops-page table thead th { background: #f8fafc; color: #667085; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; font-weight: 800; }
+.mso-ops-page table tbody tr { transition: background .14s ease; }
+.mso-ops-page table tbody tr:hover { background: #f8fbfd; }
+.mso-ops-page .mono { font-variant-numeric: tabular-nums; }
+
+.mso-ops-context {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin:0 auto 14px; padding:9px 11px; max-width:1480px;
+  border:1px solid var(--mso-line); border-radius:12px; background:rgba(255,255,255,.86);
+  box-shadow:0 1px 2px rgba(16,24,40,.025); backdrop-filter:blur(12px);
+}
+.mso-ops-context-left,.mso-ops-context-right { display:flex; align-items:center; gap:9px; min-width:0; }
+.mso-ops-context-mark { display:flex; align-items:center; justify-content:center; width:30px; height:30px; flex:0 0 auto; border-radius:9px; background:var(--brand-accent-light); color:var(--brand-accent-dark); }
+.mso-ops-context-area { color:#667085; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.12em; }
+.mso-ops-context-station { margin-top:1px; color:#101828; font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mso-ops-context-right { flex-shrink:0; }
+.mso-ops-context-step { padding:5px 8px; border:1px solid #e4e7ec; border-radius:999px; background:#f8fafc; color:#667085; font-size:9px; font-weight:800; }
+.mso-ops-live { display:inline-flex; align-items:center; gap:5px; padding:5px 8px; border:1px solid #bbf7d0; border-radius:999px; background:#f0fdf4; color:#15803d; font-size:9px; font-weight:900; letter-spacing:.04em; }
+.mso-ops-live > span { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.10); }
+.mso-ops-context-warning .mso-ops-context-mark { background:#fff7ed; color:#c2410c; }
+.mso-ops-context-danger .mso-ops-context-mark { background:#fef2f2; color:#dc2626; }
+
+.mso-workflow-card {
+  position:relative; overflow:hidden; border:1px solid var(--mso-line); border-radius:16px; background:#fff;
+  box-shadow:0 1px 2px rgba(16,24,40,.035), 0 10px 28px rgba(16,24,40,.04);
+}
+.mso-workflow-card::before { content:""; display:block; height:3px; background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent)); }
+.mso-workflow-card-body { padding:18px; }
+.mso-kicker { color:#667085; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.1em; }
+.mso-big-number { margin-top:5px; color:#101828; font-family:'JetBrains Mono',monospace; font-size:clamp(25px,4vw,34px); font-weight:800; line-height:1; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
+
+@media (max-width:767px) {
+  .mso-ops-context { align-items:flex-start; margin-bottom:11px; padding:8px 9px; }
+  .mso-ops-context-mark { width:28px; height:28px; }
+  .mso-ops-context-area { font-size:7.5px; }
+  .mso-ops-context-station { font-size:10px; }
+  .mso-ops-context-step { display:none; }
+  .mso-ops-page .rounded-card,.mso-ops-page .rounded-panel { border-radius:12px !important; }
+  .mso-workflow-card-body { padding:14px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MSO FRONT-END SYSTEM v5–v7 — data, workflow and production polish
+═══════════════════════════════════════════════════════════════ */
+.mso-data-table { min-width:0; }
+.mso-th-button { display:inline-flex; align-items:center; gap:7px; color:inherit; font:inherit; text-transform:inherit; letter-spacing:inherit; }
+.mso-th-button i { font-size:9px; opacity:.42; }
+.mso-th-button:hover { color:var(--brand-accent-dark); }
+.mso-table-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 13px; border:1px solid var(--mso-line); border-top:0; border-radius:0 0 14px 14px; background:#fff; color:var(--mso-muted); font-size:10.5px; }
+.mso-pagination { display:flex; align-items:center; gap:7px; }
+.mso-pagination button { width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--mso-line); border-radius:9px; background:#fff; color:var(--mso-muted); }
+.mso-pagination button:not(:disabled):hover { border-color:rgba(23,157,208,.35); color:var(--brand-accent-dark); background:var(--brand-accent-light); }
+.mso-pagination button:disabled { opacity:.4; cursor:not-allowed; }
+.mso-table-skeleton { overflow:hidden; border:1px solid var(--mso-line); border-radius:14px; background:#fff; box-shadow:var(--mso-shadow); }
+.mso-skeleton-row { display:grid; grid-template-columns:1.1fr 1fr .8fr .7fr; gap:18px; padding:15px; border-bottom:1px solid #eef1f5; }
+.mso-skeleton-row span { height:10px; border-radius:999px; background:linear-gradient(90deg,#edf1f5,#f7f9fb,#edf1f5); background-size:200% 100%; animation:msoShimmer 1.35s linear infinite; }
+@keyframes msoShimmer { to { background-position:-200% 0; } }
+.mso-workflow-bar { position:sticky; bottom:12px; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:18px; padding:10px 12px; border:1px solid rgba(16,24,40,.08); border-radius:14px; background:rgba(255,255,255,.94); box-shadow:0 10px 30px rgba(16,24,40,.12); backdrop-filter:blur(14px); color:var(--mso-muted); font-size:11px; font-weight:700; }
+.mso-workflow-dot { width:7px; height:7px; flex:0 0 auto; border-radius:50%; background:#16a34a; box-shadow:0 0 0 4px #dcfce7; }
+.mso-workflow-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; flex-wrap:wrap; }
+.mso-workflow-step { position:relative; display:flex; gap:12px; padding:0 0 18px; }
+.mso-workflow-step:not(:last-child)::after { content:""; position:absolute; left:14px; top:31px; bottom:2px; width:1px; background:var(--mso-line); }
+.mso-workflow-step-number { position:relative; z-index:1; display:flex; align-items:center; justify-content:center; width:29px; height:29px; flex:0 0 auto; border:1px solid var(--mso-line-strong); border-radius:50%; background:#fff; color:var(--mso-muted); font-size:10px; font-weight:800; }
+.mso-workflow-step.is-active .mso-workflow-step-number { border-color:rgba(23,157,208,.35); background:var(--brand-accent-light); color:var(--brand-accent-dark); box-shadow:0 0 0 4px rgba(23,157,208,.08); }
+.mso-workflow-step.is-complete .mso-workflow-step-number { border-color:#bbf7d0; background:#f0fdf4; color:#15803d; }
+.mso-workflow-step-title { color:var(--mso-ink); font-size:12px; font-weight:800; }
+.mso-workflow-step-description { margin-top:3px; color:var(--mso-muted); font-size:10.5px; line-height:1.5; }
+.mso-focus-ring:focus-visible { outline:3px solid var(--mso-focus); outline-offset:3px; }
+.mso-ops-page .mso-page-header { padding-top:2px; }
+.mso-ops-page .mso-table-wrap { box-shadow:0 1px 2px rgba(16,24,40,.025),0 6px 18px rgba(16,24,40,.035); }
+.mso-ops-page .mso-status { font-size:9.5px; }
+.mso-ops-page .mso-workflow-bar { margin-inline:0; }
+@media (max-width:767px) {
+  .mso-table-footer { align-items:flex-start; flex-direction:column; }
+  .mso-pagination { width:100%; justify-content:space-between; }
+  .mso-workflow-bar { bottom:calc(74px + var(--sab)); align-items:flex-start; flex-direction:column; }
+  .mso-workflow-actions { width:100%; }
+  .mso-workflow-actions > * { flex:1; min-width:110px; }
+  .mso-skeleton-row { grid-template-columns:1fr .7fr; gap:10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mso-skeleton-row span { animation:none; }
+  *, *::before, *::after { scroll-behavior:auto !important; }
+}
+@media print {
+  .mso-workflow-bar, .mso-page-actions, .mso-toolbar-actions { display:none !important; }
+  .mso-surface, .mso-table-wrap { box-shadow:none !important; }
 }

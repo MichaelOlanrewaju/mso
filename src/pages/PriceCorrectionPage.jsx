@@ -97,7 +97,7 @@ export default function PriceCorrectionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-pagebg pb-16">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">

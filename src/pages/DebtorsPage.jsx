@@ -6,6 +6,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
 import { getToken } from "../utils/session"
+import { PageHeader, SectionHeader, StatCard, StatusBadge, DataToolbar, EmptyState } from "../components/ui/system/Ui"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -66,26 +67,15 @@ export default function DebtorsPage() {
   return (
     <div className="min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
-        <div className="flex items-center gap-3 px-4 pb-2.5">
-          <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
-            <i className="bi bi-arrow-left" />
-          </button>
-          <div className="flex-1">
-            <div className="text-[16px] font-extrabold text-ink">Debtors</div>
-            <div className="text-[10px] text-ink-4">Outstanding: <span className="font-bold text-red">{naira(totalOutstanding)}</span></div>
-          </div>
-        </div>
-        <div className="flex border-t border-border">
-          {[["list","Debtor List"],["new","Add Debt"]].map(([k,l])=>(
-            <button key={k} type="button" onClick={()=>setTab(k)}
-              className={`flex-1 py-2.5 text-[12.5px] font-bold ${tab===k?"border-b-2 border-navy text-navy":"text-ink-4"}`}>{l}</button>
+      <main className="mso-mobile-page-space mx-auto w-full max-w-[1180px] px-4 py-6 md:px-7 lg:py-8">
+        <PageHeader eyebrow="Finance / Credit" title="Debtors" description="Track outstanding credit, settlements and new customer debt." back onBack={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} meta={<StatusBadge tone={totalOutstanding > 0 ? "danger" : "success"}>{naira(totalOutstanding)} outstanding</StatusBadge>} />
+        <div className="mb-5 flex gap-2 border-b border-border">
+          {[['list','Debtor List'],['new','Add Debt']].map(([k,l])=>(
+            <button key={k} type="button" onClick={()=>setTab(k)} className={`border-b-2 px-3 py-2.5 text-[12px] font-bold transition ${tab===k?"border-brand text-brand":"border-transparent text-ink-4 hover:text-ink"}`}>{l}</button>
           ))}
         </div>
-      </div>
 
-      <div className="mx-auto max-w-[640px] px-4 py-4">
+      <div className="w-full max-w-[980px]">
         {feedback && (
           <div className={`mb-4 flex items-center gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok?"border-green/20 bg-green-light text-green":"border-red/20 bg-red-light text-red"}`}>
             <i className={`bi ${feedback.ok?"bi-check-circle-fill":"bi-exclamation-circle-fill"}`} />
@@ -97,15 +87,9 @@ export default function DebtorsPage() {
         {tab === "list" && (
           <>
             {/* Summary */}
-            <div className="mb-4 grid grid-cols-2 gap-3">
-              <div className="rounded-[12px] bg-white p-3.5 shadow-sm">
-                <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-ink-4">Total Outstanding</div>
-                <div className="mono text-[18px] font-extrabold text-red">{naira(totalOutstanding)}</div>
-              </div>
-              <div className="rounded-[12px] bg-white p-3.5 shadow-sm">
-                <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-ink-4">Open Debts</div>
-                <div className="mono text-[18px] font-extrabold text-ink">{debtors.filter(d=>d.Status==="OUTSTANDING").length}</div>
-              </div>
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <StatCard label="Total outstanding" value={naira(totalOutstanding)} icon="bi-cash-stack" tone="negative" hint="Credit currently due" />
+              <StatCard label="Open debts" value={debtors.filter(d=>d.Status==="OUTSTANDING").length} icon="bi-people" hint="Customers with unpaid balances" />
             </div>
             {/* Filter */}
             <div className="mb-3 flex gap-2">
@@ -194,6 +178,7 @@ export default function DebtorsPage() {
           </div>
         )}
       </div>
+      </main>
     </div>
   )
 }
