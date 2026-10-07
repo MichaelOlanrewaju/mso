@@ -351,7 +351,7 @@ input[type="date"]:not([class]):focus {
    daytime use on a phone. ── */
 .fintech-dark {
   --ftk-bg: #F4F6FB;
-  --ftk-bg-hero: radial-gradient(ellipse 140% 60% at 50% -10%, #EAF6FC 0%, #F1F3FB 45%, #F6F7FC 100%);
+  --ftk-bg-hero: #F4F6FB;   /* solid — the old radial glow faded the top of the page */
   --ftk-card: #FFFFFF;
   --ftk-card-border: rgba(19,6,86,0.07);
   --ftk-ink: #16123A;
@@ -604,9 +604,7 @@ tbody tr:hover { background: rgba(23,157,208,.025); }
 ═══════════════════════════════════════════════════════════════ */
 .mso-ops-page {
   --ops-gutter: clamp(14px, 2.2vw, 30px);
-  background:
-    radial-gradient(circle at 90% 0%, rgba(23,157,208,.055), transparent 28rem),
-    linear-gradient(180deg, #f7f9fc 0%, #f3f6fa 100%);
+  background: #f5f7fa;   /* solid — no gradient fade at the top of pages */
   color: var(--mso-ink);
 }
 .mso-ops-page .rounded-card,
@@ -638,8 +636,8 @@ tbody tr:hover { background: rgba(23,157,208,.025); }
 .mso-ops-context {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   margin:0 auto 14px; padding:9px 11px; max-width:1480px;
-  border:1px solid var(--mso-line); border-radius:12px; background:rgba(255,255,255,.86);
-  box-shadow:0 1px 2px rgba(16,24,40,.025); backdrop-filter:blur(12px);
+  border:1px solid var(--mso-line); border-radius:12px; background:#fff;
+  box-shadow:0 1px 2px rgba(16,24,40,.025);
 }
 .mso-ops-context-left,.mso-ops-context-right { display:flex; align-items:center; gap:9px; min-width:0; }
 .mso-ops-context-mark { display:flex; align-items:center; justify-content:center; width:30px; height:30px; flex:0 0 auto; border-radius:9px; background:var(--brand-accent-light); color:var(--brand-accent-dark); }
@@ -724,8 +722,20 @@ tbody tr:hover { background: rgba(23,157,208,.025); }
    --pd-primary / --pd-accent / --pd-tint are set per station on the printed
    document itself (SummaryPage.DailySummaryPrint), so Mobil prints blue and
    M&M prints wine and gold regardless of which other theme is active. */
-.pd-border { border-color: var(--pd-primary, #003D5C) !important; border-color: color-mix(in srgb, var(--pd-primary, #003D5C) 35%, #ffffff) !important; }
+.pd-border { border-color: var(--pd-border, #A6BBC6) !important; }
 .pd-label  { color: var(--pd-primary, #003D5C) !important; }
 .pd-rule   { border-color: var(--pd-primary, #003D5C) !important; }
 .pd-hero   { background: var(--pd-tint, #E1F5FF) !important; border-left: 5px solid var(--pd-accent, #00AAFB) !important; }
 .print-document table thead tr { border-color: var(--pd-primary, #003D5C) !important; }
+
+
+/* Solid status-bar area in the installed phone app.
+   The app draws under the iPhone's see-through status bar, so whatever sat at
+   the very top of the page showed through as a washed-out fade behind the
+   clock. This paints that strip solid white, on every page. It is zero-height
+   in a normal browser tab, so nothing changes there. */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #ffffff; z-index: 99990; pointer-events: none;
+}

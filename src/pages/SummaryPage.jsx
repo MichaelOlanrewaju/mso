@@ -9,6 +9,7 @@ import { useDriveImage } from "../hooks/useDriveImage"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG, litres, litresValue } from "../utils/format"
 import { PrintHeader } from "../components/ui/PrintElements"
+import { printReport } from "../utils/printDoc"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -511,6 +512,15 @@ class SummaryErrorBoundary extends React.Component {
 }
 
 
+/* A plain hex colour (no color-mix) so the PDF export can read it too. */
+function mixWithWhite(hex, amount) {
+  const h = String(hex).replace("#", "")
+  const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16)
+  const mix = c => Math.round(c * amount + 255 * (1 - amount))
+  const r = mix((n >> 16) & 255), g = mix((n >> 8) & 255), b = mix(n & 255)
+  return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("")
+}
+
 function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabel, displayGrandTotal, pmsLitres, agoLitres, pmsRevenue, agoRevenue, livePmsMargin, liveAgoMargin, livePmsMarginAmount, liveAgoMarginAmount, tankData, paymentTotal, expenses, bank, variance, varianceLabel, varianceValue, attention }) {
   const row = (label, value, strong = false) => (
     <div className="flex items-center justify-between gap-4 border-b border-slate-200 py-1.5 last:border-0">
@@ -520,7 +530,7 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
   )
 
   return (
-    <div className="print-document hidden print:block" style={{ "--pd-primary": getStation(station).theme.primary, "--pd-accent": getStation(station).theme.accent, "--pd-tint": getStation(station).theme.primaryLight }}>
+    <div className="print-document hidden print:block" style={{ "--pd-primary": getStation(station).theme.primary, "--pd-accent": getStation(station).theme.accent, "--pd-tint": getStation(station).theme.primaryLight, "--pd-border": mixWithWhite(getStation(station).theme.primary, 0.35) }}>
       <div className="pd-hero mb-3 rounded-[12px] border pd-border p-4">
         <div className="text-[9px] font-extrabold uppercase tracking-[1px] pd-label">{getStation(station).name} · Daily Operations</div>
         <div className="mt-1 flex items-end justify-between gap-4">
@@ -630,6 +640,7 @@ function SummaryInner() {
   const navigate = useNavigate()
   const today = todayISO()
   const [date, setDate] = useState(today)
+  const [printing, setPrinting] = useState(false)
   const [showAllPumpData, setShowAllPumpData] = useState(false)
   const [showAllActivity, setShowAllActivity] = useState(false)
   const { status, report, refresh } = useRecordsData(auth.username, date)
@@ -693,6 +704,14 @@ function SummaryInner() {
     return <div className="fintech-dark min-h-screen" style={{ ...themeVars }} />
   }
 
+  const handlePrint = async () => {
+    if (printing) return
+    setPrinting(true)
+    const r = await printReport([".print-header", ".print-document"], `Daily-Summary-${getStation(activeStation()).short}-${date}.pdf`)
+    setPrinting(false)
+    if (r && r.ok === false) window.alert(r.error)
+  }
+
   const handleShare = async () => {
     if (!report) return
     const text = buildSummaryText(report, date, canSeeMarginAmount)
@@ -712,8 +731,6 @@ function SummaryInner() {
   return (
     <div className="fintech-dark relative overflow-hidden pb-16" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
       <SafeAreaDebug />
-      <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-[0.12] print:hidden" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
-      <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-[0.10] print:hidden" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
 
       {/* Top bar — compact report navigator that works much better on desktop and mobile. */}
       <div
@@ -739,7 +756,7 @@ function SummaryInner() {
             <button type="button" onClick={() => setDate(shiftSummaryDate(date, 1))} disabled={date >= today} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Next day"><i className="bi bi-chevron-right" /></button>
           </div>
           {date !== today && <button type="button" onClick={() => setDate(today)} className="hidden rounded-[12px] px-3 py-2 text-[10px] font-extrabold sm:block" style={{ background: "var(--brand-primary)", color: "white" }}>Today</button>}
-          <button type="button" onClick={() => window.print()} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Print summary"><i className="bi bi-printer" /></button>
+          <button type="button" onClick={handlePrint} disabled={printing || !report} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Print summary"><i className={`bi ${printing ? "bi-hourglass-split" : "bi-printer"}`} /></button>
           <button type="button" onClick={handleShare} className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] sm:flex" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Share summary"><i className="bi bi-share" /></button>
         </div>
       </div>

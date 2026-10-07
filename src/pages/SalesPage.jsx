@@ -317,7 +317,7 @@ function SalesInner() {
   }
 
   return (
-    <div className="mso-ops-page min-h-screen" style={{ background: "linear-gradient(180deg, #F5F3FF 0%, #F1F5FB 220px)" }}>
+    <div className="mso-ops-page min-h-screen" style={{ background: "#F1F5FB" }}>
       <PriceCutoverModal
         open={cutoverProduct === "PMS" || cutoverProduct === "AGO"}
         product={cutoverProduct}
