@@ -9,7 +9,6 @@ import { useDriveImage } from "../hooks/useDriveImage"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG, litres, litresValue } from "../utils/format"
 import { PrintHeader } from "../components/ui/PrintElements"
-import { printReport } from "../utils/printDoc"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -740,8 +739,8 @@ function SummaryInner() {
             <button type="button" onClick={() => setDate(shiftSummaryDate(date, 1))} disabled={date >= today} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Next day"><i className="bi bi-chevron-right" /></button>
           </div>
           {date !== today && <button type="button" onClick={() => setDate(today)} className="hidden rounded-[12px] px-3 py-2 text-[10px] font-extrabold sm:block" style={{ background: "var(--brand-primary)", color: "white" }}>Today</button>}
-          <button type="button" onClick={() => printReport([".print-header", ".print-document"], `Daily Summary — ${getStation(activeStation()).name}`)} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Print summary"><i className="bi bi-printer" /></button>
-          <button type="button" onClick={handleShare} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Share summary"><i className="bi bi-share" /></button>
+          <button type="button" onClick={() => window.print()} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Print summary"><i className="bi bi-printer" /></button>
+          <button type="button" onClick={handleShare} className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] sm:flex" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Share summary"><i className="bi bi-share" /></button>
         </div>
       </div>
 
