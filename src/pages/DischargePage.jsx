@@ -688,7 +688,7 @@ export default function DischargePage() {
       {/* Compact and sticky — always reachable, never eats permanent
           screen space the way the richer stat card below would if it
           stayed pinned too. */}
-      <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),52px)" }}>
+      <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),14px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border transition hover:bg-surface"
