@@ -48,7 +48,7 @@ function ExcessInner() {
   return (
     <div className="mso-ops-page min-h-screen bg-pagebg pb-10">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[100] flex items-center gap-3 border-b border-border bg-white/95 px-4 py-3 backdrop-blur" style={{ paddingTop: "max(var(--sat), 12px)" }}>
+      <div className="sticky top-0 z-[100] flex items-center gap-3 border-b border-border bg-white px-4 py-3 " style={{ paddingTop: "max(var(--sat), 12px)" }}>
         <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
           <i className="bi bi-arrow-left" />

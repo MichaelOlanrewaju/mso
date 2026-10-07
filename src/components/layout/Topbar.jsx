@@ -21,7 +21,7 @@ export default function Topbar({ sidebarOpen, onToggleSidebar, loading, onRefres
   } catch {}
 
   return (
-    <header className="sticky top-0 z-[900] border-b border-border bg-white/95 px-3 pb-3 pt-[max(var(--sat),10px)] backdrop-blur-xl md:px-6 md:py-3">
+    <header className="sticky top-0 z-[900] border-b border-border bg-white px-3 pb-3 pt-[max(var(--sat),10px)] md:px-6 md:py-3">
       <div className="mx-auto flex min-h-[46px] max-w-[1480px] items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <button
