@@ -718,3 +718,14 @@ tbody tr:hover { background: rgba(23,157,208,.025); }
   .mso-workflow-bar, .mso-page-actions, .mso-toolbar-actions { display:none !important; }
   .mso-surface, .mso-table-wrap { box-shadow:none !important; }
 }
+
+
+/* Printed Daily Summary — station colours.
+   --pd-primary / --pd-accent / --pd-tint are set per station on the printed
+   document itself (SummaryPage.DailySummaryPrint), so Mobil prints blue and
+   M&M prints wine and gold regardless of which other theme is active. */
+.pd-border { border-color: var(--pd-primary, #003D5C) !important; border-color: color-mix(in srgb, var(--pd-primary, #003D5C) 35%, #ffffff) !important; }
+.pd-label  { color: var(--pd-primary, #003D5C) !important; }
+.pd-rule   { border-color: var(--pd-primary, #003D5C) !important; }
+.pd-hero   { background: var(--pd-tint, #E1F5FF) !important; border-left: 5px solid var(--pd-accent, #00AAFB) !important; }
+.print-document table thead tr { border-color: var(--pd-primary, #003D5C) !important; }

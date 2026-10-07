@@ -1,9 +1,12 @@
 import React from "react"
 import { activeStation } from "../../utils/station"
+import { toLocalISO } from "../../utils/dateRange"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 
-export function toISO(d) { return d.toISOString().split("T")[0] }
+/* Local calendar date, NOT d.toISOString() (UTC) — see utils/dateRange.js. This is what shifted the week and
+   month ranges one day early for anyone ahead of UTC. */
+export const toISO = toLocalISO
 
 /* Same week/month/year range logic as the main P&L page — Sunday to
    Saturday for week, 1st to actual last day for month, Jan 1 to Dec

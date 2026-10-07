@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom"
 import { activeStation } from "../../utils/station"
 import { naira } from "../../utils/format"
 import { getToken } from "../../utils/session"
+import { toLocalISO } from "../../utils/dateRange"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 
-function toISO(d) { return d.toISOString().split("T")[0] }
+/* Local calendar date, not UTC — see utils/dateRange.js. */
+const toISO = toLocalISO
 
 /* Read-only preview of today's Tank and Pump Analysis — deliberately
    uses the same read-only getStockPL action the page itself uses on

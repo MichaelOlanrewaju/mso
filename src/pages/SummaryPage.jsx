@@ -410,13 +410,18 @@ function SummaryMetric({ icon, label, value, sub, tone = "navy", compact = false
     amber: { bg: "rgba(217,119,6,0.10)", color: "#B45309" },
     violet: { bg: "rgba(124,58,237,0.09)", color: "#6D28D9" },
   }
+  /* "navy" and "cyan" are the brand's two colours, so they follow the station:
+     Mobil blue for Mobil, wine and gold for M&M. */
+  const brand = getStation(activeStation()).theme
+  tones.navy = { bg: `${brand.primary}12`, color: brand.primary }
+  tones.cyan = { bg: `${brand.accent}1F`, color: brand.accentDark }
   const t = tones[tone] || tones.navy
   return (
     <div className={`rounded-[18px] border bg-white ${compact ? "p-3.5" : "p-4"}`} style={{ borderColor: "#E8ECF3", boxShadow: "0 6px 24px rgba(15,23,42,0.045)" }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-extrabold uppercase tracking-[0.75px] text-slate-400">{label}</div>
-          <div className={`ftk-mono mt-1.5 font-black tracking-tight ${compact ? "text-[18px]" : "text-[22px]"}`} style={{ color: "#0F172A" }}>{value}</div>
+          <div className={`ftk-mono mt-1.5 font-black tracking-tight ${compact ? "text-[14px] sm:text-[16px]" : "text-[16px] sm:text-[19px]"}`} style={{ color: "#0F172A", overflowWrap: "anywhere" }}>{value}</div>
           {sub && <div className="mt-1 text-[10.5px] font-medium text-slate-400">{sub}</div>}
         </div>
         {icon && <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: t.bg, color: t.color }}><i className={`bi ${icon}`} /></div>}
@@ -452,7 +457,7 @@ function SummaryStatus({ label, tone = "neutral" }) {
 
 function MiniBar({ value, max, tone = "cyan" }) {
   const width = max > 0 ? Math.min(100, Math.max(3, (value / max) * 100)) : 3
-  const color = tone === "violet" ? "#7C3AED" : tone === "amber" ? "#D97706" : tone === "green" ? "#16A34A" : "#0284C7"
+  const color = tone === "violet" ? "#7C3AED" : tone === "amber" ? "#D97706" : tone === "green" ? "#16A34A" : getStation(activeStation()).theme.accentDark
   return <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} /></div>
 }
 
@@ -515,11 +520,9 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
   )
 
   return (
-    <div className="print-document hidden print:block">
-      <PrintHeader title="Daily Summary" subtitle={dateLabel} />
-
-      <div className="mb-3 rounded-[12px] border border-slate-300 bg-white p-4">
-        <div className="text-[9px] font-extrabold uppercase tracking-[1px] text-slate-500">{getStation(station).name} · Daily Operations</div>
+    <div className="print-document hidden print:block" style={{ "--pd-primary": getStation(station).theme.primary, "--pd-accent": getStation(station).theme.accent, "--pd-tint": getStation(station).theme.primaryLight }}>
+      <div className="pd-hero mb-3 rounded-[12px] border pd-border p-4">
+        <div className="text-[9px] font-extrabold uppercase tracking-[1px] pd-label">{getStation(station).name} · Daily Operations</div>
         <div className="mt-1 flex items-end justify-between gap-4">
           <div>
             <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-slate-500">Fuel sales</div>
@@ -535,15 +538,15 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-3">
-        <div className="rounded-[10px] border border-slate-300 p-3">
-          <div className="text-[9px] font-extrabold uppercase tracking-[0.7px] text-slate-500">PMS</div>
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="text-[9px] font-extrabold uppercase tracking-[0.7px] pd-label">PMS</div>
           <div className="ftk-mono mt-1 text-[16px] font-black text-slate-950">{litres(pmsLitres, { maximumFractionDigits: 2 })}</div>
           <div className="mt-0.5 text-[9.5px] text-slate-600">{naira(pmsRevenue)}</div>
           <div className="mt-1 text-[9px] text-slate-500">Margin: {litres(livePmsMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(livePmsMarginAmount)}`}</div>
           <PriceBands tiers={report.priceTiers?.PMS} tone="print" />
         </div>
-        <div className="rounded-[10px] border border-slate-300 p-3">
-          <div className="text-[9px] font-extrabold uppercase tracking-[0.7px] text-slate-500">AGO</div>
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="text-[9px] font-extrabold uppercase tracking-[0.7px] pd-label">AGO</div>
           <div className="ftk-mono mt-1 text-[16px] font-black text-slate-950">{litres(agoLitres, { maximumFractionDigits: 2 })}</div>
           <div className="mt-0.5 text-[9.5px] text-slate-600">{naira(agoRevenue)}</div>
           <div className="mt-1 text-[9px] text-slate-500">Margin: {litres(liveAgoMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(liveAgoMarginAmount)}`}</div>
@@ -551,17 +554,17 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
         </div>
       </div>
 
-      <div className="mb-3 rounded-[10px] border border-slate-300 p-3">
-        <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Tank Dips</div>
+      <div className="mb-3 rounded-[10px] border pd-border p-3">
+        <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Tank Dips</div>
         <table className="w-full border-collapse">
-          <thead><tr className="border-b border-slate-300"><th className="py-1 text-left text-[8.5px] font-extrabold uppercase text-slate-500">Tank</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Opening</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Closing</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Diff</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Margin</th></tr></thead>
+          <thead><tr className="border-b pd-border"><th className="py-1 text-left text-[8.5px] font-extrabold uppercase text-slate-500">Tank</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Opening</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Closing</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Diff</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Margin</th></tr></thead>
           <tbody>{tankData.map(t => <tr key={t.id} className="border-b border-slate-100 last:border-0"><td className="py-1 text-[9px] font-bold text-slate-800">{t.id} · {t.product}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.closing, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.diff, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.margin, { maximumFractionDigits: 2 })}{t.unit || "L"}</td></tr>)}</tbody>
         </table>
       </div>
 
       <div className="mb-3 grid grid-cols-2 gap-3">
-        <div className="rounded-[10px] border border-slate-300 p-3">
-          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Cash & Reconciliation</div>
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Cash & Reconciliation</div>
           {row("Collected", naira(paymentTotal), true)}
           {row("Expenses", naira(expenses))}
           {row("POS charges", naira((report.pos_mp_charge || 0) + (report.pos_zm_charge || 0)))}
@@ -571,8 +574,8 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
           {row("Variance", variance === null ? "—" : `${varianceValue} · ${varianceLabel}`)}
           {row("Cash-up", report.cashup_status || "Not submitted")}
         </div>
-        <div className="rounded-[10px] border border-slate-300 p-3">
-          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Payment Breakdown</div>
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Payment Breakdown</div>
           {row("Cash", naira(report.cash))}
           {row("POS · M.P", naira(report.pos_mp))}
           {row("POS · Z.M", naira(report.pos_zm))}
@@ -582,8 +585,8 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
       </div>
 
       {(report.lubricant_rev || report.lpg_revenue || report.emtl_amount || report.total_cash_summary) && (
-        <div className="mb-3 rounded-[10px] border border-slate-300 p-3">
-          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Other Operations</div>
+        <div className="mb-3 rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Other Operations</div>
           {row("Lubricant", naira(report.lubricant_rev))}
           {row("LPG", naira(report.lpg_revenue))}
           {row("EMTL", naira(report.emtl_amount))}
@@ -591,8 +594,8 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
         </div>
       )}
 
-      <div className="mb-3 rounded-[10px] border border-slate-300 p-3">
-        <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Daily Status</div>
+      <div className="mb-3 rounded-[10px] border pd-border p-3">
+        <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Daily Status</div>
         <div className="grid grid-cols-3 gap-3 text-[9px]">
           <div><div className="text-slate-500">Day health</div><div className="mt-0.5 font-black text-slate-900">{varianceLabel}</div></div>
           <div><div className="text-slate-500">Margin litres</div><div className="mt-0.5 ftk-mono font-black text-slate-900">{litres(livePmsMargin + liveAgoMargin, { maximumFractionDigits: 2 })}</div></div>
@@ -601,15 +604,15 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
       </div>
 
       {attention?.length > 0 && (
-        <div className="mb-3 rounded-[10px] border border-slate-300 p-3">
-          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Attention</div>
+        <div className="mb-3 rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Attention</div>
           {attention.map((a, i) => <div key={i} className="py-1 text-[9px] text-slate-700"><b>{a.title}</b> — {a.detail}</div>)}
         </div>
       )}
 
-      {report.remarks && <div className="mb-3 rounded-[10px] border border-slate-300 p-3"><div className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.8px] text-slate-500">Manager Notes</div><div className="whitespace-pre-wrap text-[9.5px] leading-relaxed text-slate-700">{report.remarks}</div></div>}
+      {report.remarks && <div className="mb-3 rounded-[10px] border pd-border p-3"><div className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Manager Notes</div><div className="whitespace-pre-wrap text-[9.5px] leading-relaxed text-slate-700">{report.remarks}</div></div>}
 
-      <div className="flex items-center justify-between border-t-2 border-slate-900 pt-2 text-[9px] text-slate-600">
+      <div className="flex items-center justify-between border-t-2 pd-rule pt-2 text-[9px] text-slate-600">
         <span>Submitted by: <b className="text-slate-900">{report.submitted_by || "—"}</b></span>
         <span>Report date: <b className="text-slate-900">{dateLabel}</b></span>
       </div>
@@ -849,10 +852,10 @@ function SummaryInner() {
           return (
             <>
               <div className="print-screen">
-              <div className="mb-5 overflow-hidden rounded-[26px] bg-[#06105A] text-white shadow-[0_18px_50px_rgba(6,16,90,0.18)]">
+              <div className="mb-5 overflow-hidden rounded-[26px] text-white" style={{ background: `linear-gradient(135deg, ${getStation(station).theme.primaryDark} 0%, ${getStation(station).theme.primary} 100%)`, boxShadow: `0 18px 50px ${getStation(station).theme.primary}2E` }}>
                 <div className="relative p-5 sm:p-6 lg:p-7">
-                  <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-300/10 blur-3xl" />
-                  <div className="pointer-events-none absolute bottom-0 right-1/3 h-32 w-32 rounded-full bg-blue-400/10 blur-3xl" />
+                  <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-3xl" style={{ background: `${getStation(station).theme.accent}22` }} />
+                  <div className="pointer-events-none absolute bottom-0 right-1/3 h-32 w-32 rounded-full blur-3xl" style={{ background: `${getStation(station).theme.accent}1A` }} />
                   <div className={`${canSeeMarginAmount ? "lg:grid-cols-[minmax(0,1.45fr)_minmax(250px,0.55fr)]" : ""} relative grid gap-6 lg:items-stretch`}>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -860,7 +863,7 @@ function SummaryInner() {
                         <span className="text-[10px] font-medium text-white/50">{dateLabel}</span>
                       </div>
                       <div className="mt-5 text-[10px] font-extrabold uppercase tracking-[1px] text-white/50">Fuel sales</div>
-                      <div className="ftk-mono mt-1 break-words text-[31px] font-black tracking-[-1.4px] sm:text-[42px] lg:text-[48px]">{naira(displayGrandTotal)}</div>
+                      <div className="ftk-mono mt-1 break-words text-[24px] font-black tracking-[-1px] sm:text-[36px] lg:text-[42px]">{naira(displayGrandTotal)}</div>
                       <div className="mt-1 text-[11px] text-white/55">Live PMS + AGO revenue from pump sessions</div>
                       <div className="mt-5 grid max-w-[520px] grid-cols-2 gap-2 sm:gap-3">
                         <div className="rounded-[15px] border border-white/10 bg-white/[0.07] p-3 sm:p-3.5">
@@ -879,7 +882,7 @@ function SummaryInner() {
                       <div className="flex min-w-0 flex-col justify-between rounded-[20px] border border-white/10 bg-white/[0.07] p-4 sm:p-5">
                         <div>
                           <div className="text-[9px] font-extrabold uppercase tracking-[1px] text-white/45">Day margin</div>
-                          <div className="mt-2 ftk-mono break-words text-[25px] font-black tracking-[-1px] sm:text-[30px]">{naira(livePmsMarginAmount + liveAgoMarginAmount)}</div>
+                          <div className="mt-2 ftk-mono break-words text-[20px] font-black tracking-[-0.5px] sm:text-[26px]">{naira(livePmsMarginAmount + liveAgoMarginAmount)}</div>
                           <div className="mt-1 text-[10.5px] text-white/50">Margin value for {date === today ? "today" : summaryDateShortLabel(date)}</div>
                         </div>
                         <div className="mt-5 grid grid-cols-2 gap-2">
@@ -911,7 +914,7 @@ function SummaryInner() {
                     {[{ key: "PMS", litres: pmsLitres, revenue: pmsRevenue, price: report.pms_price, margin: livePmsMargin, marginAmt: livePmsMarginAmount, tiers: report.priceTiers?.PMS, tone: "cyan" }, { key: "AGO", litres: agoLitres, revenue: agoRevenue, price: report.ago_price, margin: liveAgoMargin, marginAmt: liveAgoMarginAmount, tiers: report.priceTiers?.AGO, tone: "violet" }].map(f => (
                       <div key={f.key}>
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] font-black" style={{ background: f.key === "PMS" ? "#E0F2FE" : "#EDE9FE", color: f.key === "PMS" ? "#0284C7" : "#6D28D9" }}>{f.key}</span><div><div className="text-[12px] font-black text-slate-800">{f.key === "PMS" ? "Premium Motor Spirit" : "Automotive Gas Oil"}</div><div className="text-[9.5px] text-slate-400">{f.tiers?.length > 1 ? "Multiple prices" : f.price > 0 ? `${naira(f.price)}/L` : "Price not recorded"}</div></div></div>
+                          <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] font-black" style={{ background: f.key === "PMS" ? `${getStation(station).theme.accent}22` : "#EDE9FE", color: f.key === "PMS" ? getStation(station).theme.accentDark : "#6D28D9" }}>{f.key}</span><div><div className="text-[12px] font-black text-slate-800">{f.key === "PMS" ? "Premium Motor Spirit" : "Automotive Gas Oil"}</div><div className="text-[9.5px] text-slate-400">{f.tiers?.length > 1 ? "Multiple prices" : f.price > 0 ? `${naira(f.price)}/L` : "Price not recorded"}</div></div></div>
                           <div className="text-right"><div className="ftk-mono text-[14px] font-black text-slate-900">{naira(f.revenue)}</div><div className="text-[9.5px] text-slate-400">{litres(f.litres, { maximumFractionDigits: 2 })}</div></div>
                         </div>
                         <div className="mt-3"><MiniBar value={f.revenue} max={Math.max(pmsRevenue, agoRevenue, 1)} tone={f.tone} /></div>

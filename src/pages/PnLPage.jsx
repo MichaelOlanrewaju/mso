@@ -4,8 +4,10 @@ import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira, litres } from "../utils/format"
+import { naira, litres, litresValue } from "../utils/format"
 import { getToken } from "../utils/session"
+import { readJsonReply } from "../utils/readReply"
+import { toLocalISO } from "../utils/dateRange"
 import { PageHeader, SectionHeader, StatCard, StatusBadge, DataToolbar, EmptyState } from "../components/ui/system/Ui"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
@@ -13,7 +15,9 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
 
-function toISO(d) { return d.toISOString().split("T")[0] }
+/* Local calendar date, NOT d.toISOString() — that works in UTC and made "September" ask for 31 Aug – 29 Sep
+   for anyone in Nigeria (UTC+1). See utils/dateRange.js. */
+const toISO = toLocalISO
 
 /* Confirmed directly: the date picker should be structured, not a
    freeform "pick any two dates" pair — Week always runs Sunday to
@@ -57,7 +61,9 @@ function getAPI(action, extra = {}) {
   url.searchParams.set("action", action)
   url.searchParams.set("station", activeStation())
   Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v))
-  return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+  /* readJsonReply, not r.json(): when Google answers with an error page instead of data, Safari's r.json() fails
+     with "The string did not match the expected pattern". This turns that into a plain-English reason. */
+  return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(readJsonReply)
 }
 
 function SummaryRow({ label, value, tone, hint, expandable, open, onToggle, children }) {
@@ -80,6 +86,74 @@ function SummaryRow({ label, value, tone, hint, expandable, open, onToggle, chil
       )}
       {hint && <div className="border-t border-surface px-4 py-2.5 text-[12px] text-ink-4">{hint}</div>}
       {expandable && open && <div className="border-t border-surface bg-surface">{children}</div>}
+    </div>
+  )
+}
+
+/* PMS, AGO and LPG each get their own line for the selected period (week, month or year), then a total.
+   Before this the page showed ONE litres figure that added all three together — which put LPG's kilograms
+   into the litres and hid how each product was doing.
+   "Margin" is the same daily figure the Summary page shows: what the pumps sold minus what the tank dip
+   says left the tank, summed over the period. Positive means the pumps sold more than the tank lost.
+   Litres and kilograms are never added together — only money is totalled. */
+const PRODUCT_META = [
+  { key: "PMS", label: "PMS", sub: "Petrol", pill: "bg-cyan/10 text-cyan" },
+  { key: "AGO", label: "AGO", sub: "Diesel", pill: "bg-navy/10 text-navy" },
+  { key: "LPG", label: "LPG", sub: "Gas · sold by kg", pill: "bg-amber-light text-amber" },
+]
+const qty = (p, v) => (p.unit === "KG" ? `${litresValue(v)} kg` : litres(v))
+const signed = (n, fmt) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt(Math.abs(n))}`
+const marginTone = n => (n > 0 ? "text-green" : n < 0 ? "text-red" : "text-ink-3")
+
+function ProductBreakdown({ products, totals }) {
+  const other = products.OTHER
+  return (
+    <div className="overflow-hidden rounded-[16px] bg-white shadow-sm" data-testid="product-breakdown">
+      <div className="border-b border-surface px-4 py-3">
+        <div className="text-[12.5px] font-bold text-ink">Sales & margin by product</div>
+        <div className="mt-0.5 text-[11px] leading-relaxed text-ink-4">
+          PMS, AGO and LPG kept separate for this period. Margin is what the pumps sold minus what the tank dip lost, added up from the daily records.
+        </div>
+      </div>
+      {PRODUCT_META.map(m => {
+        const p = products[m.key]
+        if (!p) return null
+        return (
+          <div key={m.key} className="border-b border-surface px-4 py-3" data-testid={`product-${m.key}`}>
+            <div className="mb-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${m.pill}`}>{m.label}</span>
+                <span className="text-[11px] text-ink-4">{m.sub}</span>
+              </div>
+              <div className="mono text-[14px] font-extrabold text-navy">{naira(p.revenue)}</div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div><div className="text-[9.5px] font-bold uppercase tracking-wide text-ink-4">{p.unit === "KG" ? "Sold (kg)" : "Litres sold"}</div><div className="mono mt-0.5 text-[12.5px] font-bold text-ink">{qty(p, p.sold)}</div></div>
+              <div><div className="text-[9.5px] font-bold uppercase tracking-wide text-ink-4">Margin</div><div className={`mono mt-0.5 text-[12.5px] font-bold ${marginTone(p.marginQty)}`}>{signed(p.marginQty, v => qty(p, v))}</div></div>
+              <div><div className="text-[9.5px] font-bold uppercase tracking-wide text-ink-4">Margin value</div><div className={`mono mt-0.5 text-[12.5px] font-bold ${marginTone(p.marginValue)}`}>{signed(p.marginValue, naira)}</div></div>
+            </div>
+          </div>
+        )
+      })}
+      {other && other.revenue > 0 && (
+        <div className="flex items-center justify-between border-b border-surface px-4 py-2.5 text-[12px]">
+          <span className="text-ink-3">Other sales <span className="text-ink-4">(not PMS, AGO or LPG)</span></span>
+          <span className="mono font-bold text-navy">{naira(other.revenue)}</span>
+        </div>
+      )}
+      <div className="bg-surface px-4 py-3.5" data-testid="product-total">
+        <div className="flex items-center justify-between">
+          <div className="text-[13px] font-extrabold text-ink">Total</div>
+          <div className="mono text-[15px] font-extrabold text-navy">{naira(totals.revenue)}</div>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[12px]">
+          <span className="text-ink-3">Total margin value</span>
+          <span className={`mono font-extrabold ${marginTone(totals.marginValue)}`}>{signed(totals.marginValue, naira)}</span>
+        </div>
+        <div className="mt-2 border-t border-black/5 pt-2 text-[11px] leading-relaxed text-ink-4">
+          Fuel litres (PMS + AGO): <strong className="text-ink-3">{litres(totals.fuelLitres)}</strong> · LPG: <strong className="text-ink-3">{litresValue(totals.lpgKg)} kg</strong>
+        </div>
+      </div>
     </div>
   )
 }
@@ -142,7 +216,7 @@ export default function PnLPage() {
               </div>
             </div>
           </div>
-          {data && <StatCard label="Net profit" value={naira(data.netProfit)} hint={`${data.margin}% margin`} icon="bi-graph-up-arrow" tone={data.netProfit >= 0 ? "positive" : "negative"} />}
+          {data && <StatCard label="Net profit" value={naira(data.netProfit)} hint={`${data.margin}% net margin`} icon="bi-graph-up-arrow" tone={data.netProfit >= 0 ? "positive" : "negative"} />}
         </div>
 
       <div className="w-full">
@@ -176,9 +250,15 @@ export default function PnLPage() {
               </div>
             )}
 
+            {/* PMS / AGO / LPG separately, with margin, then the total. Only when the server sends the split
+                (an older backend doesn't — the page then behaves exactly as before). */}
+            {data.products && data.productTotals && <ProductBreakdown products={data.products} totals={data.productTotals} />}
+
             {/* Revenue */}
             <SummaryRow label="Revenue" value={naira(data.revenue)} tone="navy"
-              hint={data.litresSold ? `${litres(data.litresSold)} sold` : "No sales data"}
+              hint={data.products
+                ? `PMS ${litres(data.products.PMS.sold)} · AGO ${litres(data.products.AGO.sold)} · LPG ${litresValue(data.products.LPG.sold)} kg`
+                : (data.litresSold ? `${litres(data.litresSold)} sold` : "No sales data")}
               expandable open={expanded === "revenue"} onToggle={() => setExpanded(v => v === "revenue" ? null : "revenue")}>
               {data.dailyBreakdown?.length > 0 ? [...data.dailyBreakdown].reverse().map(d => (
                 <div key={d.date} className="flex items-center justify-between border-b border-border px-4 py-2.5 text-[12px] last:border-b-0">
