@@ -739,3 +739,20 @@ body::before {
   height: env(safe-area-inset-top, 0px);
   background: #ffffff; z-index: 99990; pointer-events: none;
 }
+
+
+/* Installed phone app: keep the page clear of the iPhone's status-bar blend.
+   iOS blends its status bar into whatever sits directly beneath it, which
+   showed as a grey fade over dark headers and dark full-screen pages (splash,
+   landing, login). Every page now starts a little lower, with the light page
+   colour showing above it, so the blend lands on light-on-light and can't be
+   seen. Only applies in the installed app (display-mode: standalone); browser
+   tabs and desktop are unchanged. */
+@media (display-mode: standalone) {
+  #root { padding-top: 28px; background: #F4F6FB; min-height: 100dvh; box-sizing: border-box; }
+  .dark-entry { margin-top: 0 !important; height: calc(100dvh - 28px) !important; border-radius: 22px 22px 0 0; overflow: hidden; }
+  .dark-entry.fixed { top: 28px !important; height: auto !important; }
+  /* pages that fill the whole screen on their own */
+  #root .min-h-screen { min-height: calc(100dvh - 28px); }
+  #mso-splash { top: 28px !important; border-radius: 22px 22px 0 0; }
+}

@@ -81,7 +81,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="fixed inset-0 flex" style={{ background: "#06091A", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+    <div className="dark-entry fixed inset-0 flex" style={{ background: "#06091A", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
 
       {/* ══ LEFT — brand panel (desktop only) ══ */}
       <div className="relative hidden overflow-hidden lg:flex lg:w-[46%] xl:w-[42%]">

@@ -63,6 +63,12 @@
         transition: opacity .3s ease, visibility .3s ease;
         font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
       }
+      /* Installed phone app: start the dark splash a little below the status bar so
+         the iPhone's blend into it happens over light-on-light (no grey fade). */
+      @media (display-mode: standalone) {
+        html { background: #F4F6FB; }
+        #mso-splash { top: 28px; border-radius: 22px 22px 0 0; }
+      }
       #mso-splash.mso-hide { opacity: 0; visibility: hidden; pointer-events: none; }
 
       .mso-splash-badge {
