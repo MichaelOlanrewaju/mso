@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { activeStation } from "../utils/station"
 import { getStation, pumpsFor } from "../config/stations"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useAttendants, useAttendance } from "../hooks/useAttendants"
 import { usePageTitle } from "../hooks/usePageTitle"
@@ -100,9 +101,9 @@ function AttendanceInner() {
   const absentCount = Object.values(marks).filter(s => s === "Absent").length
 
   return (
-    <div className="min-h-screen bg-pagebg pb-28">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-28">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[100] border-b border-border bg-white/95 px-4 py-3 backdrop-blur" style={{ paddingTop: "max(var(--sat), 12px)" }}>
+      <div className="sticky top-0 z-[100] border-b border-border bg-white px-4 py-3 " style={{ paddingTop: "max(var(--sat), 12px)" }}>
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-ink-3">
@@ -120,6 +121,7 @@ function AttendanceInner() {
       </div>
 
       <div className="mx-auto max-w-[540px] px-4 py-4">
+        <OpsContextStrip area="People Operations" step="Attendance" />
         {(attStatus === "loading" || recStatus === "loading") && (
           <div className="py-16 text-center text-[13px] text-ink-4">Loading…</div>
         )}

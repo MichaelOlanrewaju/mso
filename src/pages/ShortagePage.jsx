@@ -3,6 +3,7 @@ import { activeStation } from "../utils/station"
 import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useShortages, SHORTAGE_CATEGORIES } from "../hooks/useShortages"
 import { useAttendants } from "../hooks/useAttendants"
@@ -84,7 +85,7 @@ export default function ShortagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-pagebg pb-10">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-10">
       <SafeAreaDebug />
       <div
         className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]"
@@ -122,6 +123,7 @@ export default function ShortagePage() {
       </div>
 
       <div className="mx-auto max-w-[520px] px-4 py-5">
+        <OpsContextStrip area="Stock Control" step="Shortage review" tone="warning" />
         {canReport && showForm && (
           <form onSubmit={handleSubmit} className="mb-5 rounded-card border border-border bg-white p-4 shadow-card">
             <div className="mb-3 text-[12px] font-bold uppercase tracking-[0.6px] text-ink-4">Report a Shortage</div>

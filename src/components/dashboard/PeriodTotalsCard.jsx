@@ -80,6 +80,52 @@ function StatRow({ icon, label, value, sub, valueColor, items }) {
   )
 }
 
+/* How the Net figure above is worked out, line by line — every deduction visible, including the oil loss
+   (delivery shortage). The numbers are the same ones the server subtracts, so this always adds up to Net. */
+function NetBreakdown({ bucket }) {
+  const [open, setOpen] = useState(true)
+  const n = (v) => Number(v) || 0
+  const lines = [
+    { label: "Expenses", value: n(bucket.expenses), show: true },
+    { label: "TRF FCMB Truck", value: n(bucket.trfTruck), show: n(bucket.trfTruck) !== 0 },
+    { label: "Amelia", value: n(bucket.amelia), show: n(bucket.amelia) !== 0 },
+    { label: "Cash to MD", value: n(bucket.cashToMd), show: n(bucket.cashToMd) !== 0 },
+    { label: "Station shortage", value: n(bucket.stationShortage), show: n(bucket.stationShortage) !== 0 },
+    { label: "Discharge bought (stock cost)", value: n(bucket.dischargeCost), show: true },
+    { label: "Oil loss (delivery shortage)", value: n(bucket.dischargeShortageAmount), show: true, highlight: true,
+      sub: n(bucket.dischargeShortageLitres) !== 0 ? `${litres(Math.abs(n(bucket.dischargeShortageLitres)))} ${n(bucket.dischargeShortageLitres) > 0 ? "short" : "extra"}` : "none this period" },
+  ].filter(l => l.show)
+  return (
+    <div className="mx-4 mb-2 overflow-hidden rounded-[12px] border border-border">
+      <button type="button" onClick={() => setOpen(o => !o)} className="flex w-full items-center justify-between bg-surface px-3 py-2.5 text-left">
+        <span className="text-[11.5px] font-bold text-ink-2">How Net is worked out</span>
+        <i className={`bi bi-chevron-${open ? "up" : "down"} text-[10px] text-ink-4`} />
+      </button>
+      {open && (
+        <div className="divide-y divide-surface bg-white text-[12px]">
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="font-semibold text-ink-2">Total revenue</span>
+            <span className="mono font-bold text-navy">{naira(bucket.totalRevenue)}</span>
+          </div>
+          {lines.map(l => (
+            <div key={l.label} className={`flex items-center justify-between gap-3 px-3 py-2 ${l.highlight ? "bg-red-light/60" : ""}`}>
+              <div className="min-w-0">
+                <div className={`font-semibold ${l.highlight ? "text-red" : "text-ink-2"}`}>− {l.label}</div>
+                {l.sub && <div className="text-[10.5px] text-ink-4">{l.sub}</div>}
+              </div>
+              <span className={`mono flex-shrink-0 font-bold ${l.highlight && l.value > 0 ? "text-red" : "text-ink-3"}`}>{l.value < 0 ? `+ ${naira(Math.abs(l.value))}` : naira(l.value)}</span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between bg-surface px-3 py-2.5">
+            <span className="font-extrabold text-ink">= Net</span>
+            <span className={`mono text-[13px] font-extrabold ${n(bucket.netProfit) >= 0 ? "text-green" : "text-red"}`}>{naira(bucket.netProfit)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PeriodTotalsCard() {
   const { data, loading } = usePeriodTotals()
   const [period, setPeriod] = useState("yesterday") // "yesterday" | "week" | "month" | "year"
@@ -134,6 +180,8 @@ export default function PeriodTotalsCard() {
         </div>
       </div>
 
+      <NetBreakdown bucket={bucket} />
+
       {/* Fuel sold */}
       <div className="px-4 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.5px] text-ink-4">Fuel Sold</div>
       <div>
@@ -169,8 +217,8 @@ export default function PeriodTotalsCard() {
         <StatRow icon="bi-truck" label="Discharge Bought" value={naira(bucket.dischargeCost)}
           sub={`${litres(bucket.dischargeLitres)} · ${bucket.dischargeCount} record${bucket.dischargeCount !== 1 ? "s" : ""}`}
           valueColor="text-ink" items={bucket.dischargeItems} />
-        <StatRow icon="bi-exclamation-triangle" label="Discharge Shortage" value={naira(bucket.dischargeShortageAmount)}
-          sub={bucket.dischargeShortageLitres > 0 ? litres(bucket.dischargeShortageLitres) + " short" : "None"}
+        <StatRow icon="bi-exclamation-triangle" label="Oil Loss (Discharge Shortage)" value={naira(bucket.dischargeShortageAmount)}
+          sub={bucket.dischargeShortageLitres > 0 ? litres(bucket.dischargeShortageLitres) + " short · taken off Net" : "None"}
           valueColor={bucket.dischargeShortageAmount > 0 ? "text-red" : "text-green"} />
         <StatRow icon="bi-flag" label="Station Shortage" value={naira(bucket.stationShortage)}
           sub={`${bucket.shortageCount} report${bucket.shortageCount !== 1 ? "s" : ""}`}

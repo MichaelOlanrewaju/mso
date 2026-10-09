@@ -5,6 +5,7 @@ import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import DateRow from "../components/dip/DateRow"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
@@ -178,7 +179,7 @@ function CashupInner() {
   ]
 
   return (
-    <div className="min-h-screen bg-pagebg">
+    <div className="mso-ops-page min-h-screen bg-pagebg">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]" style={{ paddingTop: "max(var(--sat), 52px)" }}>
         <button
@@ -198,6 +199,7 @@ function CashupInner() {
       </div>
 
       <div className="mx-auto max-w-[640px] px-4 py-4 pb-[120px]">
+        <OpsContextStrip area="Cash Control" step="Reconciliation" />
         <DateRow date={date} onChange={setDate} supName={auth.name || auth.username} roleLabel={auth.role === "supervisor" ? "Supervisor" : "Cashier"} />
 
         {/* ── STATUS HERO — the one number that matters most, always visible,

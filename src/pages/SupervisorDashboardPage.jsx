@@ -8,6 +8,7 @@ import { usePageTitle } from "../hooks/usePageTitle"
 import { initials, litresValue, litres } from "../utils/format"
 import { getStation } from "../config/stations"
 import { StaffNotifications } from "../components/pwa/PWABanners"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-NG")
@@ -97,11 +98,12 @@ export default function SupervisorDashboardPage() {
     : {}
 
   return (
-    <div className="fintech-dark relative overflow-hidden pb-[100px]" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
+    <div className="mso-ops-page fintech-dark relative overflow-hidden pb-[100px]" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
       <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-[0.12]" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
       <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-[0.10]" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
 
       <div className="relative z-10 mx-auto max-w-[640px] px-5" style={{ paddingTop: "max(var(--sat), 26px)" }}>
+        <OpsContextStrip area="Station Operations" step="Supervisor" />
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-[13px] text-[13px] font-extrabold text-white" style={{ background: "linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))" }}>

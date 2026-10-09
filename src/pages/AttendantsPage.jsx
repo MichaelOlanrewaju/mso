@@ -117,9 +117,9 @@ function AttendantsInner() {
   }
 
   return (
-    <div className="min-h-screen bg-pagebg pb-8">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-8">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[100] flex items-center gap-3 border-b border-border bg-white/95 px-4 py-3 backdrop-blur" style={{ paddingTop: "max(var(--sat), 12px)" }}>
+      <div className="sticky top-0 z-[100] flex items-center gap-3 border-b border-border bg-white px-4 py-3 " style={{ paddingTop: "max(var(--sat), 12px)" }}>
         <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-ink-3">
           <i className="bi bi-arrow-left" />

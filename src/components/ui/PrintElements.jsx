@@ -24,8 +24,8 @@ import { activeStation } from "../../utils/station"
    back to a clean typographic lockup — no broken-image icon. MSO keeps its
    existing file as the fallback for its own key. */
 const LOGO_BY_STATION = {
-  mso: "/images/msostation.jpg",
-  mrs: "/images/mm-oil-and-gas.jpg",
+  mso: "/images/logo-mso.png",
+  mrs: "/images/logo-mrs.png",   // drop M&M's logo at this path and it prints automatically
 }
 
 export function PrintHeader({ title, subtitle }) {
@@ -36,6 +36,13 @@ export function PrintHeader({ title, subtitle }) {
   const stationKey = activeStation()
   const station = getStation(stationKey)
   const LOGO_SRC = LOGO_BY_STATION[stationKey] || LOGO_BY_STATION.mso
+  /* Colours come straight from the station's own theme, NOT from the
+     --brand-* CSS variables. Those variables are painted by a different hook
+     and can still hold MSO blue at print time, which is how an M&M printout
+     ended up blue. Reading the theme here means the printout always matches
+     the station it was printed for. */
+  const { primary, accent } = station.theme
+  const monogram = (station.short || station.name || "").slice(0, 3)
 
   return (
     /* width:100% is what makes the alignment work at all. The element is
@@ -50,15 +57,31 @@ export function PrintHeader({ title, subtitle }) {
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 24,
-        borderBottom: "3px solid var(--brand-primary)",
+        borderBottom: `3px solid ${primary}`,
         paddingBottom: 14,
         marginBottom: 20,
       }}
     >
       {/* ── Left: logo + company ─────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+        {!logoOk && (
+          /* No logo file for this station yet: a clean monogram badge in the
+             station's own colours instead of a broken-image icon. */
+          <div
+            style={{
+              height: 52, minWidth: 52, padding: "0 10px", borderRadius: 10,
+              background: primary, color: accent, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em",
+              printColorAdjust: "exact", WebkitPrintColorAdjust: "exact",
+            }}
+          >
+            {monogram}
+          </div>
+        )}
         {logoOk && (
           <img
+            key={LOGO_SRC}
             src={LOGO_SRC}
             alt=""
             onError={() => setLogoOk(false)}
@@ -83,7 +106,7 @@ export function PrintHeader({ title, subtitle }) {
             style={{
               fontSize: 17,
               fontWeight: 900,
-              color: "var(--brand-primary)",
+              color: primary,
               lineHeight: 1.15,
               letterSpacing: "-0.01em",
             }}
@@ -94,7 +117,7 @@ export function PrintHeader({ title, subtitle }) {
             style={{
               fontSize: 9.5,
               fontWeight: 800,
-              color: "var(--brand-accent)",
+              color: accent,
               letterSpacing: "1.2px",
               textTransform: "uppercase",
               marginTop: 3,

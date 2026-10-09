@@ -8,6 +8,7 @@ import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useExpensesData } from "../hooks/useExpensesData"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira } from "../utils/format"
+import { PageHeader, SectionHeader, StatCard, StatusBadge, DataToolbar, EmptyState } from "../components/ui/system/Ui"
 
 function todayISO() {
   return new Date().toISOString().split("T")[0]
@@ -74,30 +75,14 @@ function ExpensesInner() {
   return (
     <div className="min-h-screen bg-pagebg pb-10">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]" style={{ paddingTop: "max(var(--sat), 52px)" }}>
-        <button
-          type="button"
-          onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2"
-        >
-          <i className="bi bi-arrow-left" />
-        </button>
-        <div className="flex-1">
-          <div className="text-[16px] font-extrabold text-ink">Expenses</div>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            max={todayISO()}
-            className="border-none bg-transparent p-0 text-[10px] text-ink-4 outline-none"
-          />
+      <main className="mso-mobile-page-space mx-auto w-full max-w-[1180px] px-4 py-6 md:px-7 lg:py-8">
+        <PageHeader eyebrow="Finance / Cash Control" title="Expenses" description="Log, review and correct station expenses against the selected business day." back onBack={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} actions={<button type="button" onClick={refresh} className="mso-icon-button" aria-label="Refresh"><i className={`bi bi-arrow-clockwise ${status === "loading" ? "animate-spin-fast" : ""}`} /></button>} />
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-[12px] border border-border bg-white p-3 shadow-sm">
+          <div><div className="mso-stat-label">Business date</div><div className="mt-1 text-[13px] font-bold text-ink">{date}</div></div>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} max={todayISO()} className="h-10 rounded-[9px] border border-border bg-surface px-3 text-[12px] font-bold text-ink" />
         </div>
-        <button type="button" onClick={refresh} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-3">
-          <i className={`bi bi-arrow-clockwise ${status === "loading" ? "animate-spin-fast" : ""}`} />
-        </button>
-      </div>
 
-      <div className="mx-auto max-w-[600px] px-4 py-4">
+      <div className="w-full max-w-[860px]">
         <div className="mb-5 overflow-hidden rounded-card border border-border bg-white shadow-card">
           <div className="flex items-center gap-2.5 border-b border-surface bg-surface px-4 py-3">
             <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[9px] bg-red-light">
@@ -258,6 +243,7 @@ function ExpensesInner() {
             ))}
         </div>
       </div>
+      </main>
     </div>
   )
 }

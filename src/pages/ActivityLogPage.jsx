@@ -5,6 +5,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { getToken } from "../utils/session"
+import { DataTable } from "../components/ui/system/DataTable"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -52,6 +53,7 @@ export default function ActivityLogPage() {
   const [loading, setLoading] = useState(true)
   const [dateFilter, setDateFilter] = useState("")
   const [actionFilterSel, setActionFilterSel] = useState("")
+  const [query, setQuery] = useState("")
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -81,7 +83,7 @@ export default function ActivityLogPage() {
   }
 
   return (
-    <div className="min-h-screen bg-pagebg pb-10">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-10">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
@@ -109,8 +111,9 @@ export default function ActivityLogPage() {
             <option value="">All actions</option>
             {actions.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          {(dateFilter || actionFilterSel) && (
-            <button type="button" onClick={() => { setDateFilter(""); setActionFilterSel("") }}
+          <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search activity" aria-label="Search activity" className="min-w-0 flex-1 rounded-[9px] border border-border bg-white px-2.5 py-1.5 text-[12px] text-ink outline-none focus:border-cyan" />
+          {(dateFilter || actionFilterSel || query) && (
+            <button type="button" onClick={() => { setDateFilter(""); setActionFilterSel(""); setQuery("") }}
               className="rounded-[9px] border border-border bg-white px-2.5 text-[11px] font-bold text-ink-3">
               Clear
             </button>
@@ -130,26 +133,20 @@ export default function ActivityLogPage() {
           </div>
         )}
         {!loading && entries.length > 0 && (
-          <div className="overflow-hidden rounded-[14px] border border-border bg-white shadow-sm">
-            {entries.map((e, i) => {
-              const style = actionStyle(e.action)
-              return (
-                <div key={i} className="flex items-start gap-3 border-b border-surface px-4 py-3 last:border-b-0">
-                  <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full" style={{ background: `${style.color}18` }}>
-                    <i className={`bi ${style.icon} text-[12px]`} style={{ color: style.color }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[12px] font-extrabold text-ink">{e.action}</span>
-                      <span className="flex-shrink-0 text-[10px] text-ink-4">{timeLabel(e.timestamp)}</span>
-                    </div>
-                    <div className="mt-0.5 text-[11.5px] text-ink-3">{e.username || "—"}</div>
-                    {e.detail && <div className="mt-1 break-words text-[11.5px] text-ink-4">{e.detail}</div>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <DataTable
+            rows={entries}
+            search={query}
+            pageSize={12}
+            rowKey={(e) => `${e.timestamp || ""}-${e.username || ""}-${e.action || ""}-${e.detail || ""}`}
+            columns={[
+              { key: "action", label: "Action", render: e => { const style = actionStyle(e.action); return <div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: `${style.color}18`, color: style.color }}><i className={`bi ${style.icon} text-[12px]`} /></span><span className="font-extrabold text-ink">{e.action}</span></div> } },
+              { key: "username", label: "User", value: e => e.username || "—" },
+              { key: "timestamp", label: "When", render: e => <span className="whitespace-nowrap text-ink-3">{timeLabel(e.timestamp)}</span> },
+              { key: "detail", label: "Detail", render: e => <span className="block max-w-[360px] truncate text-ink-4">{e.detail || "—"}</span>, sortable: false },
+            ]}
+            emptyTitle="No matching activity"
+            emptyDescription="Try a different search term or clear the filters."
+          />
         )}
         {!loading && entries.length >= 200 && (
           <div className="mt-3 text-center text-[11px] text-ink-4">Showing the most recent 200 — narrow with a date or action filter to see more.</div>

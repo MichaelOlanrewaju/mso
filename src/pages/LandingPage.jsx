@@ -105,11 +105,11 @@ export default function LandingPage() {
   // in — the redirect effect above fires once auth resolves, but without
   // this guard there's a visible frame of the landing page first.
   if (auth.loading || auth.user) {
-    return <div style={{ width: "100%", height: "100dvh", background: "#06091A" }} />
+    return <div className="dark-entry" style={{ width: "100%", height: "100dvh", background: "#06091A" }} />
   }
 
   return (
-    <div className="relative select-none overflow-hidden"
+    <div className="dark-entry relative select-none overflow-hidden"
       style={{ width: "100%", height: "100dvh", background: "#06091A", fontFamily: "'Plus Jakarta Sans',sans-serif" }}
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
 

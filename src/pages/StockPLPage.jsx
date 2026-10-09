@@ -8,6 +8,7 @@ import { naira, litres } from "../utils/format"
 import { getToken } from "../utils/session"
 import { activeStation } from "../utils/station"
 import { toISO, rangeFor, getAPI, postAPI, Card, Row } from "./stockpl/shared"
+import { addDaysISO } from "../utils/dateRange"
 
 function OverallHero({ overall, pmsTotal, agoTotal, label = "Today" }) {
   const positive = overall >= 0
@@ -321,13 +322,13 @@ export default function StockPLPage() {
         {view === "today" && (
           <div className="mt-3 flex items-center gap-2 rounded-[13px] bg-surface px-2 py-1.5">
             <button type="button"
-              onClick={() => setSelectedDate(d => toISO(new Date(new Date(d).getTime() - 86400000)))}
+              onClick={() => setSelectedDate(d => addDaysISO(d, -1))}
               className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-3"><i className="bi bi-chevron-left text-[12px]" /></button>
             <input type="date" value={selectedDate} max={todayISO}
               onChange={e => e.target.value && setSelectedDate(e.target.value)}
               className="flex-1 rounded-[9px] border-none bg-transparent px-2 py-1 text-center text-[12.5px] font-bold text-ink-3" />
             <button type="button" disabled={isToday}
-              onClick={() => setSelectedDate(d => toISO(new Date(new Date(d).getTime() + 86400000)))}
+              onClick={() => setSelectedDate(d => addDaysISO(d, 1))}
               className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-3 disabled:opacity-30"><i className="bi bi-chevron-right text-[12px]" /></button>
             {!isToday && (
               <button type="button" onClick={() => setSelectedDate(todayISO)}

@@ -13,7 +13,7 @@
 
     <!-- Apple PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="MSO Console" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
@@ -62,6 +62,12 @@
           #06091A;
         transition: opacity .3s ease, visibility .3s ease;
         font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      }
+      /* Installed phone app: start the dark splash a little below the status bar so
+         the iPhone's blend into it happens over light-on-light (no grey fade). */
+      @media (display-mode: standalone) {
+        html { background: #F4F6FB; }
+        #mso-splash { top: 28px; border-radius: 22px 22px 0 0; }
       }
       #mso-splash.mso-hide { opacity: 0; visibility: hidden; pointer-events: none; }
 

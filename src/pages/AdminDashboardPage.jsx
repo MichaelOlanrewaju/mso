@@ -5,6 +5,7 @@ import { useAdminDayRecord, useAdminOverview } from "../hooks/useAdminDayRecord"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { getStation } from "../config/stations"
 import { activeStation } from "../utils/station"
 import { naira, litres } from "../utils/format"
@@ -129,7 +130,7 @@ function AdminInner() {
   ]
 
   return (
-    <div className="min-h-screen bg-pagebg pb-16">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
         <div className="flex items-center gap-3 px-4 pb-3">
@@ -152,6 +153,7 @@ function AdminInner() {
 
       {viewMode === "overview" && (
         <div className="mx-auto max-w-[640px] px-4 py-4">
+        <OpsContextStrip area="Administration" step="Station controls" />
           {overviewStatus === "loading" && (
             <div className="flex items-center justify-center py-16 text-[13px] text-ink-4">
               <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />

@@ -66,7 +66,7 @@ export default function StaffBankDetailsPage() {
   const missingCount = staff.filter(s => !s.accountNumber).length
 
   return (
-    <div className="min-h-screen bg-pagebg pb-8">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-8">
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-white px-4 py-3.5">
         <button type="button"
           onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}

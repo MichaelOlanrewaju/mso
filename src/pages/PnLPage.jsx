@@ -4,15 +4,20 @@ import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
-import { naira, litres } from "../utils/format"
+import { naira, litres, litresValue } from "../utils/format"
 import { getToken } from "../utils/session"
+import { readJsonReply } from "../utils/readReply"
+import { toLocalISO } from "../utils/dateRange"
+import { PageHeader, SectionHeader, StatCard, StatusBadge, DataToolbar, EmptyState } from "../components/ui/system/Ui"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
 
-function toISO(d) { return d.toISOString().split("T")[0] }
+/* Local calendar date, NOT d.toISOString() — that works in UTC and made "September" ask for 31 Aug – 29 Sep
+   for anyone in Nigeria (UTC+1). See utils/dateRange.js. */
+const toISO = toLocalISO
 
 /* Confirmed directly: the date picker should be structured, not a
    freeform "pick any two dates" pair — Week always runs Sunday to
@@ -56,7 +61,9 @@ function getAPI(action, extra = {}) {
   url.searchParams.set("action", action)
   url.searchParams.set("station", activeStation())
   Object.entries(extra).forEach(([k, v]) => url.searchParams.set(k, v))
-  return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
+  /* readJsonReply, not r.json(): when Google answers with an error page instead of data, Safari's r.json() fails
+     with "The string did not match the expected pattern". This turns that into a plain-English reason. */
+  return fetch(url.toString(), { method: "GET", redirect: "follow" }).then(readJsonReply)
 }
 
 function SummaryRow({ label, value, tone, hint, expandable, open, onToggle, children }) {
@@ -79,6 +86,74 @@ function SummaryRow({ label, value, tone, hint, expandable, open, onToggle, chil
       )}
       {hint && <div className="border-t border-surface px-4 py-2.5 text-[12px] text-ink-4">{hint}</div>}
       {expandable && open && <div className="border-t border-surface bg-surface">{children}</div>}
+    </div>
+  )
+}
+
+/* PMS, AGO and LPG each get their own line for the selected period (week, month or year), then a total.
+   Before this the page showed ONE litres figure that added all three together — which put LPG's kilograms
+   into the litres and hid how each product was doing.
+   "Margin" is the same daily figure the Summary page shows: what the pumps sold minus what the tank dip
+   says left the tank, summed over the period. Positive means the pumps sold more than the tank lost.
+   Litres and kilograms are never added together — only money is totalled. */
+const PRODUCT_META = [
+  { key: "PMS", label: "PMS", sub: "Petrol", pill: "bg-cyan/10 text-cyan" },
+  { key: "AGO", label: "AGO", sub: "Diesel", pill: "bg-navy/10 text-navy" },
+  { key: "LPG", label: "LPG", sub: "Gas · sold by kg", pill: "bg-amber-light text-amber" },
+]
+const qty = (p, v) => (p.unit === "KG" ? `${litresValue(v)} kg` : litres(v))
+const signed = (n, fmt) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmt(Math.abs(n))}`
+const marginTone = n => (n > 0 ? "text-green" : n < 0 ? "text-red" : "text-ink-3")
+
+function ProductBreakdown({ products, totals }) {
+  const other = products.OTHER
+  return (
+    <div className="overflow-hidden rounded-[16px] bg-white shadow-sm" data-testid="product-breakdown">
+      <div className="border-b border-surface px-4 py-3">
+        <div className="text-[12.5px] font-bold text-ink">Sales & margin by product</div>
+        <div className="mt-0.5 text-[11px] leading-relaxed text-ink-4">
+          PMS, AGO and LPG kept separate for this period. Margin is what the pumps sold minus what the tank dip lost, added up from the daily records.
+        </div>
+      </div>
+      {PRODUCT_META.map(m => {
+        const p = products[m.key]
+        if (!p) return null
+        return (
+          <div key={m.key} className="border-b border-surface px-4 py-3" data-testid={`product-${m.key}`}>
+            <div className="mb-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${m.pill}`}>{m.label}</span>
+                <span className="text-[11px] text-ink-4">{m.sub}</span>
+              </div>
+              <div className="mono text-[14px] font-extrabold text-navy">{naira(p.revenue)}</div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div><div className="text-[9.5px] font-bold uppercase tracking-wide text-ink-4">{p.unit === "KG" ? "Sold (kg)" : "Litres sold"}</div><div className="mono mt-0.5 text-[12.5px] font-bold text-ink">{qty(p, p.sold)}</div></div>
+              <div><div className="text-[9.5px] font-bold uppercase tracking-wide text-ink-4">Margin</div><div className={`mono mt-0.5 text-[12.5px] font-bold ${marginTone(p.marginQty)}`}>{signed(p.marginQty, v => qty(p, v))}</div></div>
+              <div><div className="text-[9.5px] font-bold uppercase tracking-wide text-ink-4">Margin value</div><div className={`mono mt-0.5 text-[12.5px] font-bold ${marginTone(p.marginValue)}`}>{signed(p.marginValue, naira)}</div></div>
+            </div>
+          </div>
+        )
+      })}
+      {other && other.revenue > 0 && (
+        <div className="flex items-center justify-between border-b border-surface px-4 py-2.5 text-[12px]">
+          <span className="text-ink-3">Other sales <span className="text-ink-4">(not PMS, AGO or LPG)</span></span>
+          <span className="mono font-bold text-navy">{naira(other.revenue)}</span>
+        </div>
+      )}
+      <div className="bg-surface px-4 py-3.5" data-testid="product-total">
+        <div className="flex items-center justify-between">
+          <div className="text-[13px] font-extrabold text-ink">Total</div>
+          <div className="mono text-[15px] font-extrabold text-navy">{naira(totals.revenue)}</div>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[12px]">
+          <span className="text-ink-3">Total margin value</span>
+          <span className={`mono font-extrabold ${marginTone(totals.marginValue)}`}>{signed(totals.marginValue, naira)}</span>
+        </div>
+        <div className="mt-2 border-t border-black/5 pt-2 text-[11px] leading-relaxed text-ink-4">
+          Fuel litres (PMS + AGO): <strong className="text-ink-3">{litres(totals.fuelLitres)}</strong> · LPG: <strong className="text-ink-3">{litresValue(totals.lpgKg)} kg</strong>
+        </div>
+      </div>
     </div>
   )
 }
@@ -125,60 +200,26 @@ export default function PnLPage() {
     <div className="min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
 
-      {/* Dark header */}
-      <div style={{ background: "linear-gradient(135deg,#06091A,#0D1226)" }}>
-        <div className="mx-auto max-w-[640px] px-4 pb-5 pt-[max(var(--sat),52px)] lg:max-w-[960px]">
-          <div className="mb-4 flex items-center gap-3">
-            <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/70">
-              <i className="bi bi-arrow-left" />
-            </button>
-            <div>
-              <div className="text-[17px] font-extrabold text-white">Profit &amp; Loss</div>
-              <div className="text-[10px] text-white/40">{getStation(activeStation()).legalName}</div>
-            </div>
-          </div>
-
-          {/* Week / Month / Year toggle */}
-          <div className="mb-3 flex gap-2">
-            {[["week", "Week"], ["month", "Month"], ["year", "Year"]].map(([m, l]) => (
-              <button key={m} type="button" onClick={() => { setMode(m); setOffset(0) }}
-                className={`flex-1 rounded-[10px] py-2 text-[12px] font-bold ${mode === m ? "bg-cyan text-white" : "bg-white/10 text-white/60"}`}>
-                {l}
-              </button>
-            ))}
-          </div>
-
-          {/* Prev / period label / next */}
-          <div className="mb-4 flex items-center justify-between rounded-[12px] bg-white/5 px-2 py-1.5">
-            <button type="button" onClick={() => setOffset(o => o - 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-white/70 active:bg-white/10">
-              <i className="bi bi-chevron-left" />
-            </button>
-            <div className="text-center">
-              <div className="text-[13px] font-bold text-white">{range.label}</div>
-              {range.subLabel && <div className="text-[10px] text-white/40">{range.subLabel}</div>}
-            </div>
-            <button type="button" onClick={() => setOffset(o => Math.min(0, o + 1))} disabled={offset >= 0}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-white/70 active:bg-white/10 disabled:opacity-30">
-              <i className="bi bi-chevron-right" />
-            </button>
-          </div>
-
-          {/* Big net profit number */}
-          {data && (
-            <>
-              <div className="mb-0.5 text-[9.5px] font-bold uppercase tracking-[1px] text-white/40">Net Profit</div>
-              <div className="mono mb-1 text-[34px] font-extrabold leading-none text-white">
-                {naira(data.netProfit)}
+      <main className="mso-mobile-page-space mx-auto w-full max-w-[1180px] px-4 py-6 md:px-7 lg:py-8">
+        <PageHeader eyebrow="Finance / Performance" title="Profit & Loss" description={`Management view for ${getStation(activeStation()).legalName}.`} back onBack={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} meta={data ? <StatusBadge tone={data.netProfit >= 0 ? "success" : "danger"}>{data.margin}% margin</StatusBadge> : null} />
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_auto]">
+          <div className="mso-surface mso-surface-pad">
+            <div className="mso-eyebrow mb-2">Reporting period</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {[['week','Week'],['month','Month'],['year','Year']].map(([m,l]) => (
+                <button key={m} type="button" onClick={() => { setMode(m); setOffset(0) }} className={`rounded-[9px] border px-3.5 py-2 text-[11px] font-bold transition ${mode===m ? "border-brand bg-brand text-white" : "border-border bg-white text-ink-3 hover:border-brand/30 hover:text-brand"}`}>{l}</button>
+              ))}
+              <div className="ml-0 flex items-center rounded-[9px] border border-border bg-surface p-1">
+                <button type="button" onClick={() => setOffset(o => o - 1)} className="flex h-8 w-8 items-center justify-center rounded-[7px] text-ink-3 hover:bg-white"><i className="bi bi-chevron-left" /></button>
+                <div className="min-w-[150px] px-2 text-center"><div className="text-[12px] font-bold text-ink">{range.label}</div>{range.subLabel && <div className="text-[9px] text-ink-4">{range.subLabel}</div>}</div>
+                <button type="button" onClick={() => setOffset(o => Math.min(0, o + 1))} disabled={offset >= 0} className="flex h-8 w-8 items-center justify-center rounded-[7px] text-ink-3 hover:bg-white disabled:opacity-30"><i className="bi bi-chevron-right" /></button>
               </div>
-              <div className="text-[11px] text-white/40">{data.margin}% margin</div>
-            </>
-          )}
+            </div>
+          </div>
+          {data && <StatCard label="Net profit" value={naira(data.netProfit)} hint={`${data.margin}% net margin`} icon="bi-graph-up-arrow" tone={data.netProfit >= 0 ? "positive" : "negative"} />}
         </div>
-      </div>
 
-      <div className="mx-auto max-w-[640px] px-4 py-4 lg:max-w-[960px]">
+      <div className="w-full">
         {loading && <div className="flex justify-center py-12"><span className="h-6 w-6 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" /></div>}
 
         {!loading && error && (
@@ -205,13 +246,20 @@ export default function PnLPage() {
                 <i className="bi bi-exclamation-triangle-fill mt-0.5 text-[13px] text-amber" />
                 <div className="text-[12px] leading-relaxed text-amber">
                   <strong>{data.dischargeLines.filter(l => !l.priced).length} deliver{data.dischargeLines.filter(l => !l.priced).length !== 1 ? "ies" : "y"} in this period not yet priced by GM.</strong> Their real cost isn't reflected in Stock Cost or Net Profit below until they are.
+                  {data.unpricedShortageLitres > 0 && <> This includes <strong>{litres(data.unpricedShortageLitres)}</strong> of shortage, which can't be valued as oil loss until the delivery is priced.</>}
                 </div>
               </div>
             )}
 
+            {/* PMS / AGO / LPG separately, with margin, then the total. Only when the server sends the split
+                (an older backend doesn't — the page then behaves exactly as before). */}
+            {data.products && data.productTotals && <ProductBreakdown products={data.products} totals={data.productTotals} />}
+
             {/* Revenue */}
             <SummaryRow label="Revenue" value={naira(data.revenue)} tone="navy"
-              hint={data.litresSold ? `${litres(data.litresSold)} sold` : "No sales data"}
+              hint={data.products
+                ? `PMS ${litres(data.products.PMS.sold)} · AGO ${litres(data.products.AGO.sold)} · LPG ${litresValue(data.products.LPG.sold)} kg`
+                : (data.litresSold ? `${litres(data.litresSold)} sold` : "No sales data")}
               expandable open={expanded === "revenue"} onToggle={() => setExpanded(v => v === "revenue" ? null : "revenue")}>
               {data.dailyBreakdown?.length > 0 ? [...data.dailyBreakdown].reverse().map(d => (
                 <div key={d.date} className="flex items-center justify-between border-b border-border px-4 py-2.5 text-[12px] last:border-b-0">
@@ -274,6 +322,30 @@ export default function PnLPage() {
                 hint={data.staffSalaryMonths?.length ? `Approved payroll: ${data.staffSalaryMonths.join(", ")}` : "Approved payroll for this period"} />
             )}
 
+            {/* Oil Loss — fuel paid for but never received (ordered minus actual litres on a delivery).
+                Stock Cost above is only the litres that arrived, so the missing litres are a real extra cost
+                and come off Net Profit here. Shown whenever the server reports it; an overage (negative)
+                nets the loss down. */}
+            {data.oilLoss !== undefined && (data.oilLoss !== 0 || data.oilLossLitres !== 0) && (
+              <SummaryRow label="Oil Loss (delivery shortage)" value={`${data.oilLoss >= 0 ? "− " : "+ "}${naira(Math.abs(data.oilLoss))}`} tone={data.oilLoss >= 0 ? "red" : "green"}
+                hint={`PMS ${litres(data.oilLossByProduct?.PMS?.litres || 0)} · AGO ${litres(data.oilLossByProduct?.AGO?.litres || 0)}${data.oilLossByProduct?.OTHER?.litres ? ` · other ${litres(data.oilLossByProduct.OTHER.litres)}` : ""} short on delivery${data.oilLossByProduct?.PMS?.amount ? ` · PMS loss ${naira(data.oilLossByProduct.PMS.amount)}` : ""}`}
+                expandable open={expanded === "oilLoss"} onToggle={() => setExpanded(v => v === "oilLoss" ? null : "oilLoss")}>
+                {data.dischargeLines?.filter(l => l.shortageLitres).length > 0 ? data.dischargeLines.filter(l => l.shortageLitres).map((l, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5 text-[12px] last:border-b-0">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold text-ink-2">{l.supplier || "—"} · {l.product}</div>
+                      <div className="text-[10.5px] text-ink-4">{l.date} · {l.shortageLitres > 0 ? `${litres(l.shortageLitres)} short` : `${litres(Math.abs(l.shortageLitres))} extra`}</div>
+                    </div>
+                    {l.priced ? (
+                      <span className={`mono flex-shrink-0 font-bold ${l.shortageAmount >= 0 ? "text-red" : "text-green"}`}>{l.shortageAmount >= 0 ? "− " : "+ "}{naira(Math.abs(l.shortageAmount))}</span>
+                    ) : (
+                      <span className="flex-shrink-0 rounded-full bg-amber-light px-2 py-0.5 text-[10px] font-bold text-amber">Not priced</span>
+                    )}
+                  </div>
+                )) : <div className="px-4 py-3 text-[12px] text-ink-4">No shortages for this range.</div>}
+              </SummaryRow>
+            )}
+
             {/* Net Profit */}
             <div className={`overflow-hidden rounded-[16px] shadow-sm ${data.netProfit >= 0 ? "bg-green-light" : "bg-red-light"}`}>
               <div className="flex items-center justify-between px-4 py-4">
@@ -289,12 +361,13 @@ export default function PnLPage() {
                   it's correct. */}
               <div className="border-t border-black/5 px-4 py-3 text-[11px] leading-relaxed text-ink-3">
                 {naira(data.revenue)} revenue − {naira(data.stockCost)} stock − {naira(data.expenses)} expenses
-                {data.staffSalary > 0 ? ` − ${naira(data.staffSalary)} salary` : ""} = <strong>{naira(data.netProfit)}</strong>
+                {data.staffSalary > 0 ? ` − ${naira(data.staffSalary)} salary` : ""}{data.oilLoss ? ` ${data.oilLoss >= 0 ? "−" : "+"} ${naira(Math.abs(data.oilLoss))} oil loss` : ""} = <strong>{naira(data.netProfit)}</strong>
               </div>
             </div>
           </div>
         )}
       </div>
+      </main>
     </div>
   )
 }

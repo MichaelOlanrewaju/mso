@@ -6,6 +6,7 @@ import SafeAreaDebug from "../components/ui/SafeAreaDebug"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { getToken } from "../utils/session"
+import { PageHeader, SectionHeader, StatCard, StatusBadge, DataToolbar, EmptyState } from "../components/ui/system/Ui"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -66,26 +67,15 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-pagebg pb-16">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[200] border-b border-border bg-white shadow-sm" style={{ paddingTop: "max(var(--sat),52px)" }}>
-        <div className="flex items-center gap-3 px-4 pb-2.5">
-          <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-border bg-surface text-ink-2">
-            <i className="bi bi-arrow-left" />
-          </button>
-          <div className="flex-1">
-            <div className="text-[16px] font-extrabold text-ink">Stock Orders</div>
-            <div className="text-[10px] text-ink-4">Order tracking — {getStation(activeStation()).name}</div>
-          </div>
-        </div>
-        <div className="flex border-t border-border">
-          {[["list","Orders"],["new","Place Order"]].map(([k,l])=>(
-            <button key={k} type="button" onClick={()=>setTab(k)}
-              className={`flex-1 py-2.5 text-[12.5px] font-bold ${tab===k?"border-b-2 border-navy text-navy":"text-ink-4"}`}>{l}</button>
+      <main className="mso-mobile-page-space mx-auto w-full max-w-[1180px] px-4 py-6 md:px-7 lg:py-8">
+        <PageHeader eyebrow="Inventory / Procurement" title="Stock Orders" description={`Order tracking for ${getStation(activeStation()).name}.`} back onBack={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} />
+        <div className="mb-5 flex gap-2 border-b border-border">
+          {[['list','Orders'],['new','Place Order']].map(([k,l])=>(
+            <button key={k} type="button" onClick={()=>setTab(k)} className={`border-b-2 px-3 py-2.5 text-[12px] font-bold transition ${tab===k?"border-brand text-brand":"border-transparent text-ink-4 hover:text-ink"}`}>{l}</button>
           ))}
         </div>
-      </div>
 
-      <div className="mx-auto max-w-[640px] px-4 py-4">
+      <div className="w-full">
         {feedback && (
           <div className={`mb-4 flex items-center gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok?"border-green/20 bg-green-light text-green":"border-red/20 bg-red-light text-red"}`}>
             <i className={`bi ${feedback.ok?"bi-check-circle-fill":"bi-exclamation-circle-fill"}`} />
@@ -170,6 +160,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+      </main>
     </div>
   )
 }

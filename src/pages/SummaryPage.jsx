@@ -9,6 +9,7 @@ import { useDriveImage } from "../hooks/useDriveImage"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG, litres, litresValue } from "../utils/format"
 import { PrintHeader } from "../components/ui/PrintElements"
+import { printReport } from "../utils/printDoc"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
@@ -32,7 +33,56 @@ function PhotoThumb({ fileId, onClick }) {
 }
 
 function todayISO() {
-  return new Date().toISOString().split("T")[0]
+  const n = new Date()
+  const y = n.getFullYear()
+  const m = String(n.getMonth() + 1).padStart(2, "0")
+  const d = String(n.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
+/* When a day was sold at more than one price (a mid-day price change), show each price band:
+   litres @ price = amount. Restored — the redesign had dropped it, and it is the only place a
+   price-change day is visible at a glance. Renders nothing for an ordinary single-price day. */
+function PriceBands({ tiers, tone = "screen" }) {
+  if (!tiers || tiers.length < 2) return null
+  const print = tone === "print"
+  return (
+    <div className={print ? "mt-1.5 space-y-0.5 border-t border-slate-200 pt-1.5" : "mt-2 space-y-1 border-t border-slate-100 pt-2"}>
+      {tiers.map((t, i) => (
+        <div key={i} className={`flex justify-between ${print ? "text-[9px] text-slate-600" : "text-[10px] text-slate-500"}`}>
+          <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
+          <span className="ftk-mono font-semibold">{naira(t.amount)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* The date control is a native <input type="date"> laid invisibly over a label. On a phone a tap
+   opens the calendar, but desktop browsers only open it from the tiny built-in icon — clicking the
+   label did nothing. showPicker() opens it wherever you click. Wrapped because some browsers
+   refuse it (or lack it); the input still works by keyboard there. */
+function openDatePicker(e) {
+  try { if (typeof e.currentTarget.showPicker === "function") e.currentTarget.showPicker() } catch (_) { /* fall back to native behaviour */ }
+}
+
+function summaryDateLabel(value) {
+  if (!value) return "—"
+  return new Date(`${value}T00:00:00`).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+}
+
+function summaryDateShortLabel(value) {
+  if (!value) return "—"
+  return new Date(`${value}T00:00:00`).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })
+}
+
+function shiftSummaryDate(value, delta) {
+  const d = new Date(`${value}T00:00:00`)
+  d.setDate(d.getDate() + delta)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
 }
 
 function liveDiff(report, tankId) {
@@ -352,6 +402,234 @@ function Row({ label, value, bold, tone, sub }) {
   )
 }
 
+function SummaryMetric({ icon, label, value, sub, tone = "navy", compact = false }) {
+  const tones = {
+    navy: { bg: "rgba(6,15,90,0.07)", color: "var(--brand-primary)" },
+    cyan: { bg: "rgba(14,165,233,0.10)", color: "#0284C7" },
+    green: { bg: "rgba(22,163,74,0.10)", color: "#15803D" },
+    red: { bg: "rgba(220,38,38,0.09)", color: "#DC2626" },
+    amber: { bg: "rgba(217,119,6,0.10)", color: "#B45309" },
+    violet: { bg: "rgba(124,58,237,0.09)", color: "#6D28D9" },
+  }
+  /* "navy" and "cyan" are the brand's two colours, so they follow the station:
+     Mobil blue for Mobil, wine and gold for M&M. */
+  const brand = getStation(activeStation()).theme
+  tones.navy = { bg: `${brand.primary}12`, color: brand.primary }
+  tones.cyan = { bg: `${brand.accent}1F`, color: brand.accentDark }
+  const t = tones[tone] || tones.navy
+  return (
+    <div className={`rounded-[18px] border bg-white ${compact ? "p-3.5" : "p-4"}`} style={{ borderColor: "#E8ECF3", boxShadow: "0 6px 24px rgba(15,23,42,0.045)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-extrabold uppercase tracking-[0.75px] text-slate-400">{label}</div>
+          <div className={`ftk-mono mt-1.5 font-black tracking-tight ${compact ? "text-[14px] sm:text-[16px]" : "text-[16px] sm:text-[19px]"}`} style={{ color: "#0F172A", overflowWrap: "anywhere" }}>{value}</div>
+          {sub && <div className="mt-1 text-[10.5px] font-medium text-slate-400">{sub}</div>}
+        </div>
+        {icon && <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: t.bg, color: t.color }}><i className={`bi ${icon}`} /></div>}
+      </div>
+    </div>
+  )
+}
+
+function SummarySection({ title, eyebrow, action, children, className = "" }) {
+  return (
+    <section className={`rounded-[22px] border bg-white p-4 sm:p-5 ${className}`} style={{ borderColor: "#E7EBF2", boxShadow: "0 8px 28px rgba(15,23,42,0.045)" }}>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          {eyebrow && <div className="mb-1 text-[9px] font-extrabold uppercase tracking-[1px] text-slate-400">{eyebrow}</div>}
+          <h2 className="text-[14px] font-black tracking-[-0.2px] text-slate-900">{title}</h2>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function SummaryStatus({ label, tone = "neutral" }) {
+  const styles = {
+    good: ["#ECFDF3", "#15803D", "bi-check-circle-fill"],
+    warning: ["#FFF7ED", "#B45309", "bi-exclamation-circle-fill"],
+    danger: ["#FEF2F2", "#DC2626", "bi-x-circle-fill"],
+    neutral: ["#F1F5F9", "#64748B", "bi-clock-fill"],
+  }[tone] || ["#F1F5F9", "#64748B", "bi-clock-fill"]
+  return <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold" style={{ background: styles[0], color: styles[1] }}><i className={`bi ${styles[2]}`} />{label}</span>
+}
+
+function MiniBar({ value, max, tone = "cyan" }) {
+  const width = max > 0 ? Math.min(100, Math.max(3, (value / max) * 100)) : 3
+  const color = tone === "violet" ? "#7C3AED" : tone === "amber" ? "#D97706" : tone === "green" ? "#16A34A" : getStation(activeStation()).theme.accentDark
+  return <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} /></div>
+}
+
+function ExceptionRow({ icon, title, detail, tone = "warning" }) {
+  const colors = { warning: ["#FFF7ED", "#B45309"], danger: ["#FEF2F2", "#DC2626"], good: ["#ECFDF3", "#15803D"] }[tone]
+  return (
+    <div className="flex items-start gap-3 rounded-[15px] border p-3" style={{ borderColor: "#EEF1F5", background: "#FBFCFE" }}>
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]" style={{ background: colors[0], color: colors[1] }}><i className={`bi ${icon}`} /></div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12px] font-extrabold text-slate-800">{title}</div>
+        <div className="mt-0.5 text-[10.5px] leading-relaxed text-slate-400">{detail}</div>
+      </div>
+    </div>
+  )
+}
+
+
+class SummaryErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, message: "" }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, message: error?.message || "An unexpected error occurred." }
+  }
+
+  componentDidCatch(error) {
+    console.error("Daily Summary failed to render:", error)
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children
+    return (
+      <div className="min-h-screen bg-slate-50 px-5 py-16 text-center">
+        <div className="mx-auto max-w-md rounded-[24px] border border-slate-200 bg-white p-7 shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <i className="bi bi-exclamation-triangle-fill text-xl" />
+          </div>
+          <h1 className="mt-4 text-lg font-black text-slate-900">Daily Summary could not open</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">The report encountered an unexpected display error. Refresh the page and try again.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white">Reload Daily Summary</button>
+          <details className="mt-5 text-left">
+            <summary className="cursor-pointer text-[11px] font-bold text-slate-400">Technical detail</summary>
+            <pre className="mt-2 overflow-auto rounded-lg bg-slate-50 p-3 text-[10px] text-slate-500">{this.state.message}</pre>
+          </details>
+        </div>
+      </div>
+    )
+  }
+}
+
+
+/* A plain hex colour (no color-mix) so the PDF export can read it too. */
+function mixWithWhite(hex, amount) {
+  const h = String(hex).replace("#", "")
+  const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16)
+  const mix = c => Math.round(c * amount + 255 * (1 - amount))
+  const r = mix((n >> 16) & 255), g = mix((n >> 8) & 255), b = mix(n & 255)
+  return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("")
+}
+
+function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabel, displayGrandTotal, pmsLitres, agoLitres, pmsRevenue, agoRevenue, livePmsMargin, liveAgoMargin, livePmsMarginAmount, liveAgoMarginAmount, tankData, paymentTotal, expenses, bank, variance, varianceLabel, varianceValue, attention }) {
+  const row = (label, value, strong = false) => (
+    <div className="flex items-center justify-between gap-4 border-b border-slate-200 py-1.5 last:border-0">
+      <span className="text-[10px] text-slate-600">{label}</span>
+      <span className={`ftk-mono text-right text-[10px] ${strong ? "font-black" : "font-semibold"} text-slate-900`}>{value}</span>
+    </div>
+  )
+
+  return (
+    <div className="print-document hidden print:block" style={{ "--pd-primary": getStation(station).theme.primary, "--pd-accent": getStation(station).theme.accent, "--pd-tint": getStation(station).theme.primaryLight, "--pd-border": mixWithWhite(getStation(station).theme.primary, 0.35) }}>
+      <div className="pd-hero mb-3 rounded-[12px] border pd-border p-4">
+        <div className="text-[9px] font-extrabold uppercase tracking-[1px] pd-label">{getStation(station).name} · Daily Operations</div>
+        <div className="mt-1 flex items-end justify-between gap-4">
+          <div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-slate-500">Fuel sales</div>
+            <div className="ftk-mono mt-1 text-[25px] font-black text-slate-950">{naira(displayGrandTotal)}</div>
+          </div>
+          {canSeeMarginAmount && (
+            <div className="text-right">
+              <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-slate-500">Day margin</div>
+              <div className="ftk-mono mt-1 text-[18px] font-black text-slate-950">{naira(livePmsMarginAmount + liveAgoMarginAmount)}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="text-[9px] font-extrabold uppercase tracking-[0.7px] pd-label">PMS</div>
+          <div className="ftk-mono mt-1 text-[16px] font-black text-slate-950">{litres(pmsLitres, { maximumFractionDigits: 2 })}</div>
+          <div className="mt-0.5 text-[9.5px] text-slate-600">{naira(pmsRevenue)}</div>
+          <div className="mt-1 text-[9px] text-slate-500">Margin: {litres(livePmsMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(livePmsMarginAmount)}`}</div>
+          <PriceBands tiers={report.priceTiers?.PMS} tone="print" />
+        </div>
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="text-[9px] font-extrabold uppercase tracking-[0.7px] pd-label">AGO</div>
+          <div className="ftk-mono mt-1 text-[16px] font-black text-slate-950">{litres(agoLitres, { maximumFractionDigits: 2 })}</div>
+          <div className="mt-0.5 text-[9.5px] text-slate-600">{naira(agoRevenue)}</div>
+          <div className="mt-1 text-[9px] text-slate-500">Margin: {litres(liveAgoMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(liveAgoMarginAmount)}`}</div>
+          <PriceBands tiers={report.priceTiers?.AGO} tone="print" />
+        </div>
+      </div>
+
+      <div className="mb-3 rounded-[10px] border pd-border p-3">
+        <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Tank Dips</div>
+        <table className="w-full border-collapse">
+          <thead><tr className="border-b pd-border"><th className="py-1 text-left text-[8.5px] font-extrabold uppercase text-slate-500">Tank</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Opening</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Closing</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Diff</th><th className="py-1 text-right text-[8.5px] font-extrabold uppercase text-slate-500">Margin</th></tr></thead>
+          <tbody>{tankData.map(t => <tr key={t.id} className="border-b border-slate-100 last:border-0"><td className="py-1 text-[9px] font-bold text-slate-800">{t.id} · {t.product}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.closing, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.diff, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-1 text-right text-[9px] text-slate-700">{numberNG(t.margin, { maximumFractionDigits: 2 })}{t.unit || "L"}</td></tr>)}</tbody>
+        </table>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Cash & Reconciliation</div>
+          {row("Collected", naira(paymentTotal), true)}
+          {row("Expenses", naira(expenses))}
+          {row("POS charges", naira((report.pos_mp_charge || 0) + (report.pos_zm_charge || 0)))}
+          {row("Cash to bank", naira(bank), true)}
+          {(report.excess_items || []).length > 0 && row("Excess (to Cash At Hand)", `+${naira(report.excess_items.reduce((sum, e) => sum + (Number(e.amount) || 0), 0))}`)}
+          {(report.excess_items || []).map((e, i) => <React.Fragment key={i}>{row(`   ${e.description || "Excess"}`, `+${naira(Number(e.amount) || 0)}`)}</React.Fragment>)}
+          {row("Variance", variance === null ? "—" : `${varianceValue} · ${varianceLabel}`)}
+          {row("Cash-up", report.cashup_status || "Not submitted")}
+        </div>
+        <div className="rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Payment Breakdown</div>
+          {row("Cash", naira(report.cash))}
+          {row("POS · M.P", naira(report.pos_mp))}
+          {row("POS · Z.M", naira(report.pos_zm))}
+          {row("Transfer · M.P", naira(report.trf_mp))}
+          {row("Transfer · Z.B Amelia", naira(report.trf_zb_amelia))}
+        </div>
+      </div>
+
+      {(report.lubricant_rev || report.lpg_revenue || report.emtl_amount || report.total_cash_summary) && (
+        <div className="mb-3 rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Other Operations</div>
+          {row("Lubricant", naira(report.lubricant_rev))}
+          {row("LPG", naira(report.lpg_revenue))}
+          {row("EMTL", naira(report.emtl_amount))}
+          {report.total_cash_summary ? row("Sales cash total", naira(report.total_cash_summary), true) : null}
+        </div>
+      )}
+
+      <div className="mb-3 rounded-[10px] border pd-border p-3">
+        <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Daily Status</div>
+        <div className="grid grid-cols-3 gap-3 text-[9px]">
+          <div><div className="text-slate-500">Day health</div><div className="mt-0.5 font-black text-slate-900">{varianceLabel}</div></div>
+          <div><div className="text-slate-500">Margin litres</div><div className="mt-0.5 ftk-mono font-black text-slate-900">{litres(livePmsMargin + liveAgoMargin, { maximumFractionDigits: 2 })}</div></div>
+          <div><div className="text-slate-500">Margin %</div><div className="mt-0.5 ftk-mono font-black text-slate-900">{displayGrandTotal > 0 ? `${((livePmsMarginAmount + liveAgoMarginAmount) / displayGrandTotal * 100).toFixed(1)}%` : "—"}</div></div>
+        </div>
+      </div>
+
+      {attention?.length > 0 && (
+        <div className="mb-3 rounded-[10px] border pd-border p-3">
+          <div className="mb-1.5 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Attention</div>
+          {attention.map((a, i) => <div key={i} className="py-1 text-[9px] text-slate-700"><b>{a.title}</b> — {a.detail}</div>)}
+        </div>
+      )}
+
+      {report.remarks && <div className="mb-3 rounded-[10px] border pd-border p-3"><div className="mb-1 text-[9px] font-extrabold uppercase tracking-[0.8px] pd-label">Manager Notes</div><div className="whitespace-pre-wrap text-[9.5px] leading-relaxed text-slate-700">{report.remarks}</div></div>}
+
+      <div className="flex items-center justify-between border-t-2 pd-rule pt-2 text-[9px] text-slate-600">
+        <span>Submitted by: <b className="text-slate-900">{report.submitted_by || "—"}</b></span>
+        <span>Report date: <b className="text-slate-900">{dateLabel}</b></span>
+      </div>
+    </div>
+  )
+}
+
 function SummaryInner() {
   const auth = useAuth({ requireAuth: true })
   /* Margin amount (the naira value) is a financial figure — supervisors
@@ -362,6 +640,9 @@ function SummaryInner() {
   const navigate = useNavigate()
   const today = todayISO()
   const [date, setDate] = useState(today)
+  const [printing, setPrinting] = useState(false)
+  const [showAllPumpData, setShowAllPumpData] = useState(false)
+  const [showAllActivity, setShowAllActivity] = useState(false)
   const { status, report, refresh } = useRecordsData(auth.username, date)
 
   /* Discharge for this specific date — same reasoning as Records: without
@@ -423,6 +704,14 @@ function SummaryInner() {
     return <div className="fintech-dark min-h-screen" style={{ ...themeVars }} />
   }
 
+  const handlePrint = async () => {
+    if (printing) return
+    setPrinting(true)
+    const r = await printReport([".print-header", ".print-document"], `Daily-Summary-${getStation(activeStation()).short}-${date}.pdf`)
+    setPrinting(false)
+    if (r && r.ok === false) window.alert(r.error)
+  }
+
   const handleShare = async () => {
     if (!report) return
     const text = buildSummaryText(report, date, canSeeMarginAmount)
@@ -442,50 +731,42 @@ function SummaryInner() {
   return (
     <div className="fintech-dark relative overflow-hidden pb-16" style={{ background: "var(--ftk-bg-hero)", ...themeVars }}>
       <SafeAreaDebug />
-      <div className="pointer-events-none absolute -right-16 -top-20 h-[260px] w-[260px] rounded-full opacity-[0.12] print:hidden" style={{ background: "var(--ftk-violet)", filter: "blur(60px)" }} />
-      <div className="pointer-events-none absolute -left-20 top-32 h-[200px] w-[200px] rounded-full opacity-[0.10] print:hidden" style={{ background: "var(--ftk-cyan)", filter: "blur(60px)" }} />
 
-      {/* Top bar */}
+      {/* Top bar — compact report navigator that works much better on desktop and mobile. */}
       <div
-        className="sticky top-0 z-[200] flex items-center gap-3 px-4 pb-2.5 print:hidden"
-        style={{ paddingTop: "max(var(--sat), 26px)", background: "rgba(244,246,251,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid var(--ftk-card-border)" }}
+        className="sticky top-0 z-[200] print:hidden"
+        style={{ paddingTop: "max(var(--sat), 18px)", background: "#F4F6FB", borderBottom: "1px solid var(--ftk-card-border)" }}
       >
-        <button
-          type="button"
-          onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]"
-          style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}
-        >
-          <i className="bi bi-arrow-left" />
-        </button>
-        <div className="flex-1">
-          <div className="text-[15px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Daily Summary</div>
-          <label className="mt-0.5 flex items-center gap-1.5 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
-            <i className="bi bi-calendar3" />
-            <input
-              type="date"
-              value={date}
-              max={today}
-              onChange={e => e.target.value && setDate(e.target.value)}
-              className="bg-transparent text-[10.5px] outline-none [color-scheme:light]"
-              style={{ color: "var(--ftk-ink-faint)" }}
-            />
-          </label>
+        <div className="mx-auto flex max-w-[1120px] items-center gap-2.5 px-4 pb-3 sm:px-5 lg:px-6">
+          <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Back to dashboard">
+            <i className="bi bi-arrow-left" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-black" style={{ color: "var(--ftk-ink)" }}>Daily Summary</div>
+            <div className="hidden text-[9px] font-bold uppercase tracking-[0.8px] sm:block" style={{ color: "var(--ftk-ink-faint)" }}>Station performance report</div>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-[14px] p-1" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)" }}>
+            <button type="button" onClick={() => setDate(shiftSummaryDate(date, -1))} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] transition hover:bg-slate-100" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Previous day"><i className="bi bi-chevron-left" /></button>
+            <label className="relative flex min-w-0 items-center gap-1.5 px-1.5 sm:px-2">
+              <i className="bi bi-calendar3 text-[11px]" style={{ color: "var(--ftk-cyan)" }} />
+              <span className="hidden max-w-[170px] truncate text-[10.5px] font-bold sm:block" style={{ color: "var(--ftk-ink-dim)" }}>{date === today ? "Today" : summaryDateShortLabel(date)}</span>
+              <i className="bi bi-chevron-down hidden text-[9px] sm:block" style={{ color: "var(--ftk-ink-faint)" }} />
+              <input type="date" value={date} max={today} onChange={e => e.target.value && setDate(e.target.value)} onClick={openDatePicker} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Choose report date" />
+            </label>
+            <button type="button" onClick={() => setDate(shiftSummaryDate(date, 1))} disabled={date >= today} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Next day"><i className="bi bi-chevron-right" /></button>
+          </div>
+          {date !== today && <button type="button" onClick={() => setDate(today)} className="hidden rounded-[12px] px-3 py-2 text-[10px] font-extrabold sm:block" style={{ background: "var(--brand-primary)", color: "white" }}>Today</button>}
+          <button type="button" onClick={handlePrint} disabled={printing || !report} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Print summary"><i className={`bi ${printing ? "bi-hourglass-split" : "bi-printer"}`} /></button>
+          <button type="button" onClick={handleShare} className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] sm:flex" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Share summary"><i className="bi bi-share" /></button>
         </div>
-        <button type="button" onClick={() => window.print()} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
-          <i className="bi bi-printer" />
-        </button>
-        <button type="button" onClick={handleShare} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[11px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
-          <i className="bi bi-share" />
-        </button>
       </div>
 
-      <div className="print-release relative z-10 mx-auto max-w-[560px] px-4 py-5">
+      <div className="mso-ops-page print-release relative z-10 mx-auto w-full max-w-[1120px] px-4 py-5 sm:px-5 lg:px-6">
         <PrintHeader
           title="Daily Summary"
           subtitle={
             report
-              ? new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+              ? summaryDateLabel(date)
               : undefined
           }
         />
@@ -523,6 +804,14 @@ function SummaryInner() {
           </div>
         )}
 
+        {status === "idle" && (
+          <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
+            <i className="bi bi-cloud-slash text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
+            <div className="text-[14px] font-bold" style={{ color: "var(--ftk-ink)" }}>Summary service is not configured</div>
+            <div className="max-w-[300px] text-[12.5px]" style={{ color: "var(--ftk-ink-faint)" }}>VITE_SCRIPT_URL is missing from the active environment. The application can load, but this report cannot request its daily data.</div>
+          </div>
+        )}
+
         {status === "no-data" && (
           <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
             <i className="bi bi-inbox text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
@@ -540,10 +829,6 @@ function SummaryInner() {
         {status === "ready" && report && (() => {
           const { hasFuelData, fuelRevenue, pmsLitres, agoLitres, pmsRevenue, agoRevenue } = liveFuelData(report)
           const displayGrandTotal = hasFuelData ? fuelRevenue : (report.grand_total || 0)
-          // Live margin, aggregated by product from each tank's live margin —
-          // replaces the stored pms_margin/ago_margin fields, which only ever
-          // reflected whatever SalesLog looked like at the moment dip was
-          // originally submitted.
           const marginByTank = liveMarginByTank(report, station)
           let livePmsMargin = 0, liveAgoMargin = 0
           tanksFor(station).forEach(t => {
@@ -554,407 +839,286 @@ function SummaryInner() {
           liveAgoMargin = Math.round(liveAgoMargin * 100) / 100
           const livePmsMarginAmount = Math.round(livePmsMargin * (report.pms_price || 0) * 100) / 100
           const liveAgoMarginAmount = Math.round(liveAgoMargin * (report.ago_price || 0) * 100) / 100
+          const payments = [
+            ["Cash", Number(report.cash) || 0, "bi-cash-stack", "green"],
+            ["POS · Moniepoint", Number(report.pos_mp) || 0, "bi-credit-card-2-front", "cyan"],
+            ["POS · ZM", Number(report.pos_zm) || 0, "bi-credit-card", "violet"],
+            ["Transfer", Number(report.trf_mp) || 0, "bi-bank", "navy"],
+          ]
+          const paymentTotal = payments.reduce((sum, [, value]) => sum + value, 0)
+          const excessItems = report.excess_items || []
+          const excessTotal = excessItems.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+          const expenses = Number(report.total_expenses) || 0
+          const bank = Number(report.to_bank) || 0
+          const variance = recon?.hasData ? recon.variance : null
+          const varianceTone = variance === null ? "neutral" : Math.abs(variance) < 1 ? "good" : variance < 0 ? "danger" : "good"
+          const varianceLabel = variance === null ? "Pending" : Math.abs(variance) < 1 ? "Balanced" : variance < 0 ? "Shortage" : "Surplus"
+          const varianceValue = variance === null ? "—" : naira(Math.abs(variance))
+          const tankData = tankRows(report, marginByTank)
+          const pumpData = pumpRows(report)
+          const maxTankDiff = Math.max(...tankData.map(t => Number(t.diff) || 0), 1)
+          const maxPumpLitres = Math.max(...pumpData.map(p => Number(p.diff) || 0), 1)
+          const attention = []
+          if (variance !== null && variance < -1) attention.push({ icon: "bi-exclamation-triangle-fill", title: `Cash shortage ${naira(Math.abs(variance))}`, detail: "Collected value is below live fuel sales. Review reconciliation before closing the day.", tone: "danger" })
+          if (report.cashup_status && report.cashup_status !== "APPROVED") attention.push({ icon: "bi-shield-exclamation", title: "Cash reconciliation not approved", detail: `Current status: ${report.cashup_status}. Complete the approval workflow.`, tone: "warning" })
+          if (dischargeToday.length) attention.push({ icon: "bi-truck", title: `${dischargeToday.length} delivery${dischargeToday.length > 1 ? "ies" : "y"} received`, detail: "Tank openings were affected by a delivery. Review the receiving trail below.", tone: "good" })
+          if (!hasFuelData) attention.push({ icon: "bi-fuel-pump", title: "Fuel sales readings incomplete", detail: "No live pump session data was found for this date.", tone: "warning" })
+          if (!attention.length) attention.push({ icon: "bi-check2-circle", title: "No critical exceptions", detail: "The available daily figures are internally consistent.", tone: "good" })
+
+          const dateLabel = new Date(`${date}T00:00:00`).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
           return (
-          <>
-            {/* Hero — Grand Total */}
-            <div className="mb-4 overflow-hidden rounded-[22px] text-white shadow-lift print:hidden" style={{ background: `linear-gradient(135deg, var(--ftk-cyan), var(--ftk-violet))` }}>
-              <div className="p-5">
-                <div className="text-[10px] font-bold uppercase tracking-[1.2px] opacity-70">{getStation(station).name} · {new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}</div>
-                <div className="ftk-mono mt-1.5 text-[32px] font-black tracking-tight">{naira(displayGrandTotal)}</div>
-                <div className="text-[11px] opacity-70">Grand Total</div>
-                {(livePmsMargin !== 0 || liveAgoMargin !== 0) && (
-                  <div className="mt-3 flex gap-4 border-t border-white/20 pt-3 text-[11px] opacity-90">
-                    <div><span className="opacity-70">PMS Margin: </span><span className="ftk-mono font-bold">{litres(livePmsMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` (${naira(livePmsMarginAmount)})`}</span></div>
-                    <div><span className="opacity-70">AGO Margin: </span><span className="ftk-mono font-bold">{litres(liveAgoMargin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` (${naira(liveAgoMarginAmount)})`}</span></div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Print-only plain header (keeps printed output clean, unaffected by screen theme) */}
-            <div className="hidden overflow-hidden rounded-card border border-border bg-white print:block">
-              <div className="border-b border-border px-5 py-4">
-                <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-ink-4">{getStation(station).name} · Daily Summary</div>
-                <div className="mt-1 text-[15px] font-bold text-ink">{new Date(date).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
-                <div className="mono mt-2 text-[24px] font-black text-ink">{naira(displayGrandTotal)}</div>
-              </div>
-            </div>
-
-            {/* PMS / AGO cards, two-up. LPG renders separately below,
-                spanning the full width, rather than forced into a third
-                equal column — tested directly at mobile width first: three
-                equal columns truncated the revenue line (PMS's "₦20,461,497
-                @ ₦1,234/L" doesn't fit a third-width card), so LPG gets its
-                own full-width row instead, which keeps every figure fully
-                readable while still sitting directly under PMS/AGO with no
-                empty gap beside it. LPG shows for any station that actually
-                has an LPG tank configured — checked against the station
-                config itself, not today's data, so it behaves the same as
-                PMS/AGO: always visible, showing 0/blank on a day with
-                nothing recorded yet, rather than disappearing entirely.
-                M&M has no LPG tank at all, so it correctly never shows
-                there. Unit matters here: LPG is sold and priced by the
-                KILOGRAM, never litres, so it gets its own "unit" field
-                instead of the litres()/"/L" formatting PMS/AGO use, rather
-                than mislabeling a weight as a volume. */}
-            <div className="mb-3 grid grid-cols-2 gap-3">
-              {[
-                { label: "PMS", amount: pmsLitres, unit: "L", revenue: pmsRevenue, price: report.pms_price, margin: livePmsMargin, marginAmt: livePmsMarginAmount, tiers: report.priceTiers?.PMS, tint: "var(--ftk-cyan)" },
-                { label: "AGO", amount: agoLitres, unit: "L", revenue: agoRevenue, price: report.ago_price, margin: liveAgoMargin, marginAmt: liveAgoMarginAmount, tiers: report.priceTiers?.AGO, tint: "var(--ftk-violet)" },
-              ].map(f => (
-                <div key={f.label} className="ftk-glass rounded-[18px] p-4">
-                  <div className="mb-1 flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full" style={{ background: f.tint }} />
-                    <span className="text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>{f.label}</span>
-                  </div>
-                  <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litres(f.amount, { maximumFractionDigits: 2 })}</div>
-                  {/* Confirmed directly on a real day (29 August): PMS sold
-                      at ₦1,205, then ₦1,265 after a mid-day change — the
-                      revenue total is genuinely correct, but showing it as
-                      "@ ₦1,243.86/L" implied a single, consistent price that
-                      was never actually charged. The tier breakdown below
-                      already shows the real detail — this line just needs
-                      to stop claiming a specific price when more than one
-                      was used that day. */}
-                  <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>
-                    {naira(f.revenue)} @ {f.tiers?.length > 1 ? "multiple prices" : f.price > 0 ? `${naira(f.price)}/${f.unit}` : `— /${f.unit}`}
-                  </div>
-                  <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                    Margin: {litres(f.margin, { maximumFractionDigits: 2 })}{canSeeMarginAmount && ` · ${naira(f.marginAmt)}`}
-                  </div>
-                  {f.tiers?.length > 1 && (
-                    <div className="mt-2 space-y-0.5 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
-                      {f.tiers.map((t, i) => (
-                        <div key={i} className="flex justify-between text-[10px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                          <span>{litres(t.litres, { maximumFractionDigits: 2 })} @ {naira(t.price)}</span>
-                          <span className="ftk-mono font-semibold" style={{ color: "var(--ftk-ink-dim)" }}>{naira(t.amount)}</span>
+            <>
+              <div className="print-screen">
+              <div className="mb-5 overflow-hidden rounded-[26px] text-white" style={{ background: `linear-gradient(135deg, ${getStation(station).theme.primaryDark} 0%, ${getStation(station).theme.primary} 100%)`, boxShadow: `0 18px 50px ${getStation(station).theme.primary}2E` }}>
+                <div className="relative p-5 sm:p-6 lg:p-7">
+                  <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-3xl" style={{ background: `${getStation(station).theme.accent}22` }} />
+                  <div className="pointer-events-none absolute bottom-0 right-1/3 h-32 w-32 rounded-full blur-3xl" style={{ background: `${getStation(station).theme.accent}1A` }} />
+                  <div className={`${canSeeMarginAmount ? "lg:grid-cols-[minmax(0,1.45fr)_minmax(250px,0.55fr)]" : ""} relative grid gap-6 lg:items-stretch`}>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[1px] text-white/70">Daily operations</span>
+                        <span className="text-[10px] font-medium text-white/50">{dateLabel}</span>
+                      </div>
+                      <div className="mt-5 text-[10px] font-extrabold uppercase tracking-[1px] text-white/50">Fuel sales</div>
+                      <div className="ftk-mono mt-1 break-words text-[24px] font-black tracking-[-1px] sm:text-[36px] lg:text-[42px]">{naira(displayGrandTotal)}</div>
+                      <div className="mt-1 text-[11px] text-white/55">Live PMS + AGO revenue from pump sessions</div>
+                      <div className="mt-5 grid max-w-[520px] grid-cols-2 gap-2 sm:gap-3">
+                        <div className="rounded-[15px] border border-white/10 bg-white/[0.07] p-3 sm:p-3.5">
+                          <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-white/45">PMS</div>
+                          <div className="ftk-mono mt-1 text-[16px] font-black sm:text-[18px]">{litres(pmsLitres, { maximumFractionDigits: 2 })}</div>
+                          <div className="mt-0.5 text-[9.5px] text-white/45">{naira(pmsRevenue)}</div>
                         </div>
-                      ))}
+                        <div className="rounded-[15px] border border-white/10 bg-white/[0.07] p-3 sm:p-3.5">
+                          <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-white/45">AGO</div>
+                          <div className="ftk-mono mt-1 text-[16px] font-black sm:text-[18px]">{litres(agoLitres, { maximumFractionDigits: 2 })}</div>
+                          <div className="mt-0.5 text-[9.5px] text-white/45">{naira(agoRevenue)}</div>
+                        </div>
+                      </div>
+                    </div>
+                    {canSeeMarginAmount && (
+                      <div className="flex min-w-0 flex-col justify-between rounded-[20px] border border-white/10 bg-white/[0.07] p-4 sm:p-5">
+                        <div>
+                          <div className="text-[9px] font-extrabold uppercase tracking-[1px] text-white/45">Day margin</div>
+                          <div className="mt-2 ftk-mono break-words text-[20px] font-black tracking-[-0.5px] sm:text-[26px]">{naira(livePmsMarginAmount + liveAgoMarginAmount)}</div>
+                          <div className="mt-1 text-[10.5px] text-white/50">Margin value for {date === today ? "today" : summaryDateShortLabel(date)}</div>
+                        </div>
+                        <div className="mt-5 grid grid-cols-2 gap-2">
+                          <div className="rounded-[13px] bg-black/10 px-3 py-2.5">
+                            <div className="text-[8.5px] font-bold uppercase tracking-[0.7px] text-white/40">Margin litres</div>
+                            <div className="ftk-mono mt-1 text-[14px] font-black">{litres(livePmsMargin + liveAgoMargin, { maximumFractionDigits: 2 })}</div>
+                          </div>
+                          <div className="rounded-[13px] bg-black/10 px-3 py-2.5">
+                            <div className="text-[8.5px] font-bold uppercase tracking-[0.7px] text-white/40">Margin sales</div>
+                            <div className="ftk-mono mt-1 text-[14px] font-black">{displayGrandTotal > 0 ? `${((livePmsMarginAmount + liveAgoMarginAmount) / displayGrandTotal * 100).toFixed(1)}%` : "—"}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <SummaryMetric icon="bi-wallet2" label="Collected" value={naira(paymentTotal)} sub="Cash + POS + transfer" tone="green" />
+                <SummaryMetric icon="bi-bank" label="Cash to bank" value={naira(bank)} sub={bank > 0 ? "Reported deposit" : "No deposit recorded"} tone="cyan" />
+                <SummaryMetric icon="bi-receipt" label="Expenses" value={naira(expenses)} sub={`${report.expense_items?.length || 0} item${(report.expense_items?.length || 0) === 1 ? "" : "s"}`} tone="amber" />
+                <SummaryMetric icon="bi-fuel-pump" label="Fuel volume" value={`${litres(pmsLitres + agoLitres, { maximumFractionDigits: 2 })}`} sub="PMS + AGO litres" tone="navy" />
+              </div>
+
+              <div className="mb-5 grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+                <SummarySection title="Sales performance" eyebrow="Product mix" action={<span className="text-[10px] font-semibold text-slate-400">Live pump data</span>}>
+                  <div className="space-y-5">
+                    {[{ key: "PMS", litres: pmsLitres, revenue: pmsRevenue, price: report.pms_price, margin: livePmsMargin, marginAmt: livePmsMarginAmount, tiers: report.priceTiers?.PMS, tone: "cyan" }, { key: "AGO", litres: agoLitres, revenue: agoRevenue, price: report.ago_price, margin: liveAgoMargin, marginAmt: liveAgoMarginAmount, tiers: report.priceTiers?.AGO, tone: "violet" }].map(f => (
+                      <div key={f.key}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] font-black" style={{ background: f.key === "PMS" ? `${getStation(station).theme.accent}22` : "#EDE9FE", color: f.key === "PMS" ? getStation(station).theme.accentDark : "#6D28D9" }}>{f.key}</span><div><div className="text-[12px] font-black text-slate-800">{f.key === "PMS" ? "Premium Motor Spirit" : "Automotive Gas Oil"}</div><div className="text-[9.5px] text-slate-400">{f.tiers?.length > 1 ? "Multiple prices" : f.price > 0 ? `${naira(f.price)}/L` : "Price not recorded"}</div></div></div>
+                          <div className="text-right"><div className="ftk-mono text-[14px] font-black text-slate-900">{naira(f.revenue)}</div><div className="text-[9.5px] text-slate-400">{litres(f.litres, { maximumFractionDigits: 2 })}</div></div>
+                        </div>
+                        <div className="mt-3"><MiniBar value={f.revenue} max={Math.max(pmsRevenue, agoRevenue, 1)} tone={f.tone} /></div>
+                        <div className="mt-2 flex items-center justify-between text-[9.5px] text-slate-400"><span>Margin volume: <b className="text-slate-600">{litres(f.margin, { maximumFractionDigits: 2 })}</b></span>{canSeeMarginAmount && <span>Margin value: <b className="text-slate-600">{naira(f.marginAmt)}</b></span>}</div>
+                        <PriceBands tiers={f.tiers} />
+                      </div>
+                    ))}
+                  </div>
+                </SummarySection>
+
+                <SummarySection title="Collection mix" eyebrow="How today's money came in">
+                  <div className="space-y-3">
+                    {payments.map(([label, value, icon, tone]) => (
+                      <div key={label}>
+                        <div className="mb-1.5 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-[11px] font-bold text-slate-600"><i className={`bi ${icon}`} />{label}</div><span className="ftk-mono text-[11px] font-black text-slate-800">{naira(value)}</span></div>
+                        <MiniBar value={value} max={Math.max(paymentTotal, 1)} tone={tone === "green" ? "green" : tone === "violet" ? "violet" : tone === "amber" ? "amber" : "cyan"} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-5 flex items-center justify-between rounded-[15px] bg-slate-50 px-3.5 py-3"><span className="text-[10px] font-extrabold uppercase tracking-[0.6px] text-slate-400">Total collected</span><span className="ftk-mono text-[15px] font-black text-slate-900">{naira(paymentTotal)}</span></div>
+                  {report.pos_proof_file_id && (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3 print:hidden">
+                      <ProofPhotoViewer label="Moniepoint proof" fileId={report.pos_proof_file_id} />
                     </div>
                   )}
-                </div>
-              ))}
-            </div>
-
-            {tanksFor(activeStation()).some(t => t.product === "LPG") && (
-              <div className="ftk-glass mb-4 rounded-[18px] p-4">
-                <div className="mb-1 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: "var(--ftk-amber, #B45309)" }} />
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>LPG</span>
-                </div>
-                <div className="ftk-mono text-[16px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{litresValue(report.lpg_kg || 0, { maximumFractionDigits: 2 })}KG</div>
-                <div className="text-[11px]" style={{ color: "var(--ftk-ink-dim)" }}>{naira(report.lpg_revenue || 0)} @ {report.lpg_price > 0 ? `${naira(report.lpg_price)}/KG` : "— /KG"}</div>
-                <div className="mt-1 text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>Margin: {litresValue(report.lpg_tank_margin || 0, { maximumFractionDigits: 2 })}KG</div>
+                </SummarySection>
               </div>
-            )}
 
-            {/* Discharge received this day — explains why an opening
-                reading might be higher than a plain sales day would
-                produce. The stored opening already includes it (bumped
-                directly the moment discharge was saved); this shows the
-                story behind that number rather than leaving it unexplained
-                on a summary that gets printed or shared. */}
-            {dischargeToday.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>Discharge Received</div>
-                <div className="ftk-glass overflow-hidden rounded-[18px]">
-                  {dischargeToday.map((d, i) => {
-                    const tankMatch = String(d["Product"] || "").toUpperCase().match(/TANK\s*(\d+)|TK\s*(\d+)/)
-                    const tankId = tankMatch ? "TK" + (tankMatch[1] || tankMatch[2]) : null
-                    const received = Number(d["Actual Received"]) || 0
-                    const currentOpen = tankId ? Number(report[`${tankId.toLowerCase()}_opening`]) || 0 : 0
-                    const beforeOpen = currentOpen - received
-                    return (
-                      <div key={i} className="flex items-center justify-between px-4 py-3" style={{ borderTop: i > 0 ? "1px solid var(--ftk-card-border)" : "none" }}>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[12.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{d["Product"]}</div>
-                          <div className="text-[10.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{d["Supplier"]} · {litres(received)} received</div>
-                        </div>
-                        {tankId && (
-                          <div className="flex-shrink-0 text-right">
-                            <div className="ftk-mono text-[11px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                              {litres(beforeOpen)} → <span className="font-bold" style={{ color: "var(--ftk-ink)" }}>{litres(currentOpen)}</span>
-                            </div>
-                            <div className="text-[8.5px] uppercase tracking-[0.4px]" style={{ color: "var(--ftk-ink-faint)" }}>before → current opening</div>
+              <div className="mb-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                <SummarySection title="Stock movement" eyebrow="Tank dip overview" action={<span className="text-[10px] text-slate-400">Opening → closing</span>}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[560px]">
+                      <thead><tr className="border-b border-slate-100 text-left text-[9px] font-extrabold uppercase tracking-[0.6px] text-slate-400"><th className="pb-2">Tank</th><th className="pb-2">Product</th><th className="pb-2">Opening</th><th className="pb-2">Closing</th><th className="pb-2">Sold</th><th className="pb-2 text-right">Margin</th></tr></thead>
+                      <tbody>{tankData.map(t => <tr key={t.id} className="border-b border-slate-50 last:border-0"><td className="py-2.5 text-[11px] font-black text-slate-800">{t.id}</td><td className="py-2.5 text-[10.5px] text-slate-500">{t.product}</td><td className="ftk-mono py-2.5 text-[10.5px] text-slate-600">{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="ftk-mono py-2.5 text-[10.5px] text-slate-600">{numberNG(t.closing, { maximumFractionDigits: 2 })}{t.unit || "L"}</td><td className="py-2.5"><div className="flex items-center gap-2"><div className="w-16"><MiniBar value={Number(t.diff) || 0} max={maxTankDiff} tone={t.product === "AGO" ? "violet" : "cyan"} /></div><span className="ftk-mono text-[10.5px] font-bold text-slate-700">{numberNG(t.diff, { maximumFractionDigits: 2 })}{t.unit || "L"}</span></div></td><td className="ftk-mono py-2.5 text-right text-[10.5px] font-black text-slate-700">{numberNG(t.margin, { maximumFractionDigits: 2 })}{t.unit || "L"}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                  {dischargeToday.length > 0 && <div className="mt-4 rounded-[15px] border border-emerald-100 bg-emerald-50/70 p-3"><div className="mb-2 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.7px] text-emerald-700"><i className="bi bi-truck" /> Deliveries received today</div>{dischargeToday.map((d, i) => <div key={i} className="flex items-center justify-between gap-3 border-t border-emerald-100 py-2 text-[10.5px] text-emerald-800 first:border-0"><span className="font-bold">{d["Product"] || "Fuel delivery"}</span><span className="ftk-mono font-black">{numberNG(Number(d["Actual Received"]) || 0)} L</span></div>)}</div>}
+                </SummarySection>
+
+                <SummarySection title="What needs attention" eyebrow="Manager view">
+                  <div className="space-y-2.5">{attention.slice(0, 4).map((item, i) => <ExceptionRow key={i} {...item} />)}</div>
+                </SummarySection>
+              </div>
+
+              {pumpData.length > 0 && <>
+                <SummarySection
+                  title="Sales by pump"
+                  eyebrow="Fuel performance"
+                  action={pumpData.length > 3 ? (
+                    <button type="button" onClick={() => setShowAllPumpData(v => !v)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-extrabold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50">
+                      {showAllPumpData ? "Show less" : `View all · ${pumpData.length}`}
+                    </button>
+                  ) : null}
+                  className="mb-4"
+                >
+                  <div className="space-y-1">
+                    {pumpData.map((p, i) => {
+                      const fuel = /AGO|DIESEL/i.test(p.pump) ? "AGO" : /LPG|GAS/i.test(p.pump) ? "LPG" : "PMS"
+                      const active = Number(p.sessionCount) > 0 || Number(p.diff) > 0
+                      return (
+                        <div key={p.pump} className={`${!showAllPumpData && i >= 3 ? "hidden" : ""} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 rounded-[13px] px-2.5 py-2.5 transition hover:bg-slate-50 sm:grid-cols-[72px_minmax(0,1fr)_110px_118px]`}>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className={`h-2 w-2 shrink-0 rounded-full ${active ? "bg-emerald-500" : "bg-slate-300"}`} aria-label={active ? "Active" : "Offline"} title={active ? "Active" : "Offline"} />
+                            <span className="text-[11px] font-black text-slate-800">{p.pump}</span>
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Tank dips */}
-            <Section title="Tank Dips">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
-                      {["Tank", "Opening", "Closing", "Diff", "Margin"].map(h => (
-                        <th key={h} className="py-1.5 pr-2 text-left text-[9px] font-bold uppercase tracking-[0.5px] last:text-right" style={{ color: "var(--ftk-ink-faint)" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tankRows(report, marginByTank).map(t => (
-                      <tr key={t.id} style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
-                        <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{t.id} <span className="font-normal" style={{ color: "var(--ftk-ink-faint)" }}>· {t.product}</span></td>
-                        <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.opening, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                        <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.closing, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                        <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{numberNG(t.diff, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                        <td className="ftk-mono py-2 text-right text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{numberNG(t.margin, { maximumFractionDigits: 2 })}{t.unit || "L"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Section>
-
-            {/* Pump readings */}
-            {pumpRows(report).length > 0 && (
-              <Section title="Pump Readings">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
-                        {["Pump", "Sessions", "Litres", "Amount"].map(h => (
-                          <th key={h} className="py-1.5 pr-2 text-left text-[9px] font-bold uppercase tracking-[0.5px] last:text-right" style={{ color: "var(--ftk-ink-faint)" }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pumpRows(report).map(p => (
-                        <React.Fragment key={p.pump}>
-                          <tr style={{ borderBottom: p.priceBreakdown ? "none" : "1px solid var(--ftk-card-border)" }}>
-                            <td className="py-2 pr-2 text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.pump}</td>
-                            <td className="py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-faint)" }}>{p.sessionCount || "—"}</td>
-                            <td className="ftk-mono py-2 pr-2 text-[11.5px]" style={{ color: "var(--ftk-ink-dim)" }}>{litres(p.diff, { maximumFractionDigits: 2 })}</td>
-                            <td className="ftk-mono py-2 text-right text-[11.5px] font-bold" style={{ color: "var(--ftk-ink)" }}>{p.amount > 0 ? naira(p.amount) : "—"}</td>
-                          </tr>
-                          {/* Only shown when this pump genuinely sold at more than
-                              one price that day — a real price change, not just
-                              a normal opening/closing pair. Broken out by price,
-                              same treatment as the PMS/AGO tier breakdown above. */}
-                          {p.priceBreakdown && (
-                            <tr style={{ borderBottom: "1px solid var(--ftk-card-border)" }}>
-                              <td colSpan={4} className="pb-2 pl-3 pr-2">
-                                <div className="space-y-0.5">
-                                  {p.priceBreakdown.map((s, i) => (
-                                    <div key={i} className="flex items-center justify-between text-[10px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                                      <span>{litres(s.litres, { maximumFractionDigits: 2 })} @ {naira(s.price)}</span>
-                                      <span className="ftk-mono font-semibold" style={{ color: "var(--ftk-ink-dim)" }}>{naira(s.amount)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Section>
-            )}
-
-            {/* Photos */}
-            {photos.length > 0 && (
-              <Section title={`Photos (${photos.length})`}>
-                <div className="print:hidden">
-                  {["Morning", "Evening"].map(session => {
-                    const group = photos.filter(p => p.session === session)
-                    if (group.length === 0) return null
-                    return (
-                      <div key={session} className="mb-3 last:mb-0">
-                        <div className="mb-1.5 text-[10px] font-semibold" style={{ color: "var(--ftk-ink-faint)" }}>{session}</div>
-                        <div className="flex flex-wrap gap-2">
-                          {group.map((p, i) => (
-                            <PhotoThumb key={i} fileId={p.fileId} onClick={() => setLightboxPhoto(p)} />
-                          ))}
+                          <div className="min-w-0 sm:col-auto">
+                            <div className="text-[9px] font-extrabold uppercase tracking-[0.65px] text-slate-400">{fuel}</div>
+                            <div className="truncate text-[10px] text-slate-500">{p.sessionCount || 0} session{p.sessionCount === 1 ? "" : "s"}</div>
+                          </div>
+                          <div className="text-right sm:col-auto">
+                            <div className="ftk-mono text-[11px] font-black text-slate-800">{litres(p.diff, { maximumFractionDigits: 2 })}</div>
+                            <div className="text-[8.5px] text-slate-400">volume</div>
+                          </div>
+                          <div className="text-right sm:col-auto">
+                            <div className="ftk-mono text-[11px] font-black text-slate-900">{p.amount > 0 ? naira(p.amount) : "—"}</div>
+                            <div className="text-[8.5px] text-slate-400">sales</div>
+                          </div>
                         </div>
+                      )
+                    })}
+                  </div>
+                </SummarySection>
+
+                <SummarySection
+                  title="Pump activity"
+                  eyebrow="Latest station activity"
+                  action={pumpData.length > 3 ? <button type="button" onClick={() => setShowAllActivity(v => !v)} className="text-[10px] font-extrabold text-slate-500 hover:text-slate-800">{showAllActivity ? "Show less" : "View all"}</button> : null}
+                  className="mb-5"
+                >
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {pumpData.map((p, i) => {
+                      const fuel = /AGO|DIESEL/i.test(p.pump) ? "AGO" : /LPG|GAS/i.test(p.pump) ? "LPG" : "PMS"
+                      const active = Number(p.sessionCount) > 0 || Number(p.diff) > 0
+                      const activity = active ? `${p.pump} recorded ${litres(p.diff, { maximumFractionDigits: 2 })}L` : `${p.pump} has no recorded activity`
+                      return (
+                        <div key={`activity-${p.pump}`} className={`${!showAllActivity && i >= 3 ? "hidden" : ""} flex min-w-0 items-center gap-3 rounded-[14px] border border-slate-100 bg-slate-50/60 px-3 py-2.5`}>
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-[9px] font-black ${active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>{p.pump.replace(/[^0-9]/g, "") || "—"}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-[10.5px] font-black text-slate-800">{fuel} · {active ? "Sale recorded" : "No activity"}</span>
+                              <span className="shrink-0 text-[8.5px] font-semibold text-slate-400">Today</span>
+                            </div>
+                            <div className="mt-0.5 truncate text-[9.5px] text-slate-500">{activity}</div>
+                          </div>
+                          <span className="ftk-mono shrink-0 text-[10.5px] font-black text-slate-800">{p.amount > 0 ? naira(p.amount) : "—"}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </SummarySection>
+              </>}
+
+              <div className="mb-5 grid gap-4 lg:grid-cols-3">
+                <SummarySection title="Cash movement" eyebrow="End-of-day position"><div className="space-y-2.5"><Row label="Collected" value={naira(paymentTotal)} /><Row label="Expenses" value={`−${naira(expenses)}`} tone="amber" /><Row label="POS charges" value={`−${naira((report.pos_mp_charge || 0) + (report.pos_zm_charge || 0))}`} /><div className="border-t border-slate-100 pt-3"><Row label="Cash to bank" value={naira(bank)} bold tone="green" /></div>
+                  {excessItems.length > 0 && (
+                    <div className="border-t border-slate-100 pt-3">
+                      <Row label="Excess" value={`+${naira(excessTotal)}`} tone="green" sub="Extra cash found — counts toward Cash At Hand" />
+                      <div className="ml-2 mt-2 space-y-1 border-l-2 border-green-200 pl-3">
+                        {excessItems.map((e, i) => (
+                          <div key={i} className="flex items-start justify-between gap-3 text-[10.5px] text-slate-500">
+                            <span className="min-w-0 flex-1 break-words">{e.description || "Excess"}</span>
+                            <span className="ftk-mono flex-shrink-0 font-semibold text-green-600">+{naira(Number(e.amount) || 0)}</span>
+                          </div>
+                        ))}
                       </div>
-                    )
-                  })}
-                </div>
-              </Section>
-            )}
-
-            {/* Payments / Expenses / Variance */}
-            <Section>
-              <Row label="Total POS (M.P)" value={naira(report.pos_mp)} />
-              <Row label="Total POS (Z.M)" value={naira(report.pos_zm)} />
-              <Row label="Total TRF (M.P)" value={naira(report.trf_mp)} />
-              <Row label="Cash Collected" value={naira(report.cash)} />
-
-              {(report.trf_zb_amelia > 0 || report.trf_fcmb_truck > 0 || report.trf_fcmb_md > 0) && (
-                <div className="mt-1 space-y-1 border-t pt-2.5" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>Other Transfers</div>
-                  {[
-                    ["TRF to Z.B Amelia", report.trf_zb_amelia],
-                    ["TRF to FCMB Truck", report.trf_fcmb_truck],
-                    ["TRF to FCMB M.D", report.trf_fcmb_md],
-                  ].filter(([, v]) => v > 0).map(([k, v]) => (
-                    <Row key={k} label={k} value={naira(v)} />
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-1 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
-                <Row label="Expenses" value={`−${naira(report.total_expenses)}`} tone="red" />
-              </div>
-
-              {/* What each expense was for — just a plain record of what was
-                  typed. Whatever's entered here IS an expense; this app
-                  doesn't second-guess or relabel it. A real shortage is
-                  detected automatically, by comparing what fuel sales say
-                  should exist against what was actually collected — never by
-                  a person manually re-tagging a specific line item. */}
-              {report.expense_items && report.expense_items.length > 0 && (
-                <div className="ml-3 space-y-1 border-l-2 pl-3" style={{ borderColor: "rgba(220,38,38,0.2)" }}>
-                  {report.expense_items.map((e, i) => (
-                    <div key={i} className="flex items-start justify-between gap-3 py-0.5 text-[12px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                      <span className="min-w-0 flex-1 break-words">{e.description || "Expense"}</span>
-                      <span className="ftk-mono flex-shrink-0 font-semibold">−{naira(Number(e.amount) || 0)}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Extra cash found or deposited beyond what the day's normal
-                  figures explain — was already feeding Cash At Hand, but
-                  never actually visible on the day it happened until now. */}
-              {report.excess_items && report.excess_items.length > 0 && (
-                <div className="mt-1 border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <Row label="Excess" value={`+${naira(report.excess_items.reduce((s, e) => s + (Number(e.amount) || 0), 0))}`} tone="green" />
-                  <div className="ml-3 space-y-1 border-l-2 pl-3" style={{ borderColor: "rgba(22,163,74,0.2)" }}>
-                    {report.excess_items.map((e, i) => (
-                      <div key={i} className="flex items-start justify-between gap-3 py-0.5 text-[12px]" style={{ color: "var(--ftk-ink-faint)" }}>
-                        <span className="min-w-0 flex-1 break-words">{e.description || "Excess"}</span>
-                        <span className="ftk-mono flex-shrink-0 font-semibold" style={{ color: "#16A34A" }}>+{naira(Number(e.amount) || 0)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-1 flex items-center justify-between border-t pt-2.5 text-[12.5px]" style={{ borderColor: "var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }}>
-                <span>POS Charges (MP 0.30% + ZM 0.30% + TRF M.P 0.30%)</span>
-                <span className="ftk-mono font-semibold">−{naira(report.pos_mp_charge + report.pos_zm_charge)}</span>
-              </div>
-              {report.emtl_amount > 0 && <Row label="EMTL" value={naira(report.emtl_amount)} />}
-
-              <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
-                <span className="text-[13.5px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Cash to Bank</span>
-                <span className="ftk-mono text-[19px] font-extrabold" style={{ color: "var(--ftk-green)" }}>{naira(report.to_bank)}</span>
+                  )}
+                </div></SummarySection>
+                <SummarySection title="Other sales" eyebrow="Non-fuel operations"><div className="space-y-2.5"><Row label="Lubricant" value={naira(report.lubricant_rev)} sub={`${report.lubricantItems?.length || 0} line items`} /><Row label="LPG" value={naira(report.lpg_revenue)} sub={report.lpg_kg ? `${numberNG(report.lpg_kg)} kg` : "No LPG recorded"} /><Row label="EMTL" value={naira(report.emtl_amount)} /></div></SummarySection>
+                <SummarySection title="Sales cash summary" eyebrow="Submitted allocation"><div className="space-y-2.5">{[["PMS", report.pms_cash_summary], ["AGO", report.ago_cash_summary], ["OIL", report.oil_cash_summary], ["GAS", report.gas_cash_summary]].map(([k,v]) => <Row key={k} label={k} value={naira(v)} />)}<div className="border-t border-slate-100 pt-3"><Row label="Total" value={naira(report.total_cash_summary)} bold tone="cyan" /></div></div></SummarySection>
               </div>
 
-              {report.pos_proof_file_id && (
-                <div className="mt-2 flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <ProofPhotoViewer label="Moniepoint proof" fileId={report.pos_proof_file_id} />
-                </div>
-              )}
+              {report.remarks && <SummarySection title="Manager notes" eyebrow="Daily remarks" className="mb-5"><div className="rounded-[15px] border border-amber-100 bg-amber-50/60 p-3.5 text-[11.5px] leading-relaxed text-slate-700 whitespace-pre-wrap">{report.remarks}</div></SummarySection>}
 
-              {/* Variance: fuel sold vs everything collected. Same formula and
-                  numbers as the Records page — this and Records should always
-                  agree, since a discrepancy between the two would itself be
-                  confusing. */}
-              {recon && !recon.hasData && (
-                <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <span className="text-[13.5px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Variance</span>
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--ftk-ink-faint)" }}>Pending — awaiting dip/pump readings</span>
-                </div>
-              )}
-              {recon && recon.hasData && (() => {
-                const { variance } = recon
-                const label = Math.abs(variance) < 1 ? "Balanced" : variance < 0 ? "Shortage" : "Surplus"
-                const color = Math.abs(variance) < 1 ? "var(--ftk-green)" : variance < 0 ? "var(--ftk-red)" : "var(--ftk-cyan)"
-                return (
-                  <div className="mt-1 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--ftk-card-border)" }}>
-                    <span className="text-[13.5px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Variance</span>
-                    <div className="text-right">
-                      <div className="ftk-mono text-[15px] font-extrabold" style={{ color }}>{naira(variance)}</div>
-                      <div className="text-[10.5px] font-bold uppercase tracking-[0.5px]" style={{ color }}>{label}</div>
+              {photos.length > 0 && <SummarySection title={`Proof & station photos (${photos.length})`} eyebrow="Supporting evidence" className="mb-5"><div className="print:hidden">{["Morning", "Evening"].map(session => { const group = photos.filter(p => p.session === session); if (!group.length) return null; return <div key={session} className="mb-3 last:mb-0"><div className="mb-2 text-[9px] font-extrabold uppercase tracking-[0.7px] text-slate-400">{session}</div><div className="flex flex-wrap gap-2">{group.map((p,i) => <PhotoThumb key={i} fileId={p.fileId} onClick={() => setLightboxPhoto(p)} />)}</div></div> })}</div></SummarySection>}
+
+              <SummarySection title="Day health" eyebrow="Close-out status" className="mb-5">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-[21px] font-black tracking-tight text-slate-900">{varianceLabel}</div>
+                      <SummaryStatus label={varianceLabel} tone={varianceTone} />
                     </div>
+                    <div className="mt-1 text-[10.5px] text-slate-400">{variance === null ? "Awaiting reconciliation" : variance < 0 ? "Collected below fuel sales" : variance > 0 ? "Collected above fuel sales" : "Collected matches fuel sales"}</div>
                   </div>
-                )
-              })()}
-            </Section>
-
-            {/* Lubricant */}
-            {report.lubricantItems?.length > 0 && (
-              <Section title="Lubricant (Oil) Report">
-                {report.lubricantItems.map((it, i) => (
-                  <Row key={i} label={`${it.product}`} sub={`${it.qty}×${naira(it.unitPrice)}`} value={naira(it.amount)} />
-                ))}
-                <div className="mt-1.5 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <span className="text-[13px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>Total Amount Remitted</span>
-                  <span className="ftk-mono text-[15px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>{naira(report.lubricant_rev)}</span>
+                  <div className="min-w-[220px] rounded-[15px] bg-slate-50 p-3.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400"><span>Variance</span><span className="ftk-mono font-black text-slate-700">{varianceValue}</span></div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full" style={{ width: variance === null ? "25%" : `${Math.min(100, Math.max(7, Math.abs(variance) / Math.max(1, paymentTotal) * 100))}%`, background: varianceTone === "danger" ? "#DC2626" : "#16A34A" }} /></div>
+                  </div>
+                  <div className="flex items-center justify-between rounded-[15px] border border-slate-100 px-3.5 py-3 sm:col-span-2">
+                    <span className="text-[10.5px] font-semibold text-slate-400">Cash-up</span>
+                    <SummaryStatus label={report.cashup_status === "APPROVED" ? "Approved" : report.cashup_status || "Not submitted"} tone={report.cashup_status === "APPROVED" ? "good" : report.cashup_status === "REJECTED" ? "danger" : "warning"} />
+                  </div>
                 </div>
-              </Section>
-            )}
+              </SummarySection>
 
-            {/* LPG */}
-            {report.lpg_kg > 0 && (
-              <Section title="LPG Report">
-                <Row label="Total KG" value={`${report.lpg_kg}KG`} />
-                <Row label="Unit Price" value={naira(report.lpg_price)} />
-                <Row label="Total Sales" value={naira(report.lpg_revenue)} />
-                <Row label="Amount Remitted" value={naira(report.lpg_remitted)} />
-              </Section>
-            )}
+              <div className="mb-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3.5 text-[10.5px] text-slate-500"><div className="flex flex-wrap items-center justify-between gap-2"><span>Submitted by <b className="text-slate-700">{report.submitted_by || "—"}</b></span><span>Report date <b className="text-slate-700">{dateLabel}</b></span></div></div>
 
-            {/* Sales Cash Summary */}
-            {report.total_cash_summary > 0 && (
-              <Section title="Sales Cash Summary">
-                {[
-                  ["PMS", report.pms_cash_summary],
-                  ["AGO", report.ago_cash_summary],
-                  ["OIL", report.oil_cash_summary],
-                  ["GAS", report.gas_cash_summary],
-                ].map(([k, v]) => <Row key={k} label={k} value={naira(v)} />)}
-                <div className="mt-1 flex items-center justify-between border-t pt-2" style={{ borderColor: "var(--ftk-card-border)" }}>
-                  <span className="text-[13px] font-extrabold" style={{ color: "var(--ftk-ink)" }}>TOTAL</span>
-                  <span className="ftk-mono text-[17px] font-extrabold" style={{ color: "var(--ftk-cyan)" }}>{naira(report.total_cash_summary)}</span>
-                </div>
-              </Section>
-            )}
-
-            {/* Status + remarks */}
-            {(report.remarks || report.cashup_status) && (
-              <Section>
-                {report.cashup_status && (
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-ink-faint)" }}>Cash Reconciliation:</span>
-                    <span
-                      className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-                      style={
-                        report.cashup_status === "APPROVED" ? { background: "rgba(52,211,153,0.15)", color: "var(--ftk-green)" }
-                        : report.cashup_status === "REJECTED" ? { background: "rgba(220,38,38,0.12)", color: "var(--ftk-red)" }
-                        : { background: "rgba(217,119,6,0.12)", color: "var(--ftk-amber)" }
-                      }
-                    >
-                      {report.cashup_status === "APPROVED" ? "✓ Approved" : report.cashup_status === "REJECTED" ? "✗ Rejected" : "⏳ Pending Approval"}
-                    </span>
-                  </div>
-                )}
-                {report.remarks && (
-                  <div className="rounded-[14px] px-4 py-3" style={{ background: "rgba(217,119,6,0.08)", border: "1px solid rgba(217,119,6,0.2)" }}>
-                    <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.7px]" style={{ color: "var(--ftk-amber)" }}>General Remarks</div>
-                    <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: "var(--ftk-ink)" }}>{report.remarks}</div>
-                  </div>
-                )}
-              </Section>
-            )}
-
-            <div className="pt-2 text-center text-[11px]" style={{ color: "var(--ftk-ink-faint)" }}>
-              Submitted by {report.submitted_by || "—"}
-            </div>
-          </>
+              </div>
+              <DailySummaryPrint
+                report={report}
+                date={date}
+                canSeeMarginAmount={canSeeMarginAmount}
+                station={station}
+                dateLabel={dateLabel}
+                displayGrandTotal={displayGrandTotal}
+                pmsLitres={pmsLitres}
+                agoLitres={agoLitres}
+                pmsRevenue={pmsRevenue}
+                agoRevenue={agoRevenue}
+                livePmsMargin={livePmsMargin}
+                liveAgoMargin={liveAgoMargin}
+                livePmsMarginAmount={livePmsMarginAmount}
+                liveAgoMarginAmount={liveAgoMarginAmount}
+                tankData={tankData}
+                paymentTotal={paymentTotal}
+                expenses={expenses}
+                bank={bank}
+                variance={variance}
+                varianceLabel={varianceLabel}
+                varianceValue={varianceValue}
+                attention={attention}
+              />
+            </>
           )
         })()}
       </div>
-
       {lightboxPhoto && (
         <div
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/85 p-4"
@@ -982,5 +1146,9 @@ function SummaryInner() {
 }
 
 export default function SummaryPage() {
-  return <SummaryInner />
+  return (
+    <SummaryErrorBoundary>
+      <SummaryInner />
+    </SummaryErrorBoundary>
+  )
 }

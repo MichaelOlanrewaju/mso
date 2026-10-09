@@ -3,6 +3,7 @@ import { activeStation } from "../utils/station"
 import { getStation } from "../config/stations"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useStaff, usePayroll, usePendingPayroll } from "../hooks/usePayroll"
 import { usePageTitle } from "../hooks/usePageTitle"
@@ -284,12 +285,13 @@ function GMView({ auth, navigate }) {
   const loading = payStatus === "loading" || staffStatus === "loading"
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: "#F2F3F7" }}>
+    <div className="mso-ops-page min-h-screen pb-20" style={{ background: "#F2F3F7" }}>
       <SafeAreaDebug />
 
       {/* Dark sticky header */}
       <div className="sticky top-0 z-[200] print:hidden" style={{ background: "linear-gradient(135deg,#06091A,#0D1226)" }}>
         <div className="px-4 pb-0 pt-[max(var(--sat),52px)]">
+          <OpsContextStrip area="People & Finance" step="Payroll" />
           <div className="flex items-center gap-3 pb-3">
             <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
               className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/60">
@@ -731,12 +733,13 @@ function OwnerView({ auth, navigate }) {
     : ["GM will need to revise and resubmit this month's payroll."]
 
   return (
-    <div className="min-h-screen pb-20" style={{ background: "#F2F3F7" }}>
+    <div className="mso-ops-page min-h-screen pb-20" style={{ background: "#F2F3F7" }}>
       <SafeAreaDebug />
 
       {/* Header */}
       <div className="sticky top-0 z-[200] print:hidden" style={{ background: "linear-gradient(135deg,#06091A,#0D1226)" }}>
         <div className="px-4 pb-4 pt-[max(var(--sat),52px)]">
+          <OpsContextStrip area="People & Finance" step="Payroll approval" />
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
               className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/10 bg-white/5 text-white/60">

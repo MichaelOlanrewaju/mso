@@ -6,27 +6,26 @@ import "./styles/global.css"
 import App from "./App"
 import { ToastProvider } from "./components/layout/ToastProvider"
 
-/* ── Service Worker Registration ────────────────────────── */
-if ('serviceWorker' in navigator) {
+/* ── Service Worker Registration ──────────────────────────
+   The production service worker must NOT run during `vite dev`. A dev server
+   and a production service worker can otherwise mix stale cached React/Vite
+   chunks, which can create duplicate React module instances and crash hooks.
+*/
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(reg => {
         console.log('[MSO] SW registered:', reg.scope)
-
-        /* Ask the browser to re-check /sw.js periodically. Because every
-           production build now stamps a unique CACHE_NAME into sw.js, the
-           file's bytes actually change each deploy, so this update() call
-           reliably detects the new worker (previously sw.js was byte-for-
-           byte identical across deploys and no update was ever found —
-           the root cause of the app running stale code). */
+        /* Re-check /sw.js every minute. This only finds a new worker because every production
+           build stamps a unique CACHE_NAME into sw.js, so the file's bytes change on each deploy.
+           Before that, sw.js was byte-for-byte identical between deploys, no update was ever
+           detected, and the app kept running stale code — don't remove the stamping step. */
         setInterval(() => reg.update(), 60000)
 
-        /* When a new worker finishes installing, DON'T force it to take over.
-           A silent reload can throw away whatever the user was typing (a dip
-           reading, a chat message). Instead announce that an update is ready;
-           the UpdateBanner shows a "Refresh" button and the user chooses when.
-           Tapping it posts SKIP_WAITING, which triggers controllerchange below
-           and the single reload. */
+        /* A new worker must NOT silently take over: a forced reload throws away whatever the user
+           is typing (a dip reading, a chat message). So we only announce that an update is ready;
+           the UpdateBanner shows a Refresh button and the user decides when. Tapping it posts
+           SKIP_WAITING, which fires controllerchange below, which performs the single reload. */
         let announced = false
         const announce = () => {
           if (announced) return
@@ -34,45 +33,44 @@ if ('serviceWorker' in navigator) {
           window.dispatchEvent(new Event('mso-update-ready'))
         }
 
-        /* A newly-INSTALLING worker: announce once it's installed and there's
-           already an active controller (so it's an update, not first install). */
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing
           if (!newWorker) return
           newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              announce()
-            }
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) announce()
           })
         })
       })
       .catch(err => console.warn('[MSO] SW registration failed:', err))
   })
 
-  /* Reload exactly once when a new SW takes control, so the page runs the
-     just-activated fresh bundle. The guard is stored in sessionStorage —
-     NOT a plain variable — because a plain variable resets to false on
-     every reload, which cannot stop a loop. With the sessionStorage flag,
-     even if controllerchange fires repeatedly we reload at most once per
-     tab session. */
-  /* When a new worker takes control (after the user taps Refresh), reload once
-     so the page runs the fresh bundle. A single in-memory flag is enough: it's
-     set just before the reload, and the reload wipes it — that's exactly the
-     one-shot behaviour we want. The previous sessionStorage guard PERSISTED
-     across the reload, which meant on a later genuine update controllerchange
-     was ignored and the page never refreshed, leaving the banner stuck. */
-  /* Reload once when a new worker takes control — but the guard MUST survive
-     the reload, or it cannot prevent the next one (a plain variable resets to
-     false on every load, so it can never break the loop; that was the cause of
-     the app refreshing over and over). sessionStorage persists across reloads
-     within this tab. A fresh tab starts clean, so a genuinely new deploy later
-     still reloads. */
+  /* Reload at most ONCE per tab when a new worker takes control. The guard has to live in
+     sessionStorage, not in a variable: a variable resets to false on every reload, so it can
+     never stop the next reload — that was the cause of the app refreshing over and over.
+     sessionStorage survives the reload within the tab, while a brand-new tab starts clean, so a
+     genuinely newer deploy later still refreshes. If storage is blocked we skip the reload rather
+     than risk a loop. */
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     try {
       if (sessionStorage.getItem('mso_sw_reloaded') === '1') return
       sessionStorage.setItem('mso_sw_reloaded', '1')
-    } catch (e) { /* storage blocked — skip the reload rather than risk a loop */ return }
+    } catch (e) { return }
     window.location.reload()
+  })
+} else if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  // Clean up any production worker left over from a previous local build.
+  window.addEventListener('load', async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(registrations.map(reg => reg.unregister()))
+      if (window.caches) {
+        const names = await caches.keys()
+        await Promise.all(names.map(name => caches.delete(name)))
+      }
+      console.info('[MSO] Development mode: production service worker/cache disabled.')
+    } catch (e) {
+      console.warn('[MSO] Could not clear development service worker cache:', e)
+    }
   })
 }
 

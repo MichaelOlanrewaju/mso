@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getStation, tanksFor } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { naira, litres, litresValue } from "../utils/format"
 import { getToken } from "../utils/session"
+import { readJsonReply } from "../utils/readReply"
 import { useSettings } from "../hooks/useSettings"
 
 const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
@@ -51,15 +53,25 @@ function useDischarge(username) {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    const res = await get("getDischarge", { username: username || "", token: getToken() })
-    if (res.ok) setRecords(res.discharge || [])
+  /* silent = refresh in the background WITHOUT flipping the page back to its
+     loading state — used after pricing so the screen doesn't blank out. */
+  const load = useCallback(async (silent) => {
+    if (silent !== true) setLoading(true)
+    try {
+      const res = await get("getDischarge", { username: username || "", token: getToken() })
+      if (res.ok) setRecords(res.discharge || [])
+    } catch { /* keep what is on screen */ }
     setLoading(false)
   }, [username])
 
+  /* Apply known changes to the rows already on screen, so a save shows
+     instantly instead of waiting for the whole list to be fetched again. */
+  const patch = useCallback((byRow) => {
+    setRecords(rs => rs.map(r => byRow[r.rowIndex] ? { ...r, ...byRow[r.rowIndex] } : r))
+  }, [])
+
   useEffect(() => { load() }, [load])
-  return { records, loading, refresh: load }
+  return { records, loading, refresh: load, patch }
 }
 
 function productIcon(product) {
@@ -136,7 +148,7 @@ export default function DischargePage() {
   const navigate = useNavigate()
   usePageTitle(`Discharge — ${getStation(activeStation()).name}`)
 
-  const { records, loading, refresh } = useDischarge(auth.username)
+  const { records, loading, refresh, patch } = useDischarge(auth.username)
   const [tab, setTab] = useState("records")
   const [saving, setSaving] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -590,45 +602,93 @@ export default function DischargePage() {
     if (!price) return
     setSaving(true)
     setFeedback(null)
+    const priceNum = Number(price)
+    const rowIndexes = rows.map(r => r.rowIndex)
     let totalCost = 0
     let failedCount = 0
-    for (const r of rows) {
-      const url = new URL(SCRIPT_URL)
-      url.searchParams.set("action", "addDischargePrice")
-      url.searchParams.set("station", activeStation())
-      url.searchParams.set("rowIndex", r.rowIndex)
-      url.searchParams.set("pricePerLitre", Number(price))
-      url.searchParams.set("username", auth.username)
-      url.searchParams.set("token", getToken())
-      const res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(r => r.json())
-      if (res.ok) totalCost += res.totalCost || 0
-      else failedCount++
+    let errorText = ""
+    const done = {}   // rowIndex -> the fields that changed, for the instant on-screen update
+
+    /* ONE request prices every tank in the group (addDischargePriceBatch).
+       Before, each tank was its own server round trip, one after another —
+       that was the long wait before "saved". */
+    const url = new URL(SCRIPT_URL)
+    url.searchParams.set("action", "addDischargePriceBatch")
+    url.searchParams.set("station", activeStation())
+    url.searchParams.set("rowIndexes", rowIndexes.join(","))
+    url.searchParams.set("pricePerLitre", priceNum)
+    url.searchParams.set("username", auth.username)
+    url.searchParams.set("token", getToken())
+    let res
+    try {
+      res = await fetch(url.toString(), { method: "GET", redirect: "follow" }).then(readJsonReply)
+    } catch {
+      res = { ok: false, error: "Could not reach the server. Check your connection and try again.", network: true }
+    }
+
+    if (res.ok) {
+      totalCost = res.totalCost || 0
+      ;(res.items || []).forEach(it => { done[it.rowIndex] = it })
+    } else if (/unknown action/i.test(String(res.error || ""))) {
+      /* The server hasn't been updated with the batch action yet — fall back
+         to the old tank-by-tank way so pricing never stops working. */
+      for (const r of rows) {
+        const u = new URL(SCRIPT_URL)
+        u.searchParams.set("action", "addDischargePrice")
+        u.searchParams.set("station", activeStation())
+        u.searchParams.set("rowIndex", r.rowIndex)
+        u.searchParams.set("pricePerLitre", priceNum)
+        u.searchParams.set("username", auth.username)
+        u.searchParams.set("token", getToken())
+        const one = await fetch(u.toString(), { method: "GET", redirect: "follow" }).then(readJsonReply).catch(() => ({ ok: false }))
+        if (one.ok) { totalCost += one.totalCost || 0; done[r.rowIndex] = { totalCost: one.totalCost, shortageAmount: one.shortageAmount } }
+        else { failedCount++; errorText = one.error || errorText }
+      }
+    } else {
+      failedCount = rows.length
+      errorText = res.error || ""
     }
     setSaving(false)
+
+    const pricedRows = rows.filter(r => done[r.rowIndex])
+    if (pricedRows.length) {
+      /* Show the result immediately. */
+      const byRow = {}
+      pricedRows.forEach(r => {
+        byRow[r.rowIndex] = {
+          "Price Per Litre (₦)": priceNum,
+          "Total Cost (₦)": done[r.rowIndex].totalCost,
+          "ShortageAmount": done[r.rowIndex].shortageAmount,
+          "Approved By": auth.username,
+          "Status": "PRICED",
+        }
+      })
+      patch(byRow)
+    }
     if (failedCount === 0) {
       setFeedback({ ok: true, text: `Priced ${rows.length} tank${rows.length !== 1 ? "s" : ""} at ${naira(price)}/L — total ${naira(totalCost)}.` })
     } else {
-      setFeedback({ ok: false, text: `${rows.length - failedCount} of ${rows.length} priced — ${failedCount} failed. Check and retry.` })
+      setFeedback({ ok: false, text: `${rows.length - failedCount} of ${rows.length} priced — ${failedCount} failed.${errorText ? " " + errorText : " Check and retry."}` })
     }
     setPriceInputs(v => {
       const next = { ...v }
       rows.forEach(r => delete next[r.rowIndex])
       return next
     })
-    refresh()
+    refresh(true)   // quiet re-sync in the background; the screen is already up to date
   }
 
   const inputCls = "w-full rounded-[10px] border border-border bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition focus:border-cyan focus:bg-white focus:ring-2 focus:ring-cyan/15"
   const labelCls = "mb-1 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4"
 
   return (
-    <div className="fintech-dark min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
+    <div className="mso-ops-page fintech-dark min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
       <SafeAreaDebug />
 
       {/* Compact and sticky — always reachable, never eats permanent
           screen space the way the richer stat card below would if it
           stayed pinned too. */}
-      <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),52px)" }}>
+      <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),14px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border transition hover:bg-surface"
@@ -663,6 +723,7 @@ export default function DischargePage() {
       </div>
 
       <div className="mx-auto max-w-[640px] px-4 py-4">
+        <OpsContextStrip area="Fuel Delivery" step="Discharge control" />
         {/* Feedback */}
         {feedback && (
           <div className={`mb-4 flex items-start gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>

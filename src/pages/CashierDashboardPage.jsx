@@ -4,6 +4,7 @@ import { getStation } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import { ToastProvider } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
+import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useDashboardData } from "../hooks/useDashboardData"
 import { useCashupData } from "../hooks/useCashupData"
@@ -71,7 +72,7 @@ function CashierInner() {
   const hero = HERO_STYLES[heroStatus]
 
   return (
-    <div className="min-h-screen bg-pagebg pb-[100px]">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-[100px]">
       <SafeAreaDebug />
       <div className="sticky top-0 z-[200] flex items-center justify-between gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]" style={{ paddingTop: "max(var(--sat), 52px)" }}>
         <div className="flex items-center gap-2.5">

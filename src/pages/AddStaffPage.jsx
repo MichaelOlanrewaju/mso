@@ -142,7 +142,7 @@ export default function AddStaffPage() {
   const inputCls = "w-full rounded-[10px] border border-border px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-cyan focus:ring-0"
 
   return (
-    <div className="min-h-screen bg-pagebg pb-10">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-10">
       <SafeAreaDebug />
 
       <div className="sticky top-0 z-[200] flex items-center gap-3 border-b border-border bg-white px-4 pb-2.5 shadow-[0_1px_4px_rgba(0,0,0,.04)]"

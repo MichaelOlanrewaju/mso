@@ -134,9 +134,9 @@ export default function PhotoDownloadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-pagebg pb-28">
+    <div className="mso-ops-page min-h-screen bg-pagebg pb-28">
       <SafeAreaDebug />
-      <div className="sticky top-0 z-[100] border-b border-border bg-white/95 px-4 py-3 backdrop-blur" style={{ paddingTop: "max(var(--sat), 12px)" }}>
+      <div className="sticky top-0 z-[100] border-b border-border bg-white px-4 py-3 " style={{ paddingTop: "max(var(--sat), 12px)" }}>
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-ink-3">
