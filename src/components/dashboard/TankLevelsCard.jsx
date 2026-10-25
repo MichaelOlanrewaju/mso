@@ -1,5 +1,6 @@
 import React from "react"
 import { numberNG, litres } from "../../utils/format"
+import { motion, CountUp, EASE } from "../motion"
 
 function pctClass(pct) {
   if (pct > 40) return "bg-green-light text-green"
@@ -30,15 +31,19 @@ function TankRow({ tank }) {
         </div>
       </div>
       <div className="h-2.5 flex-1 overflow-hidden rounded-full border border-border bg-surface">
-        <div
-          className={`h-full rounded-full transition-[width] duration-700 ${
+        <motion.div
+          className={`relative h-full overflow-hidden rounded-full ${
             barPct === 0 ? "" : overCapacity ? "bg-red" : isAgo ? "bg-gradient-to-r from-[#1188B5] to-[var(--brand-accent)]" : "bg-gradient-to-r from-cyan-dark to-cyan"
-          }`}
-          style={{ width: `${barPct}%`, background: barPct === 0 ? "#E8EDF5" : undefined }}
-        />
+          } ${pct <= 10 && pct > 0 ? "animate-pulse" : ""}`}
+          style={{ background: barPct === 0 ? "#E8EDF5" : pct <= 10 ? "#DC2626" : undefined }}
+          initial={{ width: 0 }} animate={{ width: `${barPct}%` }}
+          transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
+        >
+          {barPct > 0 && <span className="mso-bar-shine absolute inset-y-0 left-0 w-1/3" />}
+        </motion.div>
       </div>
       <div className="flex w-[106px] flex-shrink-0 items-center justify-end gap-1.5">
-        <div className="mono text-[11.5px] font-bold text-ink">{litres(tank.vol)}</div>
+        <div className="mono text-[11.5px] font-bold text-ink"><CountUp value={litres(tank.vol)} /></div>
         <div className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold ${overCapacity ? "bg-red-light text-red" : pctClass(pct)}`}>
           {overCapacity ? "Check ⚠" : `${pct}%`}
         </div>

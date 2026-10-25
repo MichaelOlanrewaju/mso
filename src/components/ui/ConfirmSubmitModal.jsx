@@ -1,4 +1,5 @@
 import React from "react"
+import { ModalLayer } from "../motion"
 
 // Shared review-before-save popup. Shows exactly what's about to be
 // submitted plus any sanity-check warnings, and requires an explicit
@@ -7,16 +8,14 @@ import React from "react"
 // out of the normal range), which has caused real problems this
 // project before.
 export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnings, onConfirm, onCancel, confirming }) {
-  if (!open) return null
   return (
-    <div
-      className="fixed inset-0 z-[999] flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={onCancel}
+    <ModalLayer
+      open={open}
+      onClose={onCancel}
+      className="flex items-end justify-center sm:items-center sm:p-4"
+      panelClassName="max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-[22px] bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[20px]"
     >
-      <div
-        className="max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-[22px] bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[20px]"
-        onClick={e => e.stopPropagation()}
-      >
+      <>
         <div className="mb-0.5 flex items-center gap-2">
           <i className="bi bi-clipboard2-check text-[17px] text-cyan-dark" />
           <div className="text-[15px] font-extrabold text-ink">{title}</div>
@@ -62,7 +61,7 @@ export default function ConfirmSubmitModal({ open, title, subtitle, rows, warnin
             {confirming ? "Saving…" : "Confirm & Save"}
           </button>
         </div>
-      </div>
-    </div>
+      </>
+    </ModalLayer>
   )
 }

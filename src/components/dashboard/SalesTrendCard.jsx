@@ -1,9 +1,12 @@
-import React from "react"
+import React, { useState } from "react"
 import { naira } from "../../utils/format"
+import { motion, AnimatePresence, CountUp, EASE } from "../motion"
+import { litres } from "../../utils/format"
 
 export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue }) {
   const loading = status === "loading" || status === "idle"
   const hasData = weekly && weekly.days && weekly.days.length > 0
+  const [hover, setHover] = useState(null)
 
   let bars = []
   if (hasData) {
@@ -40,16 +43,32 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
                   <span className="skel block h-full w-full rounded-t" />
                 </div>
               ))
-            : bars.map(b => (
-                <div key={b.day} className="flex flex-1 flex-col items-center gap-1">
+            : bars.map((b, i) => (
+                <div key={b.day} className="relative flex flex-1 cursor-pointer flex-col items-center gap-1 transition-opacity duration-200"
+                  style={{ opacity: hover !== null && hover !== i ? 0.45 : 1 }}
+                  onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+                  onClick={() => setHover(hover === i ? null : i)}>
+                  <AnimatePresence>
+                    {hover === i && (
+                      <motion.div key="tip" initial={{ opacity: 0, y: 6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.15 }}
+                        className="pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-[10px] border border-border bg-white px-2.5 py-1.5 text-[10.5px] shadow-lift">
+                        <div className="font-extrabold text-ink">{b.day}</div>
+                        <div className="text-ink-3">PMS <span className="mono font-bold text-ink">{litres(weekly.pms[i] || 0)}</span></div>
+                        <div className="text-ink-3">AGO <span className="mono font-bold text-ink">{litres(weekly.ago[i] || 0)}</span></div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <div className="flex h-[92px] w-full items-end gap-0.5">
-                    <div
-                      className="flex-1 rounded-t-[3px] bg-gradient-to-t from-cyan-dark to-cyan transition-opacity hover:opacity-70"
-                      style={{ height: `${Math.max(b.pmsHeight, 3)}px` }}
+                    <motion.div
+                      className="flex-1 origin-bottom rounded-t-[3px] bg-gradient-to-t from-cyan-dark to-cyan transition-opacity hover:opacity-70"
+                      initial={{ height: 0 }} animate={{ height: Math.max(b.pmsHeight, 3) }}
+                      transition={{ duration: 0.6, ease: EASE, delay: 0.1 + i * 0.06 }}
                     />
-                    <div
-                      className="flex-1 rounded-t-[3px] bg-gradient-to-t from-[#1188B5] to-[var(--brand-accent)] transition-opacity hover:opacity-70"
-                      style={{ height: `${Math.max(b.agoHeight, 3)}px` }}
+                    <motion.div
+                      className="flex-1 origin-bottom rounded-t-[3px] bg-gradient-to-t from-[#1188B5] to-[var(--brand-accent)] transition-opacity hover:opacity-70"
+                      initial={{ height: 0 }} animate={{ height: Math.max(b.agoHeight, 3) }}
+                      transition={{ duration: 0.6, ease: EASE, delay: 0.15 + i * 0.06 }}
                     />
                   </div>
                   <div className={`text-[9px] font-semibold ${b.isNow ? "font-extrabold text-cyan" : "text-ink-4"}`}>
@@ -65,7 +84,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
               PMS Revenue
             </div>
             <div className="mono mb-0.5 text-[15px] font-extrabold text-ink">
-              {loading ? <span className="skel inline-block h-4 w-20" /> : naira(pmsRevenue)}
+              {loading ? <span className="skel inline-block h-4 w-20" /> : <CountUp value={naira(pmsRevenue)} />}
             </div>
             <div className="text-[10.5px] text-ink-4">—</div>
           </div>
@@ -74,7 +93,7 @@ export default function SalesTrendCard({ status, weekly, pmsRevenue, agoRevenue 
               AGO Revenue
             </div>
             <div className="mono mb-0.5 text-[15px] font-extrabold text-ink">
-              {loading ? <span className="skel inline-block h-4 w-20" /> : naira(agoRevenue)}
+              {loading ? <span className="skel inline-block h-4 w-20" /> : <CountUp value={naira(agoRevenue)} />}
             </div>
             <div className="text-[10.5px] text-ink-4">—</div>
           </div>

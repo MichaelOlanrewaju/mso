@@ -7,7 +7,7 @@ export default function StepsDrawer({ open, onClose, steps, current, mode, tankS
   const valueFor = step => {
     const s = tankState[step.cfg.id]
     const v = mode === "open" ? s.open : s.close
-    return v > 0 ? `${litres(v)}` : "—"
+    return v !== "" && v !== null && v !== undefined && !Number.isNaN(Number(v)) ? `${litres(v)}` : "—"
   }
 
   return (

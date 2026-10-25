@@ -1,4 +1,5 @@
 import React from "react"
+import { motion } from "../motion"
 
 // Tiny dependency-free sparkline — just enough to show "this number has
 // a recent shape", not a full chart. Lives in its own file so it's easy
@@ -21,8 +22,10 @@ export default function Sparkline({ values, stroke = "var(--brand-accent)", widt
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-      <path d={path} fill="none" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
-      <circle cx={lastX} cy={lastY} r="2.5" fill={stroke} />
+      <motion.path key={path} d={path} fill="none" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" opacity="0.85"
+        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: [0.2, 0.7, 0.2, 1], delay: 0.3 }} />
+      <motion.circle key={`c${path}`} cx={lastX} cy={lastY} r="2.5" fill={stroke}
+        initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3, delay: 1.1 }} />
     </svg>
   )
 }

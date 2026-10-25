@@ -5,6 +5,7 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import "./styles/global.css"
 import App from "./App"
 import { ToastProvider } from "./components/layout/ToastProvider"
+import { MotionRoot } from "./components/motion"
 
 /* ── Service Worker Registration ──────────────────────────
    The production service worker must NOT run during `vite dev`. A dev server
@@ -115,9 +116,11 @@ function dismissSplash() {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+      <MotionRoot>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </MotionRoot>
     </BrowserRouter>
   </React.StrictMode>
 )

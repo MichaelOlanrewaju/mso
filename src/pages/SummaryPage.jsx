@@ -16,6 +16,7 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
 import { getToken } from "../utils/session"
+import { motion, AnimatePresence, CountUp, EASE } from "../components/motion"
 
 function PhotoThumb({ fileId, onClick }) {
   const { dataUri, status } = useDriveImage(fileId)
@@ -74,6 +75,12 @@ function summaryDateLabel(value) {
 function summaryDateShortLabel(value) {
   if (!value) return "—"
   return new Date(`${value}T00:00:00`).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })
+}
+
+function summaryDateWithDay(value, today) {
+  if (!value) return "—"
+  const d = new Date(`${value}T00:00:00`).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+  return value === today ? `Today · ${d}` : d
 }
 
 function shiftSummaryDate(value, delta) {
@@ -536,7 +543,7 @@ function DailySummaryPrint({ report, date, canSeeMarginAmount, station, dateLabe
         <div className="mt-1 flex items-end justify-between gap-4">
           <div>
             <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-slate-500">Fuel sales</div>
-            <div className="ftk-mono mt-1 text-[25px] font-black text-slate-950">{naira(displayGrandTotal)}</div>
+            <div className="ftk-mono mt-1 text-[25px] font-black text-slate-950"><CountUp value={naira(displayGrandTotal)} /></div>
           </div>
           {canSeeMarginAmount && (
             <div className="text-right">
@@ -698,7 +705,8 @@ function SummaryInner() {
 
   const station = activeStation()
   const isMM = station === "mrs"
-  const themeVars = isMM ? { "--ftk-cyan": "#B8860B", "--ftk-violet": "#8F3A5C" } : {}
+  /* Station colours from the live brand tokens: Mobil blue / M&M wine + gold. */
+  const themeVars = { "--ftk-cyan": "var(--brand-accent-dark)", "--ftk-violet": "var(--brand-primary)" }
 
   if (auth.loading || !auth.user) {
     return <div className="fintech-dark min-h-screen" style={{ ...themeVars }} />
@@ -733,33 +741,37 @@ function SummaryInner() {
       <SafeAreaDebug />
 
       {/* Top bar — compact report navigator that works much better on desktop and mobile. */}
-      <div
+      <motion.div
+        initial={{ y: -24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.35, ease: EASE }}
         className="sticky top-0 z-[200] print:hidden"
         style={{ paddingTop: "max(var(--sat), 18px)", background: "#F4F6FB", borderBottom: "1px solid var(--ftk-card-border)" }}
       >
-        <div className="mx-auto flex max-w-[1120px] items-center gap-2.5 px-4 pb-3 sm:px-5 lg:px-6">
+        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-2.5 gap-y-2 px-4 pb-3 sm:px-5 lg:px-6">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Back to dashboard">
             <i className="bi bi-arrow-left" />
           </button>
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-black" style={{ color: "var(--ftk-ink)" }}>Daily Summary</div>
-            <div className="hidden text-[9px] font-bold uppercase tracking-[0.8px] sm:block" style={{ color: "var(--ftk-ink-faint)" }}>Station performance report</div>
+            <div className="whitespace-nowrap text-[16px] font-black" style={{ color: "var(--ftk-ink)" }}>Daily Summary</div>
           </div>
-          <div className="flex items-center gap-1.5 rounded-[14px] p-1" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)" }}>
-            <button type="button" onClick={() => setDate(shiftSummaryDate(date, -1))} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] transition hover:bg-slate-100" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Previous day"><i className="bi bi-chevron-left" /></button>
-            <label className="relative flex min-w-0 items-center gap-1.5 px-1.5 sm:px-2">
-              <i className="bi bi-calendar3 text-[11px]" style={{ color: "var(--ftk-cyan)" }} />
-              <span className="hidden max-w-[170px] truncate text-[10.5px] font-bold sm:block" style={{ color: "var(--ftk-ink-dim)" }}>{date === today ? "Today" : summaryDateShortLabel(date)}</span>
-              <i className="bi bi-chevron-down hidden text-[9px] sm:block" style={{ color: "var(--ftk-ink-faint)" }} />
-              <input type="date" value={date} max={today} onChange={e => e.target.value && setDate(e.target.value)} onClick={openDatePicker} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Choose report date" />
-            </label>
-            <button type="button" onClick={() => setDate(shiftSummaryDate(date, 1))} disabled={date >= today} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[11px] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Next day"><i className="bi bi-chevron-right" /></button>
+          {/* The date control sits on its own full-width row on a phone, with the date written out and a
+              clearly calendar-looking button, so it can't be missed. */}
+          <div className="order-last flex w-full items-center gap-2 sm:order-none sm:w-auto">
+            <div className="flex min-w-0 flex-1 items-center rounded-[14px] p-1 sm:flex-none" style={{ background: "var(--ftk-card)", border: "1.5px solid var(--ftk-cyan)" }}>
+              <button type="button" onClick={() => setDate(shiftSummaryDate(date, -1))} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[12px] transition hover:bg-slate-100" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Previous day"><i className="bi bi-chevron-left" /></button>
+              <label className="relative flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 px-2 sm:flex-none">
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[8px] text-[13px]" style={{ background: "var(--ftk-cyan)", color: "white" }}><i className="bi bi-calendar3" /></span>
+                <span className="shrink-0 whitespace-nowrap text-[13px] font-extrabold" style={{ color: "var(--ftk-ink)" }}><span className="sm:hidden">{summaryDateWithDay(date, today).replace(/,? \d{4}$/, "").replace(/\b[A-Z][a-z]{2}, /, "")}</span><span className="hidden sm:inline">{summaryDateWithDay(date, today)}</span></span>
+                <i className="bi bi-chevron-down text-[10px]" style={{ color: "var(--ftk-ink-faint)" }} />
+                <input type="date" value={date} max={today} onChange={e => e.target.value && setDate(e.target.value)} onClick={openDatePicker} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Choose report date" />
+              </label>
+              <button type="button" onClick={() => setDate(shiftSummaryDate(date, 1))} disabled={date >= today} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] text-[12px] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30" style={{ color: "var(--ftk-ink-dim)" }} aria-label="Next day"><i className="bi bi-chevron-right" /></button>
+            </div>
+            {date !== today && <button type="button" onClick={() => setDate(today)} className="flex-shrink-0 rounded-[12px] px-3.5 py-2.5 text-[11px] font-extrabold" style={{ background: "var(--brand-primary)", color: "white" }}>Today</button>}
           </div>
-          {date !== today && <button type="button" onClick={() => setDate(today)} className="hidden rounded-[12px] px-3 py-2 text-[10px] font-extrabold sm:block" style={{ background: "var(--brand-primary)", color: "white" }}>Today</button>}
           <button type="button" onClick={handlePrint} disabled={printing || !report} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Print summary"><i className={`bi ${printing ? "bi-hourglass-split" : "bi-printer"}`} /></button>
           <button type="button" onClick={handleShare} className="hidden h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] sm:flex" style={{ background: "var(--ftk-card)", border: "1px solid var(--ftk-card-border)", color: "var(--ftk-ink-dim)" }} aria-label="Share summary"><i className="bi bi-share" /></button>
         </div>
-      </div>
+      </motion.div>
 
       <div className="mso-ops-page print-release relative z-10 mx-auto w-full max-w-[1120px] px-4 py-5 sm:px-5 lg:px-6">
         <PrintHeader
@@ -772,10 +784,13 @@ function SummaryInner() {
         />
 
         {status === "loading" && (
-          <div className="flex items-center justify-center py-16 text-[13px]" style={{ color: "var(--ftk-ink-faint)" }}>
-            <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2" style={{ borderColor: "var(--ftk-cyan)", borderTopColor: "transparent" }} />
-            Loading summary…
-          </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} aria-busy="true" aria-label="Loading summary">
+            <div className="mb-5 h-[210px] rounded-[26px] skel" />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[0, 1, 2, 3].map(k => <span key={k} className="skel block h-[96px] !rounded-[18px]" />)}
+            </div>
+            <span className="skel mt-4 block h-[180px] !rounded-[18px]" />
+          </motion.div>
         )}
 
         {/* This state existed in the data hook but had no UI here at all —
@@ -785,7 +800,7 @@ function SummaryInner() {
             not a crash, a silent failure with no visible outcome either
             way. */}
         {status === "error" && (
-          <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE }} className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
             <i className="bi bi-wifi-off text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
             <div className="text-[14px] font-bold" style={{ color: "var(--ftk-ink)" }}>
               Couldn't load this summary
@@ -801,19 +816,19 @@ function SummaryInner() {
             >
               <i className="bi bi-arrow-clockwise mr-1.5" /> Try again
             </button>
-          </div>
+          </motion.div>
         )}
 
         {status === "idle" && (
-          <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE }} className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
             <i className="bi bi-cloud-slash text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
             <div className="text-[14px] font-bold" style={{ color: "var(--ftk-ink)" }}>Summary service is not configured</div>
             <div className="max-w-[300px] text-[12.5px]" style={{ color: "var(--ftk-ink-faint)" }}>VITE_SCRIPT_URL is missing from the active environment. The application can load, but this report cannot request its daily data.</div>
-          </div>
+          </motion.div>
         )}
 
         {status === "no-data" && (
-          <div className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE }} className="ftk-glass flex flex-col items-center gap-2 rounded-[20px] py-16 text-center">
             <i className="bi bi-inbox text-3xl" style={{ color: "var(--ftk-ink-faint)" }} />
             <div className="text-[14px] font-bold" style={{ color: "var(--ftk-ink)" }}>
               {date === today ? "No data for today yet" : "No record found for this date"}
@@ -823,7 +838,7 @@ function SummaryInner() {
                 ? "Once Dip and Cashup are submitted, the summary will appear here."
                 : "Try a different date, or check that Dip and Cashup were submitted that day."}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {status === "ready" && report && (() => {
@@ -868,7 +883,7 @@ function SummaryInner() {
           const dateLabel = new Date(`${date}T00:00:00`).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
           return (
             <>
-              <div className="print-screen">
+              <div className="print-screen" key={date}>
               <div className="mb-5 overflow-hidden rounded-[26px] text-white" style={{ background: `linear-gradient(135deg, ${getStation(station).theme.primaryDark} 0%, ${getStation(station).theme.primary} 100%)`, boxShadow: `0 18px 50px ${getStation(station).theme.primary}2E` }}>
                 <div className="relative p-5 sm:p-6 lg:p-7">
                   <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-3xl" style={{ background: `${getStation(station).theme.accent}22` }} />
@@ -885,12 +900,12 @@ function SummaryInner() {
                       <div className="mt-5 grid max-w-[520px] grid-cols-2 gap-2 sm:gap-3">
                         <div className="rounded-[15px] border border-white/10 bg-white/[0.07] p-3 sm:p-3.5">
                           <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-white/45">PMS</div>
-                          <div className="ftk-mono mt-1 text-[16px] font-black sm:text-[18px]">{litres(pmsLitres, { maximumFractionDigits: 2 })}</div>
+                          <div className="ftk-mono mt-1 text-[16px] font-black sm:text-[18px]"><CountUp value={litres(pmsLitres, { maximumFractionDigits: 2 })} /></div>
                           <div className="mt-0.5 text-[9.5px] text-white/45">{naira(pmsRevenue)}</div>
                         </div>
                         <div className="rounded-[15px] border border-white/10 bg-white/[0.07] p-3 sm:p-3.5">
                           <div className="text-[9px] font-bold uppercase tracking-[0.7px] text-white/45">AGO</div>
-                          <div className="ftk-mono mt-1 text-[16px] font-black sm:text-[18px]">{litres(agoLitres, { maximumFractionDigits: 2 })}</div>
+                          <div className="ftk-mono mt-1 text-[16px] font-black sm:text-[18px]"><CountUp value={litres(agoLitres, { maximumFractionDigits: 2 })} /></div>
                           <div className="mt-0.5 text-[9.5px] text-white/45">{naira(agoRevenue)}</div>
                         </div>
                       </div>

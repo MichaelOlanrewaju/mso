@@ -1,9 +1,10 @@
 import React from "react"
 import { activeStation } from "../../utils/station"
 import { NavLink } from "react-router-dom"
+import { motion } from "../motion"
 
 const BASE =
-  "flex flex-1 flex-col items-center gap-[3px] rounded-[10px] border border-transparent px-2.5 py-[5px] text-[9.5px] font-semibold transition-all duration-150 [&_i]:text-xl [&_i]:leading-none"
+  "flex flex-1 flex-col items-center gap-[3px] rounded-[10px] border border-transparent px-2.5 py-[5px] text-[9.5px] font-semibold transition-all duration-150 active:scale-90 [&_i]:text-xl [&_i]:leading-none"
 
 function itemClass({ isActive }) {
   return `${BASE} ${isActive ? "border-cyan/25 bg-white/10 text-cyan" : "text-white/40"}`
@@ -18,7 +19,8 @@ export default function BottomNav({ homePath }) {
      tapping Home lands on MSO's dashboard. */
   const home = homePath || `/dashboard/${activeStation()}`
   return (
-    <nav
+    <motion.nav
+      initial={{ y: 70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.4, ease: [0.2, 0.7, 0.2, 1], delay: 0.15 }}
       className="fixed bottom-0 left-0 right-0 z-[500] flex px-1 py-1.5 shadow-[0_-4px_20px_rgba(19,6,86,.35)] lg:hidden"
       style={{ paddingBottom: "calc(6px + var(--sab))", background: "var(--brand-gradient)" }}
     >
@@ -47,6 +49,6 @@ export default function BottomNav({ homePath }) {
           <span>Notes</span>
         </NavLink>
       </div>
-    </nav>
+    </motion.nav>
   )
 }

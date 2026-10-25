@@ -243,7 +243,7 @@ function GMInner() {
                   <AgoCard status={status} ago={data?.tanks?.ago} agoPrice={data?.agoPrice} />
                 </div>
                 <div className="lg:col-span-4">
-                  <PaymentBreakdown status={status} payments={data?.payments} />
+                  <PaymentBreakdown status={status} payments={data?.yesterdayPayments} date={data?.yesterdayDate} />
                 </div>
               </div>
             </div>

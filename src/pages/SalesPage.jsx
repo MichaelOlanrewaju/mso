@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react"
-import { litres } from "../utils/format"
+import { litres, litresValue } from "../utils/format"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { ToastProvider, useToast } from "../components/layout/ToastProvider"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
-import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import DateRow from "../components/dip/DateRow"
 import StatusStrip from "../components/dip/StatusStrip"
 import ModeToggle from "../components/dip/ModeToggle"
@@ -317,7 +316,7 @@ function SalesInner() {
   }
 
   return (
-    <div className="mso-ops-page min-h-screen" style={{ background: "#F1F5FB" }}>
+    <div className="mso-ops-page dip-redesign min-h-screen" style={{ background: "#F3F6FA" }}>
       <PriceCutoverModal
         open={cutoverProduct === "PMS" || cutoverProduct === "AGO"}
         product={cutoverProduct}
@@ -329,23 +328,25 @@ function SalesInner() {
       />
       <SafeAreaDebug />
       <div
-        className="sticky top-0 z-[200] px-4 pb-4 text-white shadow-lg"
+        className="dip-page-header sticky top-0 z-[200] px-4 pb-3 text-white shadow-md"
         style={{ paddingTop: "max(var(--sat), 52px)", background: "var(--brand-gradient-btn)" }}
       >
-        <div className="mx-auto max-w-[640px]">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-2 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-[1.4px] text-cyan">
-                Step {current + 1} of {STEPS.length}
+              <div className="text-[10px] font-bold uppercase tracking-[1.3px] text-white/70">
+                {getStation(activeStation()).name}
               </div>
-              <div className="text-[16px] font-extrabold text-white">
-                Pump {step.pump.pumpId || step.pump.id} — {mode === "open" ? "Opening Metre" : "Closing Metre"}
+              <div className="mt-0.5 text-[17px] font-extrabold leading-tight text-white sm:text-[19px]">
+                Pump {step.pump.pumpId || step.pump.id}
               </div>
+              <div className="mt-1 text-[11px] text-white/75">{step.pump.product} · {mode === "open" ? "Opening" : "Closing"} · {current + 1}/{STEPS.length}</div>
             </div>
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-white/15 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+              aria-label="View all pumps"
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               <i className="bi bi-list-ul" />
             </button>
@@ -354,9 +355,9 @@ function SalesInner() {
         </div>
       </div>
 
-      <div className="px-4 py-4 pb-[100px]">
-        <div className="mx-auto max-w-[640px]"><OpsContextStrip area="Fuel Sales" step={`Pump ${current + 1} / ${STEPS.length}`} /></div>
-        <div className="mx-auto max-w-[640px]">
+      <div className="dip-page-content px-3 py-4 pb-[108px] sm:px-5 lg:px-6">
+        <div className="dip-workspace mx-auto max-w-6xl">
+          <section className="dip-workflow-column" aria-label="Pump reading workflow">
           <DateRow date={date} onChange={handleDateChange} supName={auth.name || auth.username} />
 
           {/* Which real attendant worked this session — replaces the old
@@ -365,7 +366,7 @@ function SalesInner() {
               every pump saved in this session, not per-pump. */}
           <div className="mb-3 rounded-card border border-border bg-white p-3.5 shadow-card">
             <div className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-ink-4">
-              <i className="bi bi-person-check mr-1" /> Attendant working this session
+              <i className="bi bi-person-check mr-1" /> Attendant
             </div>
             <select
               value={attendantId}
@@ -377,7 +378,7 @@ function SalesInner() {
               }}
               className="w-full rounded-[9px] border border-border bg-surface px-3 py-2.5 text-[13.5px] font-semibold text-ink outline-none focus:border-cyan"
             >
-              <option value="">Not selected — will use your own name instead</option>
+              <option value="">Not selected (uses your name)</option>
               {attendants.map(a => (
                 <option key={a.attendantId} value={a.attendantId}>{a.name}</option>
               ))}
@@ -387,9 +388,9 @@ function SalesInner() {
           <ModeToggle mode={mode} onChange={setMode} hasOpening={hasOpening} hasClosing={hasClosing} />
           <StatusStrip hasOpening={hasOpening} hasClosing={hasClosing} hasCash={false} />
 
-          <div className="overflow-hidden rounded-card border border-cyan/15 bg-white shadow-card">
+          <div className="dip-reading-card overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_4px_18px_rgba(15,35,65,0.05)]">
             <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, var(--brand-primary), var(--brand-accent))" }} />
-            <div className="p-5">
+            <div className="p-4 sm:p-5 lg:p-6">
               {status === "loading" ? (
                 <div className="flex items-center justify-center py-10 text-[13px] text-ink-4">
                   <span className="mr-2 h-4 w-4 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
@@ -484,23 +485,70 @@ function SalesInner() {
             </div>
           </div>
 
+          </section>
+
+          <aside className="dip-context-column" aria-label="Operational reference">
           <div
-            className="mt-3 flex items-center justify-between rounded-[14px] px-4 py-3 text-white shadow-card"
+            className="dip-price-panel mt-3 overflow-hidden rounded-[14px] px-4 py-4 text-white shadow-card"
             style={{ background: "var(--brand-gradient-btn)" }}
           >
-            <div className="flex items-center gap-2 text-[12.5px] font-medium text-white/85">
-              <span className="h-2 w-2 rounded-full bg-green" style={{ boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
-              Live price
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.8px] text-white/85">
+                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-green" style={{ boxShadow: "0 0 6px rgba(34,197,94,.7)" }} />
+                Price
+              </div>
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.5px] text-white/45">/ litre</span>
             </div>
-            <div className="font-mono text-[13px] font-bold text-white">
-              PMS ₦{prices.pms.toLocaleString("en-NG")} · AGO ₦{prices.ago.toLocaleString("en-NG")} · LPG ₦{(prices.lpg || 0).toLocaleString("en-NG")}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "PMS", value: prices.pms },
+                { label: "AGO", value: prices.ago },
+                { label: "LPG", value: prices.lpg },
+              ].map(p => (
+                <div key={p.label} className="flex flex-col items-center justify-center rounded-[12px] bg-white/10 px-1.5 py-2.5">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.8px] text-white/55">{p.label}</div>
+                  <div className="mt-1 flex items-baseline gap-0.5">
+                    <span className="text-[10px] font-semibold text-white/60">₦</span>
+                    <span className="font-mono text-[15px] font-extrabold leading-none tracking-tight text-white">
+                      {litresValue(p.value || 0)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+          <div className="dip-tank-checklist mt-3 rounded-[14px] border border-slate-200 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="text-[12px] font-extrabold text-slate-800">Checklist</div>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">{STEPS.filter(st => Number(readings[st.pump.id]?.[mode === "open" ? "open" : "close"]) > 0).length} / {STEPS.length}</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {STEPS.map((st, i) => {
+                const value = readings[st.pump.id]?.[mode === "open" ? "open" : "close"]
+                const hasValue = Number(value) > 0
+                const isCurrent = i === current
+                return (
+                  <button key={st.pump.id} type="button" onClick={() => { setCurrent(i); window.scrollTo(0, 0) }}
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`flex min-h-[48px] items-center gap-2.5 rounded-[10px] border px-2.5 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cyan ${isCurrent ? "border-cyan/40 bg-cyan/5" : "border-transparent hover:border-slate-200 hover:bg-slate-50"}`}>
+                    <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${hasValue ? "bg-emerald-100 text-emerald-700" : isCurrent ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"}`}>
+                      {hasValue ? <i className="bi bi-check2" aria-label="Entered" /> : i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11.5px] font-bold text-slate-800">{st.pump.pumpId || st.pump.id} <span className="font-medium text-slate-500">· {st.pump.product}</span></span>
+                    </span>
+                    <span className={`flex-shrink-0 font-mono text-[11.5px] font-bold ${hasValue ? "text-slate-800" : "text-slate-400"}`}>{hasValue ? litresValue(Number(value)) : "—"}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          </aside>
         </div>
       </div>
 
       <WorkflowActionBar
-        status={`${mode === "open" ? "Opening" : "Closing"} · Pump ${current + 1} of ${STEPS.length}`}
+        status={`${mode === "open" ? "Opening" : "Closing"} · ${current + 1}/${STEPS.length}`}
         primary={<WizardNav onBack={goPrev} onNext={goNext} isLast={isLast} saving={submitting || savingStep} />}
       />
 

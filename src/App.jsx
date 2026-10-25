@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react"
 import UpdateBanner from "./components/layout/UpdateBanner"
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, useLocation } from "react-router-dom"
+import { PageTransition, motion } from "./components/motion"
 import { OfflineBanner } from "./components/pwa/PWABanners"
 import StationGuard from "./components/layout/StationGuard"
 import { useAuth } from "./hooks/useAuth"
@@ -43,6 +44,7 @@ const PriceCorrectionPage    = lazy(() => import("./pages/PriceCorrectionPage"))
 const ForgotPasswordPage     = lazy(() => import("./pages/ForgotPasswordPage"))
 const ResetPasswordPage      = lazy(() => import("./pages/ResetPasswordPage"))
 const DischargePage          = lazy(() => import("./pages/DischargePage"))
+const DischargeReportPage    = lazy(() => import("./pages/DischargeReportPage"))
 const AdminDashboardPage     = lazy(() => import("./pages/AdminDashboardPage"))
 const StaffBankDetailsPage   = lazy(() => import("./pages/StaffBankDetailsPage"))
 const ShiftsPage             = lazy(() => import("./pages/ShiftsPage"))
@@ -57,14 +59,17 @@ const NotFoundPage           = lazy(() => import("./pages/NotFoundPage"))
 
 function RouteLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-pagebg">
-      <span className="h-6 w-6 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
-    </div>
+    <motion.div className="flex min-h-screen items-center justify-center bg-pagebg"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, delay: 0.12 }}>
+      <span className="h-6 w-6 animate-spin-fast rounded-full border-2" style={{ borderColor: "color-mix(in srgb, var(--brand-accent) 20%, transparent)", borderTopColor: "var(--brand-accent)" }} />
+    </motion.div>
   )
 }
 
 export default function App() {
   const auth = useAuth()
+  const location = useLocation()
+  const pageKey = location.pathname.split("/")[1] || "home"
 
   /* Resolve the station from the signed-in user and paint its brand onto the
      document. Everything downstream — colours, tank layout, which spreadsheet
@@ -94,7 +99,8 @@ export default function App() {
       <UpdateBanner />
       {isSupervisor && <PriceChangeAlert change={pendingChange} onDismissForNow={acknowledge} />}
       <Suspense fallback={<RouteLoading />}>
-        <Routes>
+        <PageTransition routeKey={pageKey}>
+        <Routes location={location}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -116,6 +122,7 @@ export default function App() {
           <Route path="/shortage/:station" element={<StationGuard><ShortagePage /></StationGuard>} />
           <Route path="/activity/:station" element={<StationGuard><ActivityLogPage /></StationGuard>} />
           <Route path="/discharge/:station" element={<StationGuard><DischargePage /></StationGuard>} />
+          <Route path="/discharge-report/:station" element={<StationGuard><DischargeReportPage /></StationGuard>} />
           <Route path="/admin/:station" element={<StationGuard><AdminDashboardPage /></StationGuard>} />
           <Route path="/staff-bank-details/:station" element={<StationGuard><StaffBankDetailsPage /></StationGuard>} />
           <Route path="/shifts/:station" element={<StationGuard><ShiftsPage /></StationGuard>} />
@@ -143,6 +150,7 @@ export default function App() {
           <Route path="/correct-prices" element={<PriceCorrectionPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </PageTransition>
       </Suspense>
     </>
   )

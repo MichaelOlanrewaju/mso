@@ -31,7 +31,7 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
         <div
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[14px]"
           style={{ background: cfg.product === "AGO" ? "var(--brand-accent-light)" : cfg.product === "LPG" ? "#F5F3FF" : "var(--brand-accent-light)" }}
@@ -58,6 +58,11 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
         </div>
       )}
 
+      <div className="dip-reading-input-wrap">
+        <label htmlFor="mainInp" className="mb-2 flex items-center justify-between gap-2 text-[10px] font-extrabold uppercase tracking-[1px] text-slate-500">
+          <span>{mode === "open" ? "Enter opening dip" : "Enter closing dip"}</span>
+          <span className="rounded-md bg-slate-100 px-2 py-1 font-bold normal-case tracking-normal text-slate-600">{unit}</span>
+        </label>
       <input
         id="mainInp"
         /* type="text" with inputMode="decimal": still shows the numeric
@@ -70,13 +75,34 @@ export function TankStepPanel({ cfg, tankState, mode, onTankChange, price }) {
         value={value === 0 || value ? String(value) : ""}
         onChange={e => onTankChange(cfg.id, mode === "open" ? "open" : "close", sanitiseNumeric(e.target.value))}
         placeholder="Enter reading"
-        className={`w-full rounded-[16px] border-2 bg-surface px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
+        aria-label={`${cfg.id} ${mode === "open" ? "opening" : "closing"} dip reading in ${unit}`}
+        aria-invalid={errClose}
+        aria-describedby={errClose ? `${cfg.id}-dip-error` : undefined}
+        className={`w-full rounded-[12px] border-2 bg-slate-50 px-4 py-4 text-right font-mono text-[28px] font-extrabold text-ink outline-none transition-all focus:bg-white focus:ring-[4px] ${
           errClose ? "border-red focus:ring-red/10" : "border-border focus:border-cyan focus:ring-cyan/10"
         }`}
       />
+      <div className="mt-2 flex items-center justify-between gap-2 text-[10.5px] text-slate-500">
+        <span>{mode === "open" ? "Measure the physical tank level" : "Measure the remaining tank level"}</span>
+        <span className="font-semibold">Enter litres</span>
+      </div>
+      </div>
+
+      {mode === "open" && (
+        <div className="mt-4 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-3">
+          <div className="mb-2 flex items-center justify-between text-[10.5px]">
+            <span className="font-semibold text-slate-600">Tank capacity reference</span>
+            <span className="font-mono font-bold text-slate-800">{pct}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`${cfg.id} opening reading as a percentage of capacity`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, pct)}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: "var(--brand-accent)" }} />
+          </div>
+          <div className="mt-1.5 text-right text-[10px] text-slate-500">Capacity: {litresValue(cfg.cap)}{unit}</div>
+        </div>
+      )}
 
       {errClose && (
-        <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-red">
+        <div id={`${cfg.id}-dip-error`} role="alert" className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-red">
           <i className="bi bi-exclamation-circle" /> Closing cannot be higher than opening
         </div>
       )}

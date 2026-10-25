@@ -1,63 +1,49 @@
-# BUILD NEXT — Dashboard Mobile UI Refinement V9.1
+# BUILD NEXT — MSO Discharge Control Center V11
 
-## Completed in this build
+## V11 redesign — 25 October 2026
+The Discharge page now has a substantially different visual direction rather than a light restyle:
+- Replaced the plain page presentation with a dark, motion-led operations header and a dedicated **Discharge Control Center** hero.
+- Added restrained animated grid/ring effects, a pulsing live indicator, staggered entrance motion, and hover feedback on summary metrics and controls.
+- Added four date-aware overview metrics: delivery count, quantity received, deliveries awaiting pricing, and recorded net quantity variance. These are calculated from the existing in-memory records filtered by product, supplier, and the currently applied date range.
+- Redesigned the sticky navigation as a dark glass-like header with a clearer active tab state and cyan report action.
+- Reworked surfaces, date filter controls, record groups, form fields, focus states, and responsive spacing to use a cohesive navy/cyan/white operational design.
+- Added purpose-built mobile styling for the hero, metrics, toolbar, and navigation, including a two-column metric layout at small widths.
+- Respects `prefers-reduced-motion` for users who request reduced animation.
 
-### Daily Summary — desktop + date experience
-- Expanded the Daily Summary desktop content area so financial numbers have enough room and no longer collide or clip.
-- Reworked the date selector into a proper report navigator with previous/next day controls, native calendar selection, and a quick Today action.
-- Kept the selected date bound to the existing `useRecordsData` flow — no new API or data source was introduced.
-- Changed `todayISO()` to use the browser's local calendar date instead of UTC so the report does not switch dates unexpectedly around midnight.
+## Frontend-only preservation
+The work was limited to `src/pages/DischargePage.jsx` and this document. No API endpoint, request method, request payload, response handling, authentication, routing, role permissions, business calculation, validation, submission, edit, delete, pricing, report, or print handler was intentionally changed. The existing date range filtering and date-aware summary logic remain in place.
 
-### Day Health
-- Moved **Day Health** out of the top hero and down to the bottom of the Daily Summary.
-- Rebuilt it as a compact close-out section showing variance, status and cash-up state without taking up the primary dashboard real estate.
+## Validation status
+- Static source review performed after the UI changes.
+- Compared the source tree against the supplied project; intended changes are limited to `src/pages/DischargePage.jsx` and `BUILD_NEXT.md`.
+- `npm install --no-audit --no-fund` timed out in this environment. As dependencies are not installed, `npm run build` could not be run successfully here.
+- Browser testing at 320px, 375px, 430px, 768px, 1024px, 1366px, and 1440px has not been performed in a real browser. Role-specific workflow, live data, and report/print regression tests also remain outstanding.
 
-### CEO / GM margin visibility
-- Added a prominent **Day Margin** block to the Daily Summary hero for CEO, owner and GM roles only.
-- Uses the existing live PMS/AGO pump + dip margin calculation already present in the page.
-- Shows margin value, margin litres and margin as a percentage of live fuel sales.
-- No new backend call or stored field was introduced.
+## Recommended next step
+In a network-enabled environment, run `npm install` followed by `npm run build`, then launch `npm run dev`. Verify the Records, Record Discharge, and Price Discharge tabs using each existing role. Test all date presets and custom ranges against real records, then check report/print output and responsive breakpoints before deploying.
 
-### Sales by Pump / Pump Activity
-- Kept the V9 compact responsive pump layout.
-- Sales by Pump and Pump Activity now have independent View all / Show less state.
-- Mobile remains capped to the first 3 items by default.
+## V12 Discharge page cleanup
+- Priced discharges hidden by default (toggle "Show priced"); printable Discharge Report covers them.
+- Removed hero, metric tiles and "Selected period summary" card.
+- GM/CEO land on Price Discharge tab when anything is unpriced.
 
-### Station selection page
-- Reworked **Select Station** into a clearer workspace-selection experience.
-- Added role context, live-data status, station count/status, stronger station hierarchy and clearer Open Station actions.
-- Live stations are prioritised visually; the preparing station remains visible without competing with active workspaces.
-- Preserved the existing station selection persistence and redirect logic.
+## V13 — station colours on Discharge + Framer Motion layer
+- Discharge page uses the active station's brand tokens (Mobil blue / M&M wine+gold): header, tab underline, product pills, buttons, focus rings.
+- Added `framer-motion` (only new dependency) and `src/components/motion/` (MotionRoot with reducedMotion="user", PageTransition, Stagger/StaggerItem, Collapse, StateSwap, ModalLayer, CountUp, Skeleton).
+- Applied: page transitions, KPI count-up + hover/tap, sparkline draw-on, 7-day bar growth, sidebar scrim/active chevron/stagger, mobile drawer slide, bottom-nav entrance, confirm modal sheet, Discharge tabs/date panel/list stagger/empty states.
+- Global CSS: table row hover, focus ring, press feedback, hero glow. No API/auth/permission/business logic touched.
+- Run `npm install` once (framer-motion added to package.json).
 
-## Preserved
+## V14 — dashboard polish
+- Payment Breakdown is now an animated donut (segments draw in, hover/tap highlights a segment or row, centre total counts up). Same data and Grand Total.
+- 7-day Sales Trend: hover/tap a day for a tooltip with exact PMS/AGO litres; other days dim.
+- KPI cards: coloured left edge (grows in), cursor spotlight glow.
+- Tank Levels: bars fill in with a light shine, litres count up, critically-low tanks pulse red.
+- Recent Transactions rows slide in one after another.
 
-- Existing API calls
-- Authentication and role permissions
-- Existing routes
-- Existing financial calculations
-- Existing station/session data structures
-- Existing real station data — no hardcoded demo numbers were added
+- Payment Breakdown now shows the PREVIOUS day (backend adds yesterdayPayments/yesterdayDate to getDashboard — deploy new Code.gs).
 
-## Next — V10
-
-1. Add previous-day comparison to the pump section using existing historical data only.
-2. Add a compact 7-day pump trend where historical data already exists.
-3. Allow a pump row to open the existing pump/records workflow without adding a new route.
-4. Add clearer loading/no-data states for pump activity.
-5. Add a dedicated CEO/GM margin trend using existing daily financial data where available.
-6. Verify 320px, 360px, 390px, 430px, tablet and desktop layouts in-browser.
-7. Run a complete production build before the next release.
-
-## V9.2 — Daily Summary Print Restoration
-- Restored a dedicated A4 print presentation for Daily Summary.
-- The new desktop/mobile command-centre layout is screen-only and no longer leaks into print.
-- Print output keeps the MSO letterhead, compact financial summary, PMS/AGO, tank dips, reconciliation, payment breakdown, other operations, day health, attention, notes, and submission details.
-- CEO/GM/Owner day margin remains visible in the print report.
-- No API, backend, authentication, routing, or data-model changes.
-
-## V9.2 — Daily Summary Print Restoration
-- Restored a dedicated A4 print presentation for Daily Summary.
-- The new desktop/mobile command-centre layout is screen-only and no longer leaks into print.
-- Print output keeps the MSO letterhead, compact financial summary, PMS/AGO, tank dips, reconciliation, payment breakdown, other operations, day health, attention, notes, and submission details.
-- CEO/GM/Owner day margin remains visible in the print report.
-- No API, backend, authentication, routing, or data-model changes.
+## V15 — Supervisor dashboard + Daily Summary
+- Supervisor dashboard: station-brand hero (animated progress ring, step chips, Continue button), staggered sections, animated tank bars/pump rows/counters, skeletons, motion nav. All features, routes and handlers unchanged; no mock data.
+- Both pages take station colours from the live brand tokens (Mobil blue / M&M wine+gold).
+- Daily Summary: skeleton loading, animated state cards, count-up hero figures, staggered sections on each date change, short mobile date label.

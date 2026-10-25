@@ -7,6 +7,7 @@ const ACTIONS = [
   { icon: "bi-pencil-square",          iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Record Sales",       href: `/sales/${activeStation()}`,    roles: ["supervisor","cashier"] },
   { icon: "bi-calculator",             iconBg: "#F0FDF4", iconColor: "#16A34A", label: "Cash Up",            href: `/cashup/${activeStation()}`,   roles: ["supervisor","cashier"] },
   { icon: "bi-truck",                  iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Discharge",          href: `/discharge/${activeStation()}`,roles: ["ceo","owner","gm","supervisor"] },
+  { icon: "bi-file-earmark-bar-graph",  iconBg: "#ECFDF5", iconColor: "#059669", label: "Discharge Report",   href: `/discharge-report/${activeStation()}`, roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-clock",                  iconBg: "#F5F3FF", iconColor: "#7C3AED", label: "Shifts",             href: `/shifts/${activeStation()}`,   roles: ["supervisor","cashier"] },
   { icon: "bi-person-fill-exclamation",iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Debtors",            href: `/debtors/${activeStation()}`,  roles: ["ceo","owner","gm","supervisor"] },
   { icon: "bi-box-arrow-in-down",      iconBg: "var(--brand-accent-light)", iconColor: "var(--brand-accent)", label: "Orders",             href: `/orders/${activeStation()}`,   roles: ["ceo","owner","gm"] },
@@ -39,8 +40,9 @@ const ACTIONS = [
      Handled with its own dynamic check below, not the static roles array. */
 ]
 
-export default function QuickActionsCard({ role, username }) {
-  const navigate = useNavigate()
+/* Same role filtering the card has always used — shared so the compact rail
+   on the executive overview offers exactly the actions this user may use. */
+export function quickActionsFor(role, username) {
   const filtered = ACTIONS.filter(a => a.roles.includes(role))
   if (canViewBankDeposits(username, role)) {
     filtered.push({
@@ -48,6 +50,12 @@ export default function QuickActionsCard({ role, username }) {
       label: "Bank Deposits", href: `/bank-deposits/${activeStation()}`,
     })
   }
+  return filtered
+}
+
+export default function QuickActionsCard({ role, username }) {
+  const navigate = useNavigate()
+  const filtered = quickActionsFor(role, username)
   if (!filtered.length) return null
 
   return (

@@ -756,3 +756,140 @@ body::before {
   #root .min-h-screen { min-height: calc(100dvh - 28px); }
   #mso-splash { top: 28px !important; border-radius: 22px 22px 0 0; }
 }
+
+/* Dip & Pump screen refinements — scoped to avoid changing shared dashboard UI. */
+.dip-redesign { color: #17243b; }
+.dip-redesign button, .dip-redesign input { -webkit-tap-highlight-color: transparent; }
+.dip-redesign button:focus-visible,
+.dip-redesign input:focus-visible,
+.dip-redesign select:focus-visible { outline: 2px solid #159bc9; outline-offset: 2px; }
+.dip-page-header { background: #101d4e !important; }
+.dip-page-content { max-width: 100%; }
+.dip-redesign .dip-reading-card { border-color: #dfe6ef; }
+.dip-redesign input[aria-invalid="true"] { border-color: #dc2626; background: #fffafa; }
+.dip-redesign input::placeholder { color: #94a3b8; font-weight: 500; }
+.dip-price-panel { background: #15275e !important; }
+@media (min-width: 1024px) {
+  .dip-page-content > div { width: 100%; }
+  .dip-redesign .dip-reading-card { min-height: 300px; }
+}
+@media (max-width: 639px) {
+  .dip-page-header { padding-top: max(var(--sat), 42px) !important; }
+  .dip-page-content { padding-top: 12px; }
+  .dip-redesign .dip-reading-card { border-radius: 13px; }
+  .dip-redesign input#mainInp { min-height: 64px; font-size: 26px; }
+}
+
+/* V9.16 Dip & Pump layout pass: visibly separates the active workflow from
+   reference information. All rules are scoped to this page only. */
+.dip-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.dip-workflow-column,
+.dip-context-column { min-width: 0; }
+.dip-workflow-column > * { min-width: 0; }
+.dip-context-column { display: flex; flex-direction: column; gap: 0; }
+.dip-context-column .dip-price-panel { margin-top: 0; }
+.dip-redesign .dip-page-header { box-shadow: 0 5px 18px rgba(12, 27, 66, .15); }
+.dip-redesign .dip-reading-card { box-shadow: 0 8px 28px rgba(15, 35, 65, .07); }
+.dip-redesign .dip-guidance-card { box-shadow: 0 3px 12px rgba(15, 35, 65, .035); }
+.dip-redesign #mainInp { min-height: 68px; letter-spacing: -.035em; }
+.dip-redesign .dip-context-column .dip-price-panel { border: 1px solid rgba(255,255,255,.12); }
+@media (min-width: 1024px) {
+  .dip-workspace { grid-template-columns: minmax(0, 1fr) 292px; gap: 20px; }
+  .dip-context-column { position: sticky; top: 142px; }
+  .dip-workflow-column .dip-reading-card { min-height: 350px; }
+  .dip-redesign .dip-page-header { padding-bottom: 14px; }
+}
+@media (min-width: 1440px) {
+  .dip-workspace { grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; }
+}
+@media (max-width: 1023px) {
+  .dip-context-column .dip-price-panel { margin-top: 14px; }
+}
+@media (max-width: 639px) {
+  .dip-workspace { gap: 12px; }
+  .dip-redesign .dip-reading-card { border-radius: 13px; }
+  .dip-redesign #mainInp { min-height: 66px; font-size: 26px; }
+  .dip-guidance-card { padding: 13px; }
+}
+
+/* V9.17 — Dip & Pump operational workflow redesign. Page-scoped styles only. */
+.dip-redesign .dip-page-header { background: #101b45 !important; }
+.dip-redesign .dip-page-header .text-white\/70 { letter-spacing: .12em; }
+.dip-redesign .dip-workspace { gap: 18px; }
+.dip-redesign .dip-workflow-column { display: flex; flex-direction: column; }
+.dip-redesign .dip-reading-card { border-radius: 16px; box-shadow: 0 10px 32px rgba(16, 35, 71, .065); }
+.dip-redesign .dip-reading-card > div:first-child { height: 4px; }
+.dip-redesign .dip-context-column { gap: 12px; }
+.dip-redesign .dip-context-column .dip-price-panel,
+.dip-redesign .dip-context-column .dip-tank-checklist,
+.dip-redesign .dip-context-column .dip-guidance-card { margin-top: 0; }
+.dip-redesign .dip-tank-checklist { box-shadow: 0 4px 16px rgba(16, 35, 71, .035); }
+.dip-redesign .dip-reading-input-wrap input#mainInp { background: #f8fafc; border-color: #d5deea; border-radius: 12px; padding: 17px 18px; }
+.dip-redesign .dip-reading-input-wrap input#mainInp:focus { background: #fff; border-color: #159bc9; box-shadow: 0 0 0 4px rgba(21, 155, 201, .12); }
+.dip-redesign .dip-reading-input-wrap input#mainInp[aria-invalid="true"] { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, .08); }
+.dip-redesign .dip-page-content { padding-bottom: calc(112px + var(--sab)); }
+.dip-redesign .dip-workflow-column > .mb-3,
+.dip-redesign .dip-workflow-column > .mb-3\.5 { flex-shrink: 0; }
+@media (min-width: 1024px) {
+  .dip-redesign .dip-workspace { grid-template-columns: minmax(0, 1fr) 318px; gap: 24px; }
+  .dip-redesign .dip-context-column { position: sticky; top: 130px; }
+  .dip-redesign .dip-workflow-column .dip-reading-card { min-height: 0; }
+  .dip-redesign .dip-page-content { padding-top: 20px; }
+}
+@media (min-width: 1440px) {
+  .dip-redesign .dip-workspace { grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; }
+}
+@media (max-width: 1023px) {
+  .dip-redesign .dip-context-column { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .dip-redesign .dip-context-column .dip-price-panel { margin-top: 0; }
+}
+@media (max-width: 639px) {
+  .dip-redesign .dip-page-header { padding-left: 14px; padding-right: 14px; }
+  .dip-redesign .dip-page-content { padding-left: 12px; padding-right: 12px; }
+  .dip-redesign .dip-reading-card { border-radius: 14px; }
+  .dip-redesign .dip-reading-card .p-4 { padding: 14px; }
+  .dip-redesign .dip-reading-input-wrap input#mainInp { min-height: 68px; font-size: 27px; }
+  .dip-redesign .dip-tank-checklist { padding: 12px; }
+  .dip-redesign .dip-context-column { gap: 10px; }
+  .dip-redesign .dip-page-content { padding-bottom: calc(118px + var(--sab)); }
+}
+
+/* ── Motion polish (V13) ─────────────────────────────────────
+   Hover/focus feedback for tables, rows and buttons everywhere. Transform
+   effects sit inside the no-preference query; the global reduced-motion
+   rule above already switches transitions/animations off. */
+tbody tr { transition: background-color .18s ease; }
+tbody tr:hover { background-color: color-mix(in srgb, var(--brand-accent) 6%, transparent); }
+button, a, select, input { transition-property: color, background-color, border-color, box-shadow, opacity, transform; transition-duration: .18s; transition-timing-function: ease; }
+:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  button:not(:disabled):active { transform: scale(.975); }
+  .animate-sheen { animation-duration: 6s; }
+  /* Soft breathing glow on the hero KPI so it reads as live. */
+  @keyframes mso-glow { 0%,100% { box-shadow: 0 16px 32px -8px color-mix(in srgb, var(--brand-accent) 22%, transparent); } 50% { box-shadow: 0 20px 44px -8px color-mix(in srgb, var(--brand-accent) 38%, transparent); } }
+  .dot-grid.shadow-hero { animation: mso-glow 5s ease-in-out infinite; }
+}
+
+/* KPI cursor spotlight + tank-bar shine (V14) */
+.mso-kpi:hover .mso-spot { opacity: 1; }
+.mso-spot { background: radial-gradient(180px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--brand-accent) 14%, transparent), transparent 70%); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes mso-shine { 0% { transform: translateX(-120%); } 60%,100% { transform: translateX(380%); } }
+  .mso-bar-shine { background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: mso-shine 3.2s ease-in-out 1.2s infinite; }
+}
+
+/* Daily Summary: sections rise in one after another each time the date changes. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .print-screen > * { animation: mso-rise .5s cubic-bezier(.2,.7,.2,1) both; }
+  .print-screen > *:nth-child(2) { animation-delay: .06s; }
+  .print-screen > *:nth-child(3) { animation-delay: .12s; }
+  .print-screen > *:nth-child(4) { animation-delay: .18s; }
+  .print-screen > *:nth-child(5) { animation-delay: .24s; }
+  .print-screen > *:nth-child(n+6) { animation-delay: .3s; }
+}
+@keyframes mso-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }

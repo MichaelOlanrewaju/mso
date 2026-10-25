@@ -1,11 +1,28 @@
 import React from "react"
+import { motion, AnimatePresence, AnimatedValue, EASE } from "../motion"
 
+const EDGE = {
+  hero: "var(--brand-accent)",
+  cyan: "var(--brand-accent)",
+  green: "#22C55E",
+  amber: "#FACC15",
+  red: "#FB923C",
+}
 const TOP_BAR = {
   hero: "from-deepnavy to-cyan",
   cyan: "from-deepnavy to-cyan",
   green: "from-[#059669] to-[#34D399]",
   amber: "from-[#1188B5] to-[var(--brand-accent)]",
   red: "from-[#991B1B] to-[#F87171]",
+}
+
+/* A <span style=...>text</span> value (how KpiGrid passes pending/muted styling)
+   is unwrapped so its text can count up while keeping its style. */
+function countable(v) {
+  if (React.isValidElement(v) && v.type === "span" && typeof v.props.children === "string") {
+    return <AnimatedValue.Styled style={v.props.style}>{v.props.children}</AnimatedValue.Styled>
+  }
+  return v
 }
 
 export default function KpiCard({
@@ -23,8 +40,18 @@ export default function KpiCard({
   const isHero = variant === "hero"
 
   return (
-    <div
-      className={`enter relative overflow-hidden rounded-card border px-5 py-[18px] transition-all duration-300 hover:-translate-y-[3px]
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE, delay: delay / 1000 }}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.985 }}
+      onPointerMove={e => {
+        const r = e.currentTarget.getBoundingClientRect()
+        e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`)
+        e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`)
+      }}
+      className={`relative overflow-hidden mso-kpi rounded-card border px-5 py-[18px] transition-shadow duration-300
         ${
           isHero
             ? "dot-grid border-deepnavy-2 shadow-hero hover:shadow-hero"
@@ -32,11 +59,16 @@ export default function KpiCard({
         }`}
       style={
         isHero
-          ? { animationDelay: `${delay}ms`, background: "var(--brand-gradient-btn)" }
-          : { animationDelay: `${delay}ms` }
+          ? { background: "var(--brand-gradient-btn)" }
+          : undefined
       }
     >
-      <span className={`absolute inset-x-0 top-0 h-[3px] rounded-t-card bg-gradient-to-r ${TOP_BAR[variant]}`} />
+      {isHero
+        ? <span className={`absolute inset-x-0 top-0 h-[3px] rounded-t-card bg-gradient-to-r ${TOP_BAR[variant]}`} />
+        : <motion.span aria-hidden className="absolute inset-y-0 left-0 w-[4px] origin-top" style={{ background: EDGE[variant] }}
+            initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.5, ease: EASE, delay: 0.2 + delay / 1000 }} />}
+      {/* Cursor spotlight — a soft glow that follows the pointer. */}
+      <span aria-hidden className="mso-spot pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-300" />
 
       {/* Signature moment: a slow light sweep across the hero tile only —
           a quiet "this is live" cue, not a flashy loop. */}
@@ -70,11 +102,16 @@ export default function KpiCard({
           isHero ? "text-[26px] text-white" : "text-[22px] text-ink"
         }`}
       >
-        {loading ? (
-          <span className={`${isHero ? "skel-dark" : "skel"} inline-block h-6 w-[110px] align-middle`} />
-        ) : (
-          value
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {loading ? (
+            <motion.span key="l" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+              className={`${isHero ? "skel-dark" : "skel"} inline-block h-6 w-[110px] align-middle`} />
+          ) : (
+            <motion.span key="v" className="inline-block" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+              <AnimatedValue>{countable(value)}</AnimatedValue>
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
 
       <div
@@ -85,9 +122,9 @@ export default function KpiCard({
         {loading ? (
           <span className={`${isHero ? "skel-dark" : "skel"} inline-block h-3.5 w-20`} />
         ) : (
-          foot
+          <motion.span className="inline-flex items-center gap-[5px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.1 }}>{foot}</motion.span>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }

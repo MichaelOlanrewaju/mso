@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getStation, tanksFor } from "../config/stations"
 import { useNavigate } from "react-router-dom"
 import SafeAreaDebug from "../components/ui/SafeAreaDebug"
-import OpsContextStrip from "../components/ui/system/OpsContextStrip"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePageTitle } from "../hooks/usePageTitle"
 import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
@@ -15,6 +14,7 @@ const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL
 /* The station now comes from the signed-in user's session, not from a
    build-time env var — one deployment serves both MSO and M&M. */
 import { activeStation } from "../utils/station"
+import { motion, AnimatePresence, Collapse, Stagger, StaggerItem, EASE, CountUp } from "../components/motion"
 /* Used to be a single hardcoded list ("Tank 3 (AGO)") that didn't match
    either station's real configuration — MSO's TK3 actually holds PMS, and
    M&M has no TK3 at all. Built from each station's real tank config instead,
@@ -123,6 +123,39 @@ function startOfMonth(d) {
   return date
 }
 
+function localDateInput(d = new Date()) {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function dateKey(value) {
+  const d = parseSheetDate(value)
+  return d ? localDateInput(d) : ""
+}
+
+function displayDateRange(from, to, preset) {
+  const fmt = value => {
+    if (!value) return ""
+    const [y, m, d] = value.split("-").map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
+  }
+  if (preset === "today") return `Today, ${fmt(from)}`
+  if (preset === "yesterday") return fmt(from)
+  if (preset === "all") return "All recorded history"
+  if (from && to) {
+    const short = value => {
+      const [y, m, d] = value.split("-").map(Number)
+      return new Date(y, m - 1, d).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })
+    }
+    return `${short(from)} – ${short(to)}`
+  }
+  if (from) return `From ${fmt(from)}`
+  if (to) return `Through ${fmt(to)}`
+  return "All recorded history"
+}
+
 /* Discharge variance is a single signed number: positive = shortage (received
    less than ordered), negative = overage (received more). Rendering it as one
    value keeps the two impossible to contradict, and lets period totals net out
@@ -221,6 +254,50 @@ export default function DischargePage() {
   })
 
   const [period, setPeriod] = useState("week") // "week" | "month" | "all"
+  const [datePreset, setDatePreset] = useState("all")
+  const [draftFrom, setDraftFrom] = useState("")
+  const [draftTo, setDraftTo] = useState("")
+  const [appliedFrom, setAppliedFrom] = useState("")
+  const [appliedTo, setAppliedTo] = useState("")
+  const [dateFilterError, setDateFilterError] = useState("")
+
+  const applyDatePreset = (preset) => {
+    const today = new Date()
+    const todayKey = localDateInput(today)
+    let from = "", to = ""
+    if (preset === "today") from = to = todayKey
+    if (preset === "yesterday") {
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+      from = to = localDateInput(yesterday)
+    }
+    if (preset === "last7") {
+      const start = new Date(today)
+      start.setDate(start.getDate() - 6)
+      from = localDateInput(start); to = todayKey
+    }
+    if (preset === "month") {
+      from = localDateInput(new Date(today.getFullYear(), today.getMonth(), 1))
+      to = localDateInput(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+    }
+    setDatePreset(preset); setDraftFrom(from); setDraftTo(to)
+    setAppliedFrom(from); setAppliedTo(to); setDateFilterError("")
+  }
+
+  const applyCustomDateRange = () => {
+    if (draftFrom && draftTo && draftFrom > draftTo) {
+      setDateFilterError("The start date must be on or before the end date.")
+      return
+    }
+    setAppliedFrom(draftFrom); setAppliedTo(draftTo)
+    setDatePreset(draftFrom || draftTo ? "custom" : "all")
+    setDateFilterError("")
+  }
+
+  const clearDateRange = () => {
+    setDraftFrom(""); setDraftTo(""); setAppliedFrom(""); setAppliedTo("")
+    setDatePreset("all"); setDateFilterError("")
+  }
   /* PMS and AGO are never blended into one figure — same principle as the
      fuel-stock hero never combining PMS-on-hand with AGO-on-hand. GM/CEO
      pick which one they're looking at; everything downstream (History,
@@ -228,6 +305,8 @@ export default function DischargePage() {
      products into a single misleading number. */
   const [productFilter, setProductFilter] = useState("PMS") // "PMS" | "AGO" | "LPG"
   const [supplierFilter, setSupplierFilter] = useState("all")
+  const [showPriced, setShowPriced] = useState(false)  // priced deliveries stay out of the way — they live in the printable Report
+  const [showDates, setShowDates] = useState(false)
 
   /* Every section on this page below the PMS/AGO/LPG toggle is already
      scoped to whichever product is currently selected — so rather than
@@ -242,6 +321,33 @@ export default function DischargePage() {
     () => records.filter(r => !isPriced(r) && productForTankId(r[COL.PRODUCT]) === productFilter),
     [records, productFilter]
   )
+
+  /* Every unpriced delivery across ALL products (the "pending" list above is
+     only the product currently selected). Drives the banner and the red
+     counts on the PMS / AGO / LPG buttons, so nothing unpriced hides behind
+     the toggle. */
+  const unpricedByProduct = useMemo(() => {
+    const out = { PMS: 0, AGO: 0, LPG: 0 }
+    records.forEach(r => {
+      if (isPriced(r)) return
+      const p = productForTankId(r[COL.PRODUCT])
+      if (out[p] !== undefined) out[p] += 1
+    })
+    return out
+  }, [records])
+  const unpricedTotal = unpricedByProduct.PMS + unpricedByProduct.AGO + unpricedByProduct.LPG
+
+  const landedRef = React.useRef(false)
+  useEffect(() => {
+    if (landedRef.current || loading || !records.length) return
+    landedRef.current = true
+    const first = ["PMS", "AGO", "LPG"].find(p => unpricedByProduct[p] > 0)
+    if (first) {
+      setProductFilter(first)
+      if (isGM) setTab("pricing")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, records])
 
   const now = useMemo(() => new Date(), [])
   const weekStart = useMemo(() => startOfWeek(now), [now])
@@ -314,6 +420,14 @@ export default function DischargePage() {
     [records, productFilter, supplierFilter]
   )
 
+  // Date filtering is intentionally client-side: the existing discharge
+  // endpoint and request parameters remain unchanged.
+  const visibleRecords = useMemo(() => productFilteredRecords.filter(r => {
+    const key = dateKey(r[COL.DATE])
+    if (!key) return !appliedFrom && !appliedTo
+    return (!appliedFrom || key >= appliedFrom) && (!appliedTo || key <= appliedTo)
+  }), [productFilteredRecords, appliedFrom, appliedTo])
+
   /* Full list of suppliers ever recorded, for the filter dropdown —
      confirmed directly this was needed: CEO wanting to review one
      company's full history had no way to isolate it from everything
@@ -327,7 +441,7 @@ export default function DischargePage() {
   const weekRecords = useMemo(() => productFilteredRecords.filter(r => {
     const d = parseSheetDate(r[COL.DATE])
     return d && d >= weekStart
-  }), [records, weekStart])
+  }), [productFilteredRecords, weekStart])
 
   /* Was reading from records directly, not productFilteredRecords —
      confirmed directly this meant "This Month" silently ignored both
@@ -338,35 +452,15 @@ export default function DischargePage() {
     return d && d >= monthStart
   }), [productFilteredRecords, monthStart])
 
-  const periodTotals = useMemo(() => {
-    if (period === "week") return sumRecords(weekRecords)
-    if (period === "month") return sumRecords(monthRecords)
-    return sumRecords(productFilteredRecords)
-  }, [period, productFilteredRecords, weekRecords, monthRecords])
+  const periodLabel = displayDateRange(appliedFrom, appliedTo, datePreset)
 
-  const periodByTank = useMemo(() => {
-    if (period === "week") return sumByTank(weekRecords)
-    if (period === "month") return sumByTank(monthRecords)
-    return sumByTank(productFilteredRecords)
-  }, [period, productFilteredRecords, weekRecords, monthRecords])
-
-  const periodBySupplier = useMemo(() => {
-    if (period === "week") return sumBySupplier(weekRecords)
-    if (period === "month") return sumBySupplier(monthRecords)
-    return sumBySupplier(productFilteredRecords)
-  }, [period, productFilteredRecords, weekRecords, monthRecords])
-
-  const periodLabel = period === "week"
-    ? `Since ${weekStart.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}`
-    : period === "month"
-    ? monthStart.toLocaleDateString("en-NG", { month: "long", year: "numeric" })
-    : "All recorded history"
-
-  // Group records by date so admin can scan discharges day-by-day
+  // Group only the records in the active date range so the heading, summary,
+  // and visible history always describe the same period.
   const groupedRecords = useMemo(() => {
     const groups = []
     const byDate = {}
-    productFilteredRecords.forEach(r => {
+    visibleRecords.forEach(r => {
+      if (!showPriced && isPriced(r)) return
       const key = String(r[COL.DATE] || "").slice(0, 10)
       if (!byDate[key]) {
         byDate[key] = { date: r[COL.DATE], items: [] }
@@ -374,16 +468,9 @@ export default function DischargePage() {
       }
       byDate[key].items.push(r)
     })
-    /* Groups were never actually sorted — they landed in whatever order
-       records first appeared in the sheet, which is insertion order, not
-       date order. Confirmed directly: backfilling a discharge for 11
-       August after 31 August already existed put it at the very top,
-       instead of between 10 and 12 August where it belongs. Sorted here,
-       most recent first, matching how the rest of the app orders dated
-       lists — a backfilled day now lands in its correct chronological
-       spot regardless of when it was actually entered. */
     return groups.sort((a, b) => String(b.date).slice(0, 10).localeCompare(String(a.date).slice(0, 10)))
-  }, [records])
+  }, [visibleRecords, showPriced])
+
 
   if (auth.loading || !auth.user) return <div className="min-h-screen bg-pagebg" />
 
@@ -678,17 +765,117 @@ export default function DischargePage() {
     refresh(true)   // quiet re-sync in the background; the screen is already up to date
   }
 
-  const inputCls = "w-full rounded-[10px] border border-border bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition focus:border-cyan focus:bg-white focus:ring-2 focus:ring-cyan/15"
+  const inputCls = "w-full rounded-[10px] border border-border bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition focus:border-brand-accent focus:bg-white"
   const labelCls = "mb-1 block text-[11px] font-bold uppercase tracking-[0.5px] text-ink-4"
 
   return (
-    <div className="mso-ops-page fintech-dark min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
+    <div className="mso-ops-page fintech-dark discharge-redesign min-h-screen pb-16" style={{ background: "var(--ftk-bg)" }}>
       <SafeAreaDebug />
+
+      <style>{`
+        /* V11 — a genuinely new motion-led Discharge Control Center.
+           Presentation only: all existing handlers and data flow stay intact. */
+        .discharge-redesign {
+          --dc-ink: #111a31;
+          --dc-muted: #7a879c;
+          --dc-line: #e6ebf4;
+          --dc-canvas: #f3f6fc;
+          color: var(--dc-ink);
+          background: var(--dc-canvas) !important;
+          overflow-x: clip;
+        }
+        .discharge-redesign .discharge-workspace { width: 100%; max-width: 1600px; padding-top: 26px; }
+        .discharge-redesign > .sticky {
+          color: #fff;
+          background: linear-gradient(135deg, var(--brand-primary-dark), var(--brand-primary)) !important;
+          border-bottom: 3px solid var(--brand-accent) !important;
+          box-shadow: 0 12px 35px rgba(7,15,34,.18);
+          backdrop-filter: blur(20px);
+        }
+        .discharge-redesign > .sticky > div:first-child {
+          max-width: 1600px; margin-inline: auto; padding-inline: 24px;
+          padding-top: max(var(--sat), 14px); padding-bottom: 14px;
+        }
+        .discharge-redesign > .sticky > div:first-child button:first-child {
+          width: 42px; height: 42px; border-radius: 14px !important;
+          color: #d9e6ff !important; background: rgba(255,255,255,.07);
+          border: 1px solid rgba(255,255,255,.14) !important;
+          transition: transform .25s ease, background .25s ease;
+        }
+        .discharge-redesign > .sticky > div:first-child button:first-child:hover { transform: translateX(-3px); background: rgba(255,255,255,.14); }
+        .discharge-redesign > .sticky > div:first-child .text-\[16px\] { font-size: 17px; letter-spacing: -.4px; color: #fff !important; }
+        .discharge-redesign > .sticky > div:first-child .text-\[10\.5px\] { margin-top: 3px; font-size: 11px; color: #9cacc8 !important; }
+        .discharge-redesign > .sticky > div:first-child button:last-child {
+          border-radius: 12px !important; padding: 10px 15px; color: #07152c !important;
+          background: var(--brand-accent) !important;
+          box-shadow: 0 5px 22px color-mix(in srgb, var(--brand-accent) 35%, transparent);
+          transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .discharge-redesign > .sticky > div:first-child button:last-child:hover { transform: translateY(-2px); box-shadow: 0 9px 26px color-mix(in srgb, var(--brand-accent) 50%, transparent); }
+        .discharge-redesign > .sticky > div:nth-child(2) {
+          max-width: 1600px; margin-inline: auto; padding: 0 24px 13px;
+          gap: 8px; border-top: 0 !important;
+        }
+        .discharge-redesign > .sticky > div:nth-child(2) button {
+          position: relative; min-height: 39px; border-radius: 11px !important;
+          padding-inline: 16px; color: #9aa9c4 !important; background: transparent !important;
+          font-size: 12px; font-weight: 750; transition: color .25s ease, background .25s ease, transform .25s ease;
+        }
+        .discharge-redesign > .sticky > div:nth-child(2) button:hover { color: #fff !important; background: rgba(255,255,255,.06) !important; }
+        .discharge-redesign > .sticky > div:nth-child(2) button.dc-tab-active { color: #fff !important; background: rgba(255,255,255,.12) !important; box-shadow: none; }
+          position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: flex-end;
+          justify-content: space-between; gap: 24px; min-height: 190px; padding: 30px 32px;
+          margin-bottom: 22px; color: #fff; border-radius: 25px;
+          background: radial-gradient(ellipse at 82% 0%,color-mix(in srgb, var(--brand-accent) 30%, transparent),transparent 34%),
+                      radial-gradient(ellipse at 70% 100%,color-mix(in srgb, var(--brand-accent) 18%, transparent),transparent 38%),
+                      linear-gradient(118deg,#0b142b 0%,#111f41 52%,#152e55 100%);
+          box-shadow: 0 22px 55px rgba(18,38,77,.17);
+          animation: dc-enter .65s cubic-bezier(.2,.75,.2,1) both;
+        }
+        .discharge-redesign .discharge-workspace > .mb-4.flex.gap-2 { gap:8px; margin-bottom:18px; }
+        .discharge-redesign .discharge-workspace > .mb-4.flex.gap-2 button { min-height:43px; border-radius:12px !important; border-color:#dfe7f2; box-shadow:0 2px 5px rgba(20,35,59,.025); }
+        .discharge-redesign .discharge-workspace select,.discharge-redesign .discharge-workspace input,.discharge-redesign .discharge-workspace textarea { min-height:43px; border-radius:11px !important; border-color:#dce4f0; box-shadow:none; }
+        .discharge-redesign .discharge-workspace select:focus,.discharge-redesign .discharge-workspace input:focus,.discharge-redesign .discharge-workspace textarea:focus { border-color:var(--brand-accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-accent) 16%, transparent); }
+        .discharge-redesign .discharge-workspace .rounded-\[16px\],.discharge-redesign .discharge-workspace .rounded-\[14px\] { border-radius:18px !important; }
+        .discharge-redesign .discharge-workspace .shadow-sm,.discharge-redesign .discharge-workspace .shadow-lift { box-shadow:0 6px 22px rgba(18,38,77,.055) !important; }
+        .discharge-redesign .discharge-workspace .divide-surface > :not([hidden]) ~ :not([hidden]),.discharge-redesign .discharge-workspace .border-surface { border-color:#edf1f7; }
+        .discharge-redesign .discharge-workspace .bg-white { border-color:#e6ebf4; }
+        .discharge-redesign .discharge-workspace .mono { font-variant-numeric:tabular-nums; letter-spacing:-.25px; }
+        .discharge-redesign .discharge-workspace section[aria-label="Discharge date filters"] { position:relative; padding:20px; border:1px solid #e3eaf4; border-radius:19px !important; box-shadow:0 8px 24px rgba(20,35,59,.045); animation:dc-enter .5s ease both; }
+        .discharge-redesign .discharge-workspace section[aria-label="Discharge date filters"] > div:first-child { align-items:center; }
+        .discharge-redesign .discharge-workspace section[aria-label="Discharge date filters"] .rounded-full { transition:transform .2s ease, box-shadow .2s ease, background .2s ease; }
+        .discharge-redesign .discharge-workspace section[aria-label="Discharge date filters"] .rounded-full:hover { transform:translateY(-2px); }
+        .discharge-redesign .discharge-workspace section[aria-label="Discharge date filters"] button[class*="bg-brand-accent"] { box-shadow:0 5px 13px color-mix(in srgb, var(--brand-accent) 25%, transparent); }
+        .discharge-redesign .discharge-workspace .space-y-3 > .overflow-hidden.rounded-\[14px\] { border:1px solid #e3eaf3; box-shadow:0 8px 24px rgba(20,35,59,.045); transition:box-shadow .22s ease; }
+        .discharge-redesign .discharge-workspace .space-y-3 > .overflow-hidden.rounded-\[14px\]:hover { box-shadow:0 14px 32px rgba(20,35,59,.075); }
+        .discharge-redesign .discharge-workspace .space-y-3 > .overflow-hidden.rounded-\[14px\] > .flex.items-center.gap-3 { min-height:70px; background:linear-gradient(110deg,#fff,#f8fbff); }
+        .discharge-redesign .discharge-workspace .space-y-3 > .overflow-hidden.rounded-\[14px\] .bg-navy\/8 { background:var(--brand-accent-light) !important; }
+        .discharge-redesign .discharge-workspace .bg-red-light,.discharge-redesign .discharge-workspace .bg-amber-light,.discharge-redesign .discharge-workspace .bg-green-light { border-radius:10px; }
+        .discharge-redesign .discharge-workspace button { transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease; }
+        .discharge-redesign .discharge-workspace button:active { transform:scale(.985); }
+        .discharge-redesign .discharge-workspace button:focus-visible { outline:3px solid color-mix(in srgb, var(--brand-accent) 40%, transparent); outline-offset:2px; }
+        .discharge-redesign .discharge-workspace > .overflow-hidden.rounded-\[16px\].bg-white { border:1px solid #e4eaf4; box-shadow:0 12px 35px rgba(20,35,59,.06); }
+        .discharge-redesign .discharge-workspace label { min-width:0; }
+        .discharge-redesign .discharge-workspace input[type="date"] { color-scheme:light; }
+        @keyframes dc-enter { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @media (min-width:1024px) { .discharge-redesign .discharge-workspace > .space-y-3 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; } .discharge-redesign .discharge-workspace > .space-y-3 > * { min-width:0; } .discharge-redesign .discharge-workspace > .space-y-3 > .overflow-hidden.rounded-\[14px\] { margin-top:0; } .discharge-redesign .discharge-workspace .grid.grid-cols-2.divide-x { grid-template-columns:repeat(4,minmax(0,1fr)); } .discharge-redesign .discharge-workspace .grid.grid-cols-2.divide-x > div { border-bottom:0; padding-top:10px; padding-bottom:10px; } }
+        @media (max-width:640px) {
+          .discharge-redesign > .sticky > div:first-child { padding-inline:14px; gap:10px; }
+          .discharge-redesign > .sticky > div:nth-child(2) { padding-inline:12px; gap:5px; overflow-x:auto; scrollbar-width:none; }
+          .discharge-redesign > .sticky > div:nth-child(2) button { flex:0 0 auto; padding-inline:12px; font-size:11px; }
+          .discharge-redesign .discharge-workspace { padding:16px 13px 30px; }
+          .discharge-redesign .discharge-workspace section[aria-label="Discharge date filters"] { padding:15px; }
+          .discharge-redesign .discharge-workspace .mono { overflow-wrap:anywhere; }
+          .discharge-redesign .discharge-workspace .grid.grid-cols-2.divide-x { grid-template-columns:repeat(2,minmax(0,1fr)); }
+          .discharge-redesign .discharge-workspace .space-y-3 > .overflow-hidden.rounded-\[14px\] { margin-bottom:10px; }
+        }
+        @media (prefers-reduced-motion:reduce) { .discharge-redesign *, .discharge-redesign *:before, .discharge-redesign *:after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; } }
+      `}</style>
 
       {/* Compact and sticky — always reachable, never eats permanent
           screen space the way the richer stat card below would if it
           stayed pinned too. */}
-      <div className="sticky top-0 z-[200]" style={{ background: "var(--ftk-card)", borderBottom: "1px solid var(--ftk-card-border)", paddingTop: "max(var(--sat),14px)" }}>
+      <div className="sticky top-0 z-[200]" style={{ background: "linear-gradient(135deg,var(--brand-primary-dark),var(--brand-primary))", borderBottom: "3px solid var(--brand-accent)", paddingTop: "max(var(--sat),14px)" }}>
         <div className="flex items-center gap-3 px-4 pb-2.5">
           <button type="button" onClick={() => navigate(dashboardPathFor({ role: auth.role, station: auth.station }))}
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border transition hover:bg-surface"
@@ -696,42 +883,48 @@ export default function DischargePage() {
             <i className="bi bi-arrow-left" />
           </button>
           <div className="flex-1">
-            <div className="text-[16px] font-extrabold tracking-tight" style={{ color: "var(--ftk-ink)" }}>Discharge</div>
-            <div className="text-[10.5px] font-medium" style={{ color: "var(--ftk-ink-faint)" }}>{getStation(activeStation()).name}</div>
+            <div className="text-[16px] font-extrabold tracking-tight">Discharge</div>
+            <div className="text-[10.5px] font-medium">{getStation(activeStation()).name}</div>
           </div>
-          {isGMOrOwner && (
-            <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10.5px] font-bold" style={{ background: "rgba(19,6,86,0.06)", color: "var(--ftk-ink-dim)" }}>
-              <i className="bi bi-droplet-half" /> {litres(sumRecords(records).litres)} all-time
-            </div>
-          )}
+          <button type="button" onClick={() => navigate(`/discharge-report/${activeStation()}`)}
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[11.5px] font-bold text-white"
+            style={{ background: "var(--ftk-ink)" }}>
+            <i className="bi bi-printer" /> Report
+          </button>
         </div>
         <div className="flex gap-1.5 border-t px-3 py-2" style={{ borderColor: "var(--ftk-card-border)" }}>
           {[
-            ["records", "Records", records.length],
+            ["records", "Deliveries", null],
             ...(isSupervisor ? [["record", "Record Discharge", null]] : []),
             ...(isGM ? [["pricing", pending.length > 0 ? `Price Discharge (${pending.length})` : "Price Discharge", null]] : []),
           ].map(([k, l]) => (
             <button key={k} type="button" onClick={() => { setTab(k); setFeedback(null) }}
-              className="flex-1 rounded-full py-1.5 text-[11.5px] font-bold transition"
+              className={`relative flex-1 rounded-full py-1.5 text-[11.5px] font-bold transition ${tab === k ? "dc-tab-active" : ""}`}
               style={tab === k
                 ? { background: "var(--ftk-ink)", color: "#fff" }
                 : { background: "var(--ftk-bg)", color: "var(--ftk-ink-dim)" }}>
               {l}
+              {tab === k && <motion.span layoutId="dc-tab-underline" transition={{ duration: 0.28, ease: EASE }}
+                className="pointer-events-none absolute inset-x-3 bottom-0 h-[2px] rounded-full" style={{ background: "var(--brand-accent)" }} />}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mx-auto max-w-[640px] px-4 py-4">
-        <OpsContextStrip area="Fuel Delivery" step="Discharge control" />
+      <div className="discharge-workspace mx-auto max-w-[1600px] px-4 py-5 md:px-6 xl:px-8">
         {/* Feedback */}
+        <AnimatePresence initial={false}>
         {feedback && (
+          <motion.div key="fb" initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
           <div className={`mb-4 flex items-start gap-2 rounded-[11px] border px-4 py-3 text-[13px] font-semibold ${feedback.ok ? "border-green/20 bg-green-light text-green" : "border-red/20 bg-red-light text-red"}`}>
             <i className={`bi mt-0.5 ${feedback.ok ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"}`} />
             <div className="flex-1">{feedback.text}</div>
             <button type="button" onClick={() => setFeedback(null)}><i className="bi bi-x-lg text-[11px] opacity-40" /></button>
           </div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* PMS/AGO/LPG toggle — never blended, same as the fuel-stock hero
             never combines PMS-on-hand with AGO-on-hand. Governs History,
@@ -742,153 +935,98 @@ export default function DischargePage() {
               <button
                 key={p} type="button" onClick={() => setProductFilter(p)}
                 className={`flex-1 rounded-[12px] py-2.5 text-[13px] font-bold transition ${
-                  productFilter === p ? "bg-navy text-white shadow-lift" : "border border-border bg-white text-ink-3"
+                  productFilter === p ? "bg-brand text-white shadow-lift" : "border border-border bg-white text-ink-3"
                 }`}
               >
                 <i className={`bi ${p === "PMS" ? "bi-fuel-pump-fill" : p === "AGO" ? "bi-droplet-fill" : "bi-fire"} mr-1.5`} />{p}
+                {isGMOrOwner && unpricedByProduct[p] > 0 && (
+                  <span className="ml-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red px-1 text-[10.5px] font-extrabold text-white">{unpricedByProduct[p]}</span>
+                )}
               </button>
             ))}
-          </div>
-        )}
-
-        {/* Supplier filter — confirmed directly this was needed: reviewing
-            one company's full history meant scrolling past every other
-            supplier's records too, with no way to isolate just one.
-            Records-tab only, since pricing is already grouped this way. */}
-        {tab === "records" && allSuppliers.length > 1 && (
-          <div className="mb-4">
-            <select
-              value={supplierFilter}
-              onChange={e => setSupplierFilter(e.target.value)}
-              className="w-full rounded-[12px] border border-border bg-white px-3.5 py-2.5 text-[13px] font-semibold text-ink outline-none focus:border-cyan"
-            >
-              <option value="all">All Suppliers</option>
-              {allSuppliers.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
           </div>
         )}
 
         {/* ── RECORDS TAB ── */}
         {tab === "records" && (
           <>
-            {/* Owner/GM summary strip — running totals by period, front and center */}
-            {isGMOrOwner && !loading && productFilteredRecords.length > 0 && (
-              <div className="mb-4 overflow-hidden rounded-[16px] shadow-lift" style={{ background: "var(--brand-gradient-btn)" }}>
-                <div className="flex gap-1 px-3 pt-3">
-                  {[["week", "This Week"], ["month", "This Month"], ["all", "All Time"]].map(([k, l]) => (
-                    <button key={k} type="button" onClick={() => setPeriod(k)}
-                      className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${period === k ? "bg-white text-navy" : "text-white/60 hover:text-white/90"}`}>
-                      {l}
-                    </button>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setShowPriced(v => !v)} aria-pressed={showPriced}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-bold transition ${showPriced ? "border-brand bg-brand text-white" : "border-border bg-white text-ink-3"}`}>
+                <i className={`bi ${showPriced ? "bi-eye-fill" : "bi-eye-slash"}`} /> {showPriced ? "Showing priced too" : "Priced hidden"}
+              </button>
+              <button type="button" onClick={() => setShowDates(v => !v)} aria-expanded={showDates}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[12px] font-bold transition ${datePreset !== "all" ? "border-brand-accent bg-brand-accent-light text-brand-accent-dark" : "border-border bg-white text-ink-3"}`}>
+                <i className="bi bi-calendar3" /> {datePreset === "all" ? "Dates" : periodLabel}
+              </button>
+              {allSuppliers.length > 1 && (
+                <select value={supplierFilter} onChange={e => setSupplierFilter(e.target.value)} aria-label="Supplier"
+                  className="min-w-0 flex-1 rounded-full border border-border bg-white px-3.5 py-2 text-[12px] font-bold text-ink-3 outline-none focus:border-brand-accent sm:flex-none">
+                  <option value="all">All suppliers</option>
+                  {allSuppliers.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                </select>
+              )}
+            </div>
+            <Collapse open={showDates}>
+              <section className="mb-3 rounded-[14px] border border-border bg-white p-3.5" aria-label="Discharge date filters">
+                <div className="flex flex-wrap gap-2">
+                  {[["today", "Today"], ["yesterday", "Yesterday"], ["last7", "Last 7 days"], ["month", "This month"]].map(([key, label]) => (
+                    <button key={key} type="button" onClick={() => applyDatePreset(key)}
+                      className={`rounded-full border px-3 py-1.5 text-[11.5px] font-bold transition ${datePreset === key ? "border-brand bg-brand text-white" : "border-border bg-surface text-ink-3"}`}>{label}</button>
                   ))}
+                  {datePreset !== "all" && <button type="button" onClick={() => { clearDateRange(); setShowDates(false) }} className="rounded-full px-3 py-1.5 text-[11.5px] font-bold text-red">Clear</button>}
                 </div>
-                <div className="px-4 pb-1 pt-2 text-[10.5px] font-semibold text-white/50">{periodLabel} · {periodTotals.count} record{periodTotals.count !== 1 ? "s" : ""}</div>
-                <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 px-1 py-4">
-                  <div className="px-3 pb-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Expected</div>
-                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{periodTotals.ordered > 0 ? qty(periodTotals.ordered) : "—"}</div>
-                  </div>
-                  <div className="px-3 pb-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Received</div>
-                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{qty(periodTotals.litres)}</div>
-                  </div>
-                  <div className="px-3 pt-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Total Amount</div>
-                    <div className="mono mt-1 text-[15px] font-extrabold text-white">{naira(periodTotals.cost)}</div>
-                  </div>
-                  <div className="px-3 pt-3 text-center">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">Variance Cost</div>
-                    <div className={`mono mt-1 text-[15px] font-extrabold ${periodTotals.shortageAmount > 0 ? "text-amber" : periodTotals.shortageAmount < 0 ? "text-green" : "text-white"}`}>{periodTotals.shortageAmount < 0 ? `+${naira(Math.abs(periodTotals.shortageAmount))}` : naira(periodTotals.shortageAmount)}</div>
-                  </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <label className="block text-[11px] font-bold text-ink-3">From
+                    <input type="date" value={draftFrom} onChange={e => { setDraftFrom(e.target.value); setDatePreset("custom") }} className="mt-1 block w-full min-w-0 rounded-[9px] border border-border bg-white px-3 py-2 text-[12px] font-semibold text-ink outline-none focus:border-brand-accent" />
+                  </label>
+                  <label className="block text-[11px] font-bold text-ink-3">To
+                    <input type="date" value={draftTo} min={draftFrom || undefined} onChange={e => { setDraftTo(e.target.value); setDatePreset("custom") }} className="mt-1 block w-full min-w-0 rounded-[9px] border border-border bg-white px-3 py-2 text-[12px] font-semibold text-ink outline-none focus:border-brand-accent" />
+                  </label>
+                  <button type="button" onClick={() => { applyCustomDateRange(); }} className="col-span-2 rounded-[9px] bg-brand-accent px-4 py-2.5 text-[12px] font-extrabold text-white sm:col-span-1">Apply</button>
                 </div>
-
-                {/* Per-tank breakdown — the combined total above used to be
-                    the only thing shown; no way to see which tank actually
-                    received what within the period. */}
-                {periodByTank.length > 0 && (
-                  <div className="border-t border-white/10 px-4 py-3">
-                    <div className="mb-2 text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">By Tank</div>
-                    <div className="space-y-1.5">
-                      {periodByTank.map(t => (
-                        <div key={t.label} className="flex items-center justify-between text-[12px]">
-                          <span className="font-semibold text-white/90">{t.label}</span>
-                          <span className="mono font-bold text-white">
-                            {qty(t.litres)}{t.cost > 0 ? ` · ${naira(t.cost)}` : ""}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Per-supplier breakdown — a leaderboard view CEO can scan
-                    to see who's actually cheaper (avgPrice) and who tends
-                    to deliver short (shortagePct), without opening every
-                    individual record. Sorted by volume, same as tanks
-                    above, so the biggest suppliers surface first. */}
-                {periodBySupplier.length > 0 && (
-                  <div className="border-t border-white/10 px-4 py-3">
-                    <div className="mb-2 text-[9.5px] font-bold uppercase tracking-[0.5px] text-white/50">By Supplier</div>
-                    <div className="space-y-2">
-                      {periodBySupplier.map(s => (
-                        <div key={s.label} className="text-[12px]">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-white/90">{s.label}</span>
-                            <span className="mono font-bold text-white">{qty(s.litres)}</span>
-                          </div>
-                          <div className="mt-0.5 flex items-center justify-between text-[10.5px] text-white/50">
-                            <span>
-                              {s.avgPrice !== null ? `avg ${naira(s.avgPrice)}/L` : "not yet priced"}
-                              {s.count > 1 ? ` · ${s.count} deliveries` : ""}
-                            </span>
-                            {s.shortagePct !== null && Math.abs(s.shortagePct) >= 0.5 && (
-                              <span className={s.shortagePct > 0 ? "text-amber" : "text-green"}>
-                                {s.shortagePct > 0 ? "−" : "+"}{Math.abs(s.shortagePct).toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {pending.length > 0 && (
-                  <div className="flex items-center gap-2 border-t border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold text-white/80">
-                    <i className="bi bi-hourglass-split" /> {pending.length} record{pending.length !== 1 ? "s" : ""} awaiting price from GM
-                  </div>
-                )}
-              </div>
-            )}
+                {dateFilterError && <p role="alert" className="mt-2 text-[11.5px] font-semibold text-red">{dateFilterError}</p>}
+              </section>
+            </Collapse>
 
             {loading && (
-              <div className="flex flex-col items-center gap-2 py-16">
-                <span className="h-6 w-6 animate-spin-fast rounded-full border-2 border-cyan/20 border-t-cyan" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25, delay: 0.1 }} className="flex flex-col items-center gap-2 py-16">
+                <span className="h-6 w-6 animate-spin-fast rounded-full border-2" style={{ borderColor: "color-mix(in srgb, var(--brand-accent) 20%, transparent)", borderTopColor: "var(--brand-accent)" }} />
                 <div className="text-[12px] text-ink-4">Loading records…</div>
-              </div>
+              </motion.div>
             )}
-            {!loading && productFilteredRecords.length === 0 && (
-              <div className="flex flex-col items-center gap-3 rounded-[16px] bg-white py-16 text-center shadow-sm">
+            {!loading && visibleRecords.length === 0 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-2 rounded-[16px] bg-white py-14 text-center shadow-sm">
                 <i className="bi bi-fuel-pump text-4xl text-ink-4" />
-                <div className="text-[14px] font-bold text-ink">No discharge records yet</div>
-                <div className="text-[12.5px] text-ink-4">Records will appear here once a supervisor logs a discharge.</div>
-              </div>
+                <div className="text-[14px] font-bold text-ink">No deliveries found</div>
+                {(appliedFrom || appliedTo) && <button type="button" onClick={clearDateRange} className="text-[12px] font-bold text-brand-accent-dark underline">Clear dates</button>}
+              </motion.div>
             )}
-            {!loading && productFilteredRecords.length > 0 && (
-              <div className="space-y-3">
+            {!loading && visibleRecords.length > 0 && !showPriced && groupedRecords.length === 0 && (
+              <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="flex flex-col items-center gap-3 rounded-[16px] bg-white py-12 text-center shadow-sm">
+                <i className="bi bi-check2-circle text-5xl text-green" />
+                <div className="text-[15px] font-extrabold text-ink">All {productFilter} deliveries are priced</div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button type="button" onClick={() => navigate(`/discharge-report/${activeStation()}`)} className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[12.5px] font-bold text-white"><i className="bi bi-printer" /> Open report</button>
+                  <button type="button" onClick={() => setShowPriced(true)} className="rounded-full border border-border bg-white px-4 py-2 text-[12.5px] font-bold text-ink-3">Show priced</button>
+                </div>
+              </motion.div>
+            )}
+            {!loading && visibleRecords.length > 0 && (
+              <Stagger key={`${productFilter}-${showPriced}-${supplierFilter}-${datePreset}`} gap={0.05} className="space-y-3">
                 {groupedRecords.map((group, gi) => {
                   const allPriced = group.items.every(isPriced)
                   return (
-                    <div key={gi} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
+                    <StaggerItem key={gi} whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
                       {/* One card per day — the day's total is the headline,
                           not each tank buried in its own separate card. */}
                       <div className="flex items-center gap-3 border-b border-surface px-4 py-3.5">
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-navy/8 text-[16px] text-navy">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[16px] text-brand" style={{ background: "var(--brand-accent-light)" }}>
                           <i className="bi bi-calendar3" />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-1.5 text-[12px] font-semibold text-ink-3">
-                            {formatDateLabel(group.date)} · {group.items.length} tank{group.items.length !== 1 ? "s" : ""}
+                            {formatDateLabel(group.date)}
                             {isGMOrOwner && (
                               <span className={`ml-auto flex items-center gap-1 rounded-full px-2 py-[2px] text-[9.5px] font-bold ${allPriced ? "bg-green-light text-green" : "bg-amber-light text-amber"}`}>
                                 <i className={`bi ${allPriced ? "bi-check-circle-fill" : "bi-hourglass-split"} text-[8px]`} />
@@ -1066,26 +1204,10 @@ export default function DischargePage() {
                         })()}
                       </div>
 
-                      <div className="border-t border-surface px-4 py-2 text-[10px] text-ink-4">
-                        Submitted by {group.items[0][COL.SUBMITTED_BY]}
-                      </div>
-
-                      {/* setPricingDate no longer exists — the pricing tab
-                          was rebuilt to group by supplier, not by a
-                          single date being "opened" for pricing. This
-                          just switches to the pricing tab now; that tab
-                          already shows every pending day/supplier group
-                          on its own. */}
-                      {isGM && !allPriced && (
-                        <button type="button" onClick={() => setTab("pricing")}
-                          className="flex w-full items-center justify-center gap-2 border-t border-surface py-2.5 text-[12px] font-bold text-cyan-dark transition hover:bg-cyan/5">
-                          <i className="bi bi-tag" /> Add Price for This Day
-                        </button>
-                      )}
-                    </div>
+                    </StaggerItem>
                   )
                 })}
-              </div>
+              </Stagger>
             )}
           </>
         )}
@@ -1099,7 +1221,7 @@ export default function DischargePage() {
             </div>
             <div className="space-y-4 p-5">
               <div>
-                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-cyan-dark">Discharge Details</div>
+                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-brand-accent-dark">Discharge Details</div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
@@ -1126,7 +1248,7 @@ export default function DischargePage() {
               </div>
 
               <div className="border-t border-surface pt-4">
-                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-cyan-dark">Quantity</div>
+                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-brand-accent-dark">Quantity</div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
@@ -1164,7 +1286,7 @@ export default function DischargePage() {
               </div>
 
               <div className="border-t border-surface pt-4">
-                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-cyan-dark">Documentation</div>
+                <div className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.5px] text-brand-accent-dark">Documentation</div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
@@ -1198,11 +1320,19 @@ export default function DischargePage() {
             {pending.length === 0 && (
               <div className="flex flex-col items-center gap-3 rounded-[16px] bg-white py-14 text-center shadow-sm">
                 <i className="bi bi-check2-all text-4xl text-green" />
-                <div className="text-[14px] font-bold text-ink">All records priced</div>
-                <div className="text-[12.5px] text-ink-4">No pending discharge records need pricing.</div>
+                <div className="text-[14px] font-bold text-ink">All {productFilter} priced</div>
+                {["PMS", "AGO", "LPG"].filter(p => p !== productFilter && unpricedByProduct[p] > 0).map(p => (
+                  <button key={p} type="button" onClick={() => setProductFilter(p)}
+                    className="rounded-full bg-amber-light px-4 py-2 text-[12.5px] font-bold text-amber">
+                    {unpricedByProduct[p]} {p} still need a price →
+                  </button>
+                ))}
+                {unpricedTotal === 0 && (
+                  <button type="button" onClick={() => navigate(`/discharge-report/${activeStation()}`)} className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-[12.5px] font-bold text-white"><i className="bi bi-printer" /> Open report</button>
+                )}
               </div>
             )}
-            <div className="space-y-3">
+            <Stagger gap={0.06} className="space-y-3">
               {/* Grouped by day, then by SUPPLIER within the day — not by
                   individual tank delivery. Confirmed directly with a real
                   example: AITEO delivering to TK1/TK2/TK3 on the same day
@@ -1228,9 +1358,9 @@ export default function DischargePage() {
                 }, {})
 
                 return (
-                  <div key={date} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
+                  <StaggerItem key={date} whileHover={{ y: -2 }} className="overflow-hidden rounded-[14px] bg-white shadow-sm">
                     <div className="flex items-center gap-3 border-b border-surface px-4 py-3.5">
-                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-amber-light text-[16px] text-amber">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[16px]" style={{ background: "var(--brand-accent-light)", color: "var(--brand-accent-dark)" }}>
                         <i className="bi bi-calendar3" />
                       </div>
                       <div className="flex-1">
@@ -1316,7 +1446,7 @@ export default function DischargePage() {
                               <input type="number" inputMode="decimal" placeholder="e.g. 1229"
                                 value={priceVal}
                                 onChange={e => setPriceInputs(v => ({ ...v, [groupKey]: e.target.value }))}
-                                className="mono w-full rounded-[10px] border-2 border-cyan bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
+                                className="mono w-full rounded-[10px] border-2 border-brand-accent bg-surface px-3.5 py-2.5 text-[15px] font-bold text-ink outline-none focus:bg-white" />
                             </label>
                             {previewTotal !== null && (
                               <div className="mb-2 space-y-1 rounded-[9px] bg-surface px-3 py-2 text-[12px] text-ink-4">
@@ -1336,10 +1466,10 @@ export default function DischargePage() {
                         )
                       })}
                     </div>
-                  </div>
+                  </StaggerItem>
                 )
               })}
-            </div>
+            </Stagger>
           </>
         )}
       </div>
@@ -1374,7 +1504,7 @@ export default function DischargePage() {
                       type="button"
                       onClick={() => setDischargeResolutionPrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "yes" } : x))}
                       className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
-                        p.answer === "yes" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                        p.answer === "yes" ? "border-brand-accent bg-brand-accent-light text-brand-accent-dark" : "border-border bg-white text-ink-3"
                       }`}
                     >
                       Yes, already included
@@ -1383,7 +1513,7 @@ export default function DischargePage() {
                       type="button"
                       onClick={() => setDischargeResolutionPrompt(prev => prev.map((x, xi) => xi === i ? { ...x, answer: "no" } : x))}
                       className={`flex-1 rounded-[9px] border-[1.5px] py-2 text-[12.5px] font-bold ${
-                        p.answer === "no" ? "border-cyan bg-cyan-light text-cyan-dark" : "border-border bg-white text-ink-3"
+                        p.answer === "no" ? "border-brand-accent bg-brand-accent-light text-brand-accent-dark" : "border-border bg-white text-ink-3"
                       }`}
                     >
                       No, add it
@@ -1429,7 +1559,7 @@ export default function DischargePage() {
                   type={type} inputMode={type === "number" ? "decimal" : undefined}
                   value={editForm[key] ?? ""}
                   onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                  className="w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-2.5 text-[14px] font-medium text-ink outline-none focus:border-cyan focus:bg-white"
+                  className="w-full rounded-[10px] border-[1.5px] border-border bg-surface px-3.5 py-2.5 text-[14px] font-medium text-ink outline-none focus:border-brand-accent focus:bg-white"
                 />
               </label>
             ))}

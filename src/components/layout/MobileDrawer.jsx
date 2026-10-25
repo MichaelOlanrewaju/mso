@@ -3,6 +3,7 @@ import { activeStation } from "../../utils/station"
 import { getStation } from "../../config/stations"
 import { useNavigate } from "react-router-dom"
 import { BUILD_ID } from "../../utils/buildInfo"
+import { motion, AnimatePresence, EASE } from "../motion"
 
 // NOTE: MobileDrawer is only ever rendered for owner/gm (supervisor and
 // cashier have their own dedicated mobile dashboard UIs) — so nothing here
@@ -31,14 +32,16 @@ export default function MobileDrawer({ open, onClose, onLogout }) {
      whatever was active at first import. */
   const LINKS = buildLinks()
   const navigate = useNavigate()
-  if (!open) return null
 
   const go = href => { onClose(); navigate(href) }
 
   return (
-    <>
-      <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-[301] flex w-[80vw] max-w-[320px] flex-col bg-white shadow-2xl">
+    <AnimatePresence>
+      {open && (<React.Fragment key="drawer">
+      <motion.div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm" onClick={onClose}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} />
+      <motion.div className="fixed inset-y-0 right-0 z-[301] flex w-[80vw] max-w-[320px] flex-col bg-white shadow-2xl"
+        initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.3, ease: EASE }}>
         <div className="flex items-center justify-between border-b border-border px-5 py-4"
           style={{ paddingTop: "max(16px,var(--sat))" }}>
           <div className="flex items-center gap-2.5">
@@ -55,12 +58,15 @@ export default function MobileDrawer({ open, onClose, onLogout }) {
 
         <div className="flex-1 overflow-y-auto px-3 py-3">
           <div className="grid grid-cols-3 gap-2">
-            {LINKS.map(l => (
-              <button key={l.href} type="button" onClick={() => go(l.href)}
+            {LINKS.map((l, i) => (
+              <motion.button key={l.href} type="button" onClick={() => go(l.href)}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: EASE, delay: 0.12 + i * 0.03 }}
+                whileTap={{ scale: 0.94 }}
                 className="flex flex-col items-center gap-1.5 rounded-[12px] border border-surface bg-surface px-2 py-3 text-center active:bg-border">
                 <i className={`bi ${l.icon} text-[20px]`} style={{ color: l.color }} />
                 <span className="text-[10.5px] font-semibold leading-tight text-ink">{l.text}</span>
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -72,7 +78,8 @@ export default function MobileDrawer({ open, onClose, onLogout }) {
           </button>
           <div className="mt-2.5 text-center text-[10px] text-ink-4">Version {BUILD_ID}</div>
         </div>
-      </div>
-    </>
+      </motion.div>
+      </React.Fragment>)}
+    </AnimatePresence>
   )
 }

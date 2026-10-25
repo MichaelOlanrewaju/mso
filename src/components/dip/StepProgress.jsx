@@ -2,7 +2,7 @@ import React from "react"
 
 export default function StepProgress({ total, current }) {
   return (
-    <div className="mb-1 flex gap-[3px]">
+    <div className="mb-1 flex gap-[3px]" role="progressbar" aria-label="Tank reading progress" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(total, current + 1)}>
       {Array.from({ length: total }).map((_, i) => (
         <div
           key={i}

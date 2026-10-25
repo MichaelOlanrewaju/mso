@@ -2,6 +2,7 @@ import React from "react"
 import { activeStation } from "../../utils/station"
 import { Link } from "react-router-dom"
 import { naira, numberNG, litres } from "../../utils/format"
+import { motion } from "../motion"
 
 const METHOD_PILL = {
   pos: "border-cyan/20 bg-cyan-light text-cyan-dark",
@@ -66,8 +67,10 @@ export default function TransactionsCard({ status, transactions }) {
               transactions.map((t, i) => {
                 const tankLabel = [t.tank, t.pump, t.nozzle].filter(Boolean).join("·")
                 return (
-                  <tr
+                  <motion.tr
                     key={i}
+                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.28, delay: Math.min(i, 12) * 0.035 }}
                     className={`border-b border-surface last:border-none hover:bg-[#FAFBFE] ${
                       t.handover ? "bg-[#EAF6FC]" : ""
                     }`}
@@ -108,7 +111,7 @@ export default function TransactionsCard({ status, transactions }) {
                       </span>
                     </td>
                     <td className="px-3.5 py-2.5 text-[11.5px] text-ink-3">{t.attendant || "—"}</td>
-                  </tr>
+                  </motion.tr>
                 )
               })
             )}

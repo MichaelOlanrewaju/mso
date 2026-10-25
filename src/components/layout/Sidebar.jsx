@@ -2,6 +2,7 @@ import React from "react"
 import { activeStation } from "../../utils/station"
 import { getStation } from "../../config/stations"
 import { Link, useLocation } from "react-router-dom"
+import { motion, AnimatePresence, Stagger, StaggerItem } from "../motion"
 
 const buildSections = () => [
   {
@@ -67,19 +68,19 @@ function NavLinkItem({ href, icon, text }) {
     <Link
       to={href}
       aria-current={active ? "page" : undefined}
-      className={`group flex items-center gap-3 rounded-[10px] border px-3 py-[9px] text-[12px] font-semibold transition-all duration-150 ${
+      className={`group relative flex items-center gap-3 rounded-[10px] border px-3 py-[9px] text-[12px] font-semibold transition-all duration-200 hover:translate-x-[2px] ${
         active
-          ? "border-cyan/15 bg-cyan-light text-navy shadow-[inset_3px_0_0_var(--brand-accent)]"
+          ? "border-transparent bg-brand-accent-light text-navy shadow-[inset_3px_0_0_var(--brand-accent)]"
           : "border-transparent text-ink-2 hover:border-border hover:bg-surface hover:text-ink"
       }`}
     >
       <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[8px] transition-colors ${
-        active ? "bg-white text-cyan-dark shadow-sm" : "bg-surface text-ink-4 group-hover:bg-white group-hover:text-ink-2"
+        active ? "bg-white text-brand-accent-dark shadow-sm" : "bg-surface text-ink-4 group-hover:bg-white group-hover:text-ink-2"
       }`}>
         <i className={`bi ${icon} text-[13px]`} />
       </span>
       <span className="truncate">{text}</span>
-      {active && <i className="bi bi-chevron-right ml-auto text-[9px] text-cyan-dark" />}
+      {active && <motion.i layoutId="nav-chevron" transition={{ duration: 0.25 }} className="bi bi-chevron-right ml-auto text-[9px] text-brand-accent-dark" />}
     </Link>
   )
 }
@@ -91,14 +92,18 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
 
   return (
     <>
-      {mobileOpen && (
-        <button
-          type="button"
-          aria-label="Close navigation"
-          className="fixed inset-0 z-[198] bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.button
+            key="scrim"
+            type="button"
+            aria-label="Close navigation"
+            className="fixed inset-0 z-[198] bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}
+            onClick={onClose}
+          />
+        )}
+      </AnimatePresence>
 
       <aside
         className={`fixed inset-y-0 left-0 z-[199] flex h-full w-sidebar flex-col border-r border-border bg-white transition-transform duration-300 ${
@@ -127,26 +132,26 @@ export default function Sidebar({ isGM, isOwner, canPickStation, homePath, onLog
 
           {homePath && (
             <div className="mb-3">
-              <NavLinkItem href={homePath} icon="bi-grid-1x2-fill" text="Command Center" />
+              <NavLinkItem href={homePath} icon="bi-grid-1x2-fill" text="Dashboard" />
             </div>
           )}
 
-          <nav aria-label="Primary navigation" className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+          <Stagger as="nav" gap={0.045} delay={0.1} aria-label="Primary navigation" className="min-h-0 flex-1 overflow-y-auto pr-0.5">
             {sections.map(section => {
               if (section.ownerOrGm && !ownerOrGm) return null
               if (section.pickOnly && !canPickStation) return null
               return (
-                <div key={section.label} className={`mb-4 ${section.desktopOnly ? "hidden lg:block" : ""}`}>
+                <StaggerItem key={section.label} className={`mb-4 ${section.desktopOnly ? "hidden lg:block" : ""}`}>
                   <div className="mb-1.5 px-2 text-[8.5px] font-extrabold uppercase tracking-[.14em] text-ink-4">
                     {section.label}
                   </div>
                   <div className="flex flex-col gap-1">
                     {section.links.map(l => <NavLinkItem key={l.href} {...l} />)}
                   </div>
-                </div>
+                </StaggerItem>
               )
             })}
-          </nav>
+          </Stagger>
 
           <div className="mt-2 border-t border-border pt-3">
             <div className="mb-2 flex items-center gap-2 px-2 text-[9px] font-semibold text-ink-4">
