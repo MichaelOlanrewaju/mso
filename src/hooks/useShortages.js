@@ -13,6 +13,11 @@ export function useShortages({ all = false } = {}) {
   const [shortages, setShortages] = useState([])
   const [saving, setSaving] = useState(false)
   const isMounted = useRef(true)
+  /* Every load gets a number; only the NEWEST one may write state. Without this,
+     the page's first request (made before the role is known, so "pending only")
+     could finish after the second ("all") and overwrite the full list with an
+     empty one — the list flashed, then vanished. */
+  const requestRef = useRef(0)
 
   useEffect(() => {
     isMounted.current = true
@@ -26,6 +31,7 @@ export function useShortages({ all = false } = {}) {
       setStatus("idle")
       return
     }
+    const myRequest = ++requestRef.current
     setStatus("loading")
     const url = new URL(SCRIPT_URL)
     url.searchParams.set("action", "getShortages")
@@ -34,7 +40,7 @@ export function useShortages({ all = false } = {}) {
     fetch(url.toString(), { method: "GET", redirect: "follow" })
       .then(res => res.json())
       .then(d => {
-        if (!isMounted.current) return
+        if (!isMounted.current || myRequest !== requestRef.current) return
         if (d.ok) {
           setShortages(d.shortages || [])
           setStatus("ready")
@@ -43,7 +49,7 @@ export function useShortages({ all = false } = {}) {
         }
       })
       .catch(() => {
-        if (isMounted.current) setStatus("error")
+        if (isMounted.current && myRequest === requestRef.current) setStatus("error")
       })
   }, [all])
 

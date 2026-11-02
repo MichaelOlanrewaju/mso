@@ -47,3 +47,5 @@ In a network-enabled environment, run `npm install` followed by `npm run build`,
 - Supervisor dashboard: station-brand hero (animated progress ring, step chips, Continue button), staggered sections, animated tank bars/pump rows/counters, skeletons, motion nav. All features, routes and handlers unchanged; no mock data.
 - Both pages take station colours from the live brand tokens (Mobil blue / M&M wine+gold).
 - Daily Summary: skeleton loading, animated state cards, count-up hero figures, staggered sections on each date change, short mobile date label.
+
+- Shortage page: ignore out-of-order responses (fixes list flashing then showing empty); manager empty-state wording.

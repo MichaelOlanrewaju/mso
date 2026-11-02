@@ -241,7 +241,7 @@ export default function ShortagePage() {
           <div className="flex flex-col items-center gap-2 rounded-card border border-border bg-white py-14 text-center shadow-card">
             <i className="bi bi-check-circle text-3xl text-green" />
             <div className="text-[13.5px] font-bold text-ink">No shortages reported</div>
-            <div className="max-w-[260px] text-[12px] text-ink-4">Nothing pending right now — that's a good sign.</div>
+            <div className="max-w-[260px] text-[12px] text-ink-4">{canReview ? "No shortage records for this station." : "Nothing pending right now — that's a good sign."}</div>
           </div>
         )}
 
