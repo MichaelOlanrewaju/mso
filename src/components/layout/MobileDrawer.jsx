@@ -14,6 +14,7 @@ const buildLinks = () => [
   { href: `/shortage/${activeStation()}`, icon: "bi-exclamation-triangle",   color: "#F87171", text: "Shortage" },
   { href: `/debtors/${activeStation()}`,  icon: "bi-person-fill-exclamation",color: "#DC2626", text: "Debtors" },
   { href: `/orders/${activeStation()}`,   icon: "bi-box-arrow-in-down",      color: "var(--brand-accent)", text: "Orders" },
+  { href: `/audit/${activeStation()}`,    icon: "bi-shield-check",           color: "var(--brand-accent)", text: "Data Audit" },
   { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow",         color: "#0891B2", text: "Variance" },
   { href: `/pnl/${activeStation()}`,      icon: "bi-bar-chart-line-fill",    color: "#06091A", text: "P&L" },
   { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill",            color: "#059669", text: "Tank and Pump Analysis" },

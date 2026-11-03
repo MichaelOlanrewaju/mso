@@ -50,6 +50,7 @@ const StaffBankDetailsPage   = lazy(() => import("./pages/StaffBankDetailsPage")
 const ShiftsPage             = lazy(() => import("./pages/ShiftsPage"))
 const DebtorsPage            = lazy(() => import("./pages/DebtorsPage"))
 const OrdersPage             = lazy(() => import("./pages/OrdersPage"))
+const AuditPage              = lazy(() => import("./pages/AuditPage"))
 const VariancePage           = lazy(() => import("./pages/VariancePage"))
 const PnLPage                = lazy(() => import("./pages/PnLPage"))
 const StockPLPage            = lazy(() => import("./pages/StockPLPage"))
@@ -128,6 +129,7 @@ export default function App() {
           <Route path="/shifts/:station" element={<StationGuard><ShiftsPage /></StationGuard>} />
           <Route path="/debtors/:station" element={<StationGuard><DebtorsPage /></StationGuard>} />
           <Route path="/orders/:station" element={<StationGuard><OrdersPage /></StationGuard>} />
+          <Route path="/audit/:station" element={<StationGuard><AuditPage /></StationGuard>} />
           <Route path="/variance/:station" element={<StationGuard><VariancePage /></StationGuard>} />
           <Route path="/pnl/:station" element={<StationGuard><PnLPage /></StationGuard>} />
           <Route path="/stock-pl/:station" element={<StationGuard><StockPLPage /></StationGuard>} />

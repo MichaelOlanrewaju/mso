@@ -17,6 +17,7 @@ const buildSections = () => [
     links: [
       { href: `/summary/${activeStation()}`, icon: "bi-printer", text: "Daily Summary" },
       { href: `/records/${activeStation()}`, icon: "bi-journal-text", text: "Records" },
+      { href: `/audit/${activeStation()}`, icon: "bi-shield-check", text: "Data Audit" },
       { href: `/variance/${activeStation()}`, icon: "bi-graph-up-arrow", text: "Stock Variance" },
       { href: `/pnl/${activeStation()}`, icon: "bi-bar-chart-line-fill", text: "P&L Report" },
       { href: `/stock-pl/${activeStation()}`, icon: "bi-layers-fill", text: "Tank and Pump Analysis" },

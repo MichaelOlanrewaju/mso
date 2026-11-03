@@ -49,3 +49,8 @@ In a network-enabled environment, run `npm install` followed by `npm run build`,
 - Daily Summary: skeleton loading, animated state cards, count-up hero figures, staggered sections on each date change, short mobile date label.
 
 - Shortage page: ignore out-of-order responses (fixes list flashing then showing empty); manager empty-state wording.
+
+## V17 — Data Audit page
+- New page `/audit/:station` (GM/CEO/owner): scans a date range, flags cash gaps, tank/pump meter breaks, duplicates,
+  missing cash-ups, and bank deposits that don't match the day's to-bank. Sidebar + mobile drawer link "Data Audit".
+- Backend: `getAudit` + `auditRange_` in Code.gs (read-only). Notes (INFO) = missing proof photos, dip-vs-meter.
