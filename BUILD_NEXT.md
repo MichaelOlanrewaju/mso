@@ -74,3 +74,14 @@ In a network-enabled environment, run `npm install` followed by `npm run build`,
 
 ## V21 — Summary: a closing of 0 L is a real reading
 - Once any tank's closing is entered, a 0 closing = tank sold out (sold = opening, margin computed), not "not entered".
+
+## V22 — previous-day cash-up gate + automatic price-change requirement
+- Backend `saveDailyReport`: a CASHIER cannot start a day's cash-up while the previous active day's cash-up is not APPROVED
+  (blank, PENDING or REJECTED all block). Supervisor/GM/Owner are never held by it, so a supervisor can still enter
+  the morning dip/pump readings. A cash-up already started (PENDING/REJECTED) can still be corrected.
+  Kill switch: Script Property `gate_prev_cashup` = `off`.
+- New `getCashupGate` endpoint + `useCashupGate` hook: red "Cash-up is locked for this day" banner on the Cash-up page.
+- Backend `savePrice`: a PMS/AGO price change while a pump of that product has an unclosed session now sets the
+  server-side cutover requirement automatically (no manual script), so every supervisor device shows the blocking alert
+  until `pumpPriceCutover` is done.
+- PriceChangeAlert: stronger look (red backdrop, pulsing icon, "Price changed — act now").

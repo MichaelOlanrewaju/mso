@@ -11,6 +11,7 @@ import ConfirmSubmitModal from "../components/ui/ConfirmSubmitModal"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { useLubricant } from "../hooks/useLubricant"
 import { useCashupData } from "../hooks/useCashupData"
+import { useCashupGate } from "../hooks/useCashupGate"
 import { usePageTitle } from "../hooks/usePageTitle"
 import { naira, numberNG, litres } from "../utils/format"
 
@@ -88,6 +89,7 @@ function CashupInner() {
     mpCharge, zmCharge, trfMPCharge, mpNet, zmNet, trfMPNet, totalCharges, totalExpenses,
     collected, cashToBank, variance, reconStatus, cashSummary, submit, saving,
   } = useCashupData(auth.username, auth.name)
+  const gate = useCashupGate(date, auth.username)
   /* The oil price list. The cashier reads it; only supervisors/GM/owner write it. */
   const {
     status: lubProductsStatus,
@@ -201,6 +203,16 @@ function CashupInner() {
       <div className="mx-auto max-w-[640px] px-4 py-4 pb-[120px]">
         <OpsContextStrip area="Cash Control" step="Reconciliation" />
         <DateRow date={date} onChange={setDate} supName={auth.name || auth.username} roleLabel={auth.role === "supervisor" ? "Supervisor" : "Cashier"} />
+
+        {gate.blocked && (
+          <div role="alert" className="mb-4 flex items-start gap-3 rounded-card border-2 border-[#DC2626] bg-[#FEF2F2] p-4">
+            <i className="bi bi-lock-fill mt-0.5 text-[18px] text-[#DC2626]" />
+            <div className="min-w-0">
+              <div className="text-[13px] font-extrabold text-[#991B1B]">Cash-up is locked for this day</div>
+              <div className="mt-1 text-[12px] leading-snug text-[#7F1D1D]">{gate.message}</div>
+            </div>
+          </div>
+        )}
 
         {/* ── STATUS HERO — the one number that matters most, always visible,
             never repeated three times across the page like before ── */}
