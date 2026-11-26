@@ -92,6 +92,14 @@ function shiftSummaryDate(value, delta) {
   return `${y}-${m}-${day}`
 }
 
+// A closing of 0 is a real reading (tank sold out). The day's closing dip is
+// "submitted" when ANY tank (or LPG) has a closing > 0 or a stored diff > 0;
+// then every tank's 0 counts as a genuine empty tank, not "not entered".
+function dipClosed(report) {
+  return ["tk1","tk2","tk3","tk4"].some(k => (Number(report[`${k}_closing`]) || 0) > 0 || (Number(report[`${k}_diff`]) || 0) > 0)
+    || (Number(report.lpg_tank_closing) || 0) > 0
+}
+
 function liveDiff(report, tankId) {
   const open = Number(report[`${tankId}_opening`]) || 0
   const close = Number(report[`${tankId}_closing`]) || 0
@@ -99,7 +107,7 @@ function liveDiff(report, tankId) {
   // closing time and never revisited, so a discharge landing afterward
   // leaves it stale. Live opening/closing are the actual physical readings
   // and safe to trust directly.
-  return close > 0 ? Math.max(0, Math.round((open - close) * 100) / 100) : (Number(report[`${tankId}_diff`]) || 0)
+  return (close > 0 || dipClosed(report)) ? Math.max(0, Math.round((open - close) * 100) / 100) : (Number(report[`${tankId}_diff`]) || 0)
 }
 
 function tankRows(report, marginByTank) {
@@ -257,7 +265,7 @@ function liveMarginByTank(report, station) {
     // trust — they're the actual physical readings, not derived values.
     const open = Number(report[`${t.id.toLowerCase()}_opening`]) || 0
     const close = Number(report[`${t.id.toLowerCase()}_closing`]) || 0
-    const dipDiff = close > 0 ? Math.max(0, open - close) : (Number(report[`${t.id.toLowerCase()}_diff`]) || 0)
+    const dipDiff = (close > 0 || dipClosed(report)) ? Math.max(0, open - close) : (Number(report[`${t.id.toLowerCase()}_diff`]) || 0)
     marginByTank[t.id] = Math.round((pumpLitres - dipDiff) * 100) / 100
   })
   return marginByTank

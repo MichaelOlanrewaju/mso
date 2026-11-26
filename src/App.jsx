@@ -92,13 +92,13 @@ export default function App() {
   // close pumps. GM/Owner already see price changes reflected wherever
   // they look; cashiers don't touch pump metres.
   const isSupervisor = !auth.loading && auth.user && auth.role === "supervisor"
-  const { pendingChange, acknowledge } = usePriceWatch({ enabled: isSupervisor })
+  const { pendingChange } = usePriceWatch({ enabled: isSupervisor })
 
   return (
     <>
       <OfflineBanner />
       <UpdateBanner />
-      {isSupervisor && <PriceChangeAlert change={pendingChange} onDismissForNow={acknowledge} />}
+      {isSupervisor && <PriceChangeAlert change={pendingChange} />}
       <Suspense fallback={<RouteLoading />}>
         <PageTransition routeKey={pageKey}>
         <Routes location={location}>

@@ -54,3 +54,23 @@ In a network-enabled environment, run `npm install` followed by `npm run build`,
 - New page `/audit/:station` (GM/CEO/owner): scans a date range, flags cash gaps, tank/pump meter breaks, duplicates,
   missing cash-ups, and bank deposits that don't match the day's to-bank. Sidebar + mobile drawer link "Data Audit".
 - Backend: `getAudit` + `auditRange_` in Code.gs (read-only). Notes (INFO) = missing proof photos, dip-vs-meter.
+
+## V18 — price-change cutover can no longer be dismissed
+- A detected PMS/AGO price change is stored per station (localStorage) and stays pending until the pumps are closed
+  via the cutover sheet. The alert is a blocking dialog with only "Close pumps now" (no "Remind me later").
+- It steps aside on /sales/<station>?cutover=<product>, and clears when the cutover succeeds.
+- Frontend-only: it cannot stop someone using a different device/browser that has not seen the change.
+
+## V19 — server-forced price cutover ("today only")
+- Backend: `requirePriceCutoverToday()` (run once from the editor) stores a requirement per station; `getCurrentPrices`
+  returns `cutoverRequired`; `pumpPriceCutover` clears it on success; it expires after the day it was set for.
+- App: supervisor devices show the blocking alert from the server flag (no device memory needed); clears on every device
+  once the cutover is done.
+
+## V20 — closing dip no longer misread as opening when TK1 is empty
+- App now sends `isClosing` (false on opening save, true on closing save) to saveDailyReport.
+- Backend fallback (old apps) now looks at ALL tanks' closing readings, not just TK1.
+- Symptom fixed: Confirm & Save on Closing Stock did nothing / "Opening Dip already submitted" whenever TK1 closed at 0 L.
+
+## V21 — Summary: a closing of 0 L is a real reading
+- Once any tank's closing is entered, a 0 closing = tank sold out (sold = opening, margin computed), not "not entered".

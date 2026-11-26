@@ -349,7 +349,7 @@ export function useDipData(username, selectedDate) {
         }
       })
 
-      return post({ action: "saveDailyReport", station: activeStation(), username, date, data }).then(d => {
+      return post({ action: "saveDailyReport", station: activeStation(), username, date, data, isClosing: false }).then(d => {
         if (!d.ok) return d
         rawReportRef.current = { ...rawReportRef.current, ...data }
         return d
@@ -417,7 +417,7 @@ export function useDipData(username, selectedDate) {
         }
       })
 
-      return post({ action: "saveDailyReport", station: activeStation(), username, date, data }).then(d => {
+      return post({ action: "saveDailyReport", station: activeStation(), username, date, data, isClosing: true }).then(d => {
         if (!d.ok) return d
         rawReportRef.current = { ...rawReportRef.current, ...data }
         return d

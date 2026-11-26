@@ -28,6 +28,31 @@ function loadLastSeen() {
   }
 }
 
+/* A detected price change stays PENDING until the pumps are actually closed and
+   reopened at the new price. It used to live only in React state, so tapping
+   "Remind me later" (or a refresh) lost it forever — the new price was already
+   recorded as "seen", so the alert never came back and pumps kept running on the
+   old price. Now it is stored per station and only clearPendingCutover() removes it. */
+const EVT = "mso-price-cutover-changed"
+function pendingKey() { return `mso-price-cutover-pending-${activeStation()}` }
+function loadPending() {
+  try { return JSON.parse(localStorage.getItem(pendingKey()) || "{}") || {} } catch (e) { return {} }
+}
+function savePending(obj) {
+  try { localStorage.setItem(pendingKey(), JSON.stringify(obj)) } catch (e) { /* storage unavailable */ }
+  try { window.dispatchEvent(new Event(EVT)) } catch (e) { /* ignore */ }
+}
+export function clearPendingCutover(product) {
+  const cur = loadPending()
+  delete cur[String(product || "").toUpperCase()]
+  savePending(cur)
+}
+function firstPending() {
+  const cur = loadPending()
+  const k = Object.keys(cur)[0]
+  return k ? cur[k] : null
+}
+
 function saveLastSeen(v) {
   try {
     localStorage.setItem(lastSeenKey(), JSON.stringify(v))
@@ -44,7 +69,7 @@ function saveLastSeen(v) {
  * happens where this hook is consumed, since it needs today's pump data.
  */
 export function usePriceWatch({ enabled }) {
-  const [pendingChange, setPendingChange] = useState(null) // { product, oldPrice, newPrice, since }
+  const [pendingChange, setPendingChange] = useState(() => (enabled ? firstPending() : null)) // { product, oldPrice, newPrice, since }
   /* No longer initialized once via useRef's lazy initializer — that only
      ever runs at first mount, which wouldn't correctly pick up a station
      switch if this component gets reused rather than remounted for the
@@ -72,23 +97,45 @@ export function usePriceWatch({ enabled }) {
         const seen = loadLastSeen()
         const fresh = { pms: Number(d.pmsPrice), ago: Number(d.agoPrice) }
 
-        // First check ever on this device — just record current prices, nothing to alert about.
-        if (!seen) {
-          saveLastSeen(fresh)
-          return
-        }
+        // First check ever on this device — just record current prices (a server requirement is still handled below).
+        const firstEver = !seen
 
-        if (seen.pms !== fresh.pms) {
-          setPendingChange({ product: "PMS", oldPrice: seen.pms, newPrice: fresh.pms, since: d.pmsSince })
-        } else if (seen.ago !== fresh.ago) {
-          setPendingChange({ product: "AGO", oldPrice: seen.ago, newPrice: fresh.ago, since: d.agoSince })
-        }
+        const pend = loadPending()
+        /* Server-side requirement ("close the old price today"): shown on EVERY supervisor
+           device, and removed again once the cutover is done (even from another phone). */
+        const req = d.cutoverRequired || {}
+        let changed = false
+        Object.keys(req).forEach(prod => {
+          if (!pend[prod]) {
+            pend[prod] = { product: prod, oldPrice: req[prod].oldPrice, newPrice: req[prod].newPrice, forced: true }
+            changed = true
+          }
+        })
+        Object.keys(pend).forEach(prod => {
+          if (pend[prod].forced && !req[prod]) { delete pend[prod]; changed = true }
+        })
+        if (changed) savePending(pend)
+        if (firstEver) { saveLastSeen(fresh); return }
+        if (seen.pms !== fresh.pms) pend.PMS = { product: "PMS", oldPrice: seen.pms, newPrice: fresh.pms, since: d.pmsSince }
+        if (seen.ago !== fresh.ago) pend.AGO = { product: "AGO", oldPrice: seen.ago, newPrice: fresh.ago, since: d.agoSince }
+        if (seen.pms !== fresh.pms || seen.ago !== fresh.ago) savePending(pend)
 
         saveLastSeen(fresh)
       })
       .catch(() => {
         // silent — a missed poll just means we check again at the next interval
       })
+  }, [enabled])
+
+  /* Keep state in step with storage — also picks up the clear that happens on the
+     Sales page once the cutover is done, and a station switch. */
+  useEffect(() => {
+    if (!enabled) { setPendingChange(null); return }
+    const sync = () => setPendingChange(firstPending())
+    sync()
+    window.addEventListener(EVT, sync)
+    window.addEventListener("storage", sync)
+    return () => { window.removeEventListener(EVT, sync); window.removeEventListener("storage", sync) }
   }, [enabled])
 
   useEffect(() => {
@@ -98,9 +145,5 @@ export function usePriceWatch({ enabled }) {
     return () => clearInterval(id)
   }, [enabled, check])
 
-  const acknowledge = useCallback(() => {
-    setPendingChange(null)
-  }, [])
-
-  return { pendingChange, acknowledge, refreshNow: check }
+  return { pendingChange, refreshNow: check }
 }

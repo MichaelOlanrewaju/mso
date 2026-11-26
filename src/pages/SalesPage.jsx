@@ -17,6 +17,7 @@ import { WorkflowActionBar } from "../components/ui/system/DataTable"
 import { useAuth, dashboardPathFor } from "../hooks/useAuth"
 import { usePrices } from "../hooks/usePrices"
 import { usePriceCutover } from "../hooks/usePriceCutover"
+import { clearPendingCutover } from "../hooks/usePriceWatch"
 import { useSalesEntry } from "../hooks/useSalesEntry"
 import { useAttendants } from "../hooks/useAttendants"
 import { useSettings } from "../hooks/useSettings"
@@ -75,6 +76,7 @@ function SalesInner() {
     })
     if (res.ok) {
       toast.showToast("Pumps reopened", res.message || "Cutover complete", "ok")
+      clearPendingCutover(cutoverProduct)
       searchParams.delete("cutover")
       setSearchParams(searchParams, { replace: true })
       refresh()
