@@ -36,7 +36,14 @@ function loadLastSeen() {
 const EVT = "mso-price-cutover-changed"
 function pendingKey() { return `mso-price-cutover-pending-${activeStation()}` }
 function loadPending() {
-  try { return JSON.parse(localStorage.getItem(pendingKey()) || "{}") || {} } catch (e) { return {} }
+  /* Only server-required cutovers count. Locally "detected" price changes used to be stored here too and could
+     never be cleared when the pumps were closed by a script or on another phone — those are discarded. */
+  try {
+    const all = JSON.parse(localStorage.getItem(pendingKey()) || "{}") || {}
+    const keep = {}
+    Object.keys(all).forEach(k => { if (all[k] && all[k].forced) keep[k] = all[k] })
+    return keep
+  } catch (e) { return {} }
 }
 function savePending(obj) {
   try { localStorage.setItem(pendingKey(), JSON.stringify(obj)) } catch (e) { /* storage unavailable */ }
@@ -115,12 +122,10 @@ export function usePriceWatch({ enabled }) {
           if (pend[prod].forced && !req[prod]) { delete pend[prod]; changed = true }
         })
         if (changed) savePending(pend)
-        if (firstEver) { saveLastSeen(fresh); return }
-        if (seen.pms !== fresh.pms) pend.PMS = { product: "PMS", oldPrice: seen.pms, newPrice: fresh.pms, since: d.pmsSince }
-        if (seen.ago !== fresh.ago) pend.AGO = { product: "AGO", oldPrice: seen.ago, newPrice: fresh.ago, since: d.agoSince }
-        if (seen.pms !== fresh.pms || seen.ago !== fresh.ago) savePending(pend)
-
+        /* No local detection any more: the server decides whether a cutover is still needed
+           (a price changed while a pump was running, and that pump is not closed yet). */
         saveLastSeen(fresh)
+        void firstEver
       })
       .catch(() => {
         // silent — a missed poll just means we check again at the next interval

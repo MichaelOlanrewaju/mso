@@ -85,3 +85,9 @@ In a network-enabled environment, run `npm install` followed by `npm run build`,
   server-side cutover requirement automatically (no manual script), so every supervisor device shows the blocking alert
   until `pumpPriceCutover` is done.
 - PriceChangeAlert: stronger look (red backdrop, pulsing icon, "Price changed — act now").
+
+## V23 — price-change popup no longer repeats after it is done
+- Server `cutoverRequired_` is self-healing: the requirement disappears as soon as no pump of that product has an
+  unclosed session at the old price (closed by the app, a script, or from another phone).
+- App no longer creates its own local "price changed" alert; it only shows the server's requirement, and purges old
+  local ones on load. No more popup after the work is done or when no pump was running.
